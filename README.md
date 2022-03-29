@@ -6,3 +6,5 @@
 测试从vscode拉取
 
 测试从GitKraken上传
+
+测试从GitKraken下载
