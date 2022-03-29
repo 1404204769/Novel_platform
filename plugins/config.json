@@ -1,0 +1,18 @@
+{
+    // 这是MyTools配置文件  Total_Integral/总积分   Level/等级  Power/权限
+    "Level" : [
+        {
+            "Total_Integral"    :   100,
+            "Level"             :   1,
+            "Power"             :   1
+        },
+        {
+            "Total_Integral"    :   200,
+            "Level"             :   2,
+            "Power"             :   2
+        }
+    ],
+    "Data":{
+        "Login_Time"            :   null
+    }
+}
