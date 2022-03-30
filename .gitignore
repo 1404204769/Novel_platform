@@ -2,3 +2,6 @@
 build/
 
 logs/
+
+dependence/json
+dependence/cpp-jwt
