@@ -24,8 +24,10 @@ class MyJson : public drogon::Plugin<MyJson>
     /// It must be implemented by the user.
     virtual void shutdown() override;
   public:
-    string itoa_self(int i);
-    map<string,string> jsonstr2map(const string& json);
+    map<string,string> jsonstr2map(const string& JsonStr);
+    void MapToJson(Json::Value &JsonValue, map<string,string>& map_info,const string &DataName);
+    void UnMapToJson(Json::Value &JsonValue,const unordered_map<string,string>& umap_info,const string &DataName);
+    void JsonstrToJson(Json::Value &JsonValue,const string& JsonStr);
     void SaveConfig(Json::Value &config, const string &openFilePath);
     void readFileJson(Json::Value &ConfigJson,const string &openFilePath);
     void writeFileJson(Json::Value &ConfigJson,const string &openFilePath);

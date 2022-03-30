@@ -32,5 +32,6 @@ class MyRoot : public drogon::Plugin<MyRoot>
     Json::Value config;
     string WorkDirectory;
     string ConfigDirectory;
+    string SystemConfigDirectory;
 };
 

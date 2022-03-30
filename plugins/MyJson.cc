@@ -25,7 +25,7 @@ void MyJson::shutdown()
 void MyJson::readFileJson(Json::Value &ConfigJson,const string &openFilePath)
 {
 	Json::Reader reader;
-	cout << "openFilePath : " << openFilePath << endl;
+	// cout << "openFilePath : " << openFilePath << endl;
 	//从文件中读取，保证当前文件有demo.json文件  
 	ifstream in(openFilePath, ios::binary);
  
@@ -43,6 +43,7 @@ void MyJson::readFileJson(Json::Value &ConfigJson,const string &openFilePath)
  
 	in.close();
 }
+
 void MyJson::SaveConfig(Json::Value &config, const string &openFilePath)
 {
 	
@@ -67,9 +68,9 @@ void MyJson::writeFileJson(Json::Value &ConfigJson,const string &openFilePath)
 	//cout << fw.write(root) << endl << endl;
  
 	//缩进输出  
-	cout << "StyledWriter:" << endl;
+	// cout << "StyledWriter:" << endl;
 	Json::StyledWriter sw;
-	cout << sw.write(ConfigJson) << endl << endl;
+	// cout << sw.write(ConfigJson) << endl << endl;
  
 	//输出到文件  
 	ofstream os;
@@ -83,23 +84,16 @@ void MyJson::writeFileJson(Json::Value &ConfigJson,const string &openFilePath)
 	os.close();
 }
 
-string MyJson::itoa_self(int i)
-{
-	stringstream ss;
-	ss << i;
-	return ss.str();
-}
-
 // 将Json字符串转为Map
-map<string,string> MyJson::jsonstr2map(const string& json)
+map<string,string> MyJson::jsonstr2map(const string& JsonStr)
 {
 	Json::Reader reader;
 	Json::Value value;
 	map<string, string> maps;
  
-	if (json.length() > 0)
+	if (JsonStr.length() > 0)
 	{
-		if (reader.parse(json, value))
+		if (reader.parse(JsonStr, value))
 		{
 			Json::Value::Members members = value.getMemberNames();
 			for (Json::Value::Members::iterator it = members.begin(); it != members.end(); it++)
@@ -115,7 +109,7 @@ map<string,string> MyJson::jsonstr2map(const string& json)
 				case Json::intValue:
 					{
 						int intTmp = value[*it].asInt();
-						maps.insert(pair<string, string>(*it, itoa_self(intTmp)));
+						maps.insert(pair<string, string>(*it, to_string(intTmp)));
 						break;
 					}
 				case Json::arrayValue:
@@ -143,4 +137,51 @@ map<string,string> MyJson::jsonstr2map(const string& json)
 	}
  
 	return maps;
+}
+
+// 将Map转为Json
+void MyJson::MapToJson(Json::Value &JsonValue, map<string,string>& map_info,const string &DataName)
+{
+	Json::Value JObject;
+	try{
+		for (auto iter = map_info.begin(); iter != map_info.end(); ++iter)
+		{
+			JObject[iter->first] = iter->second;
+		}
+	}catch(...)
+	{
+		JsonValue["ErrorMsg"] = "Map 转为 Json 失败";
+		throw JsonValue;
+	}
+	JsonValue[DataName] = JObject;
+}
+
+// 将UnMap转为Json
+void MyJson::UnMapToJson(Json::Value &JsonValue,const unordered_map<string,string>& umap_info,const string &DataName)
+{
+	Json::Value JObject;
+	try{
+		for (auto iter = umap_info.begin(); iter != umap_info.end(); ++iter)
+		{
+			JObject[iter->first] = iter->second;
+		}
+	}catch(...)
+	{
+		JsonValue["ErrorMsg"] = "unordered_map 转为 Json 失败";
+		throw JsonValue;
+	}
+	JsonValue[DataName] = JObject;
+}
+
+// 将Json字符串转为Json::Value
+void MyJson::JsonstrToJson(Json::Value &JsonValue,const string& JsonStr)
+{
+	Json::Reader reader;
+	Json::Value value;
+	bool ret = reader.parse(JsonStr, JsonValue);
+	if(!ret)
+	{
+		JsonValue["ErrorMsg"] = "Json字符串解析出错";
+		throw JsonValue;
+	}
 }

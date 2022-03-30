@@ -81,25 +81,27 @@ Json::Value MyJwt::decode(const string &token)
 
 bool MyJwt::verify(const string &token)
 {
-    jwt::verify_func_t();
+    Json::Value JsonValue;
+    //jwt::verify_func_t();
     //jwt::verify_result_t;
     //jwt::VerificationErrc;
     //jwt::VerificationError;
     //jwt::VerificationErrorCategory;
     //jwt::theVerificationErrorCategory;
     try{
+        if(!CheckTokenValidity(token))
+            return false;
         array<jwt::string_view,3UL> old_arr = jwt::jwt_object::three_parts(token);
         auto *MyJsonPtr = drogon::app().getPlugin<MyJson>();//获取mytools插件
-
         jwt::verify_result_t result;
         jwt::jwt_signature signature;
         jwt::jwt_header header = old_arr[0];
         jwt::jwt_payload payload = old_arr[1];
         jwt::string_view old_sign = old_arr[2];
         
+        // cout<< "old_token:" << token << endl;
         // cout<< "header:" << header << endl;
         // cout<< "payload:" << payload << endl;
-        // cout<< "old_token:" << token << endl;
         // cout<< "old_sign:" << old_sign << endl;
     
         stringstream sspayload;
@@ -116,17 +118,50 @@ bool MyJwt::verify(const string &token)
         // cout<< "new_token:" << new_token << endl;
         // cout<< "new_sign:" << new_sign << endl;
     
-        if(new_sign == old_sign)
-        {
-            //cout << "Token Verify Sucessfully" << endl;
-            return true;
-        }else
-        {
-            //cout << "Token Verify Fail" << endl;
+        if(new_sign != old_sign)
             return false;
-        }
     }catch(jwt::MemoryAllocationException){
-        cout << "MemoryAllocationException" << endl;
+        JsonValue["ErrorMsg"] = "MemoryAllocationException";
+        throw JsonValue;
         return false;
     }
+    return true;
+}
+
+
+void MyJwt::PayloadToJson(const string &token, Json::Value &JsonValue)
+{
+    if(!CheckTokenValidity(token))
+        return ;
+    array<jwt::string_view,3UL> three_parts = jwt::jwt_object::three_parts(token);
+    jwt::jwt_payload payload = three_parts[1];
+    auto *MyJsonPtr = drogon::app().getPlugin<MyJson>();//获取mytools插件
+    stringstream sspayload;
+    string strpayload;
+    sspayload << payload;
+    sspayload >> strpayload;
+    MyJsonPtr->JsonstrToJson(JsonValue,strpayload);
+}
+
+
+bool MyJwt::CheckTokenValidity(const string &token)
+{
+    Json::Value JsonValue;
+    if(token.empty())
+    {
+        JsonValue["ErrorMsg"] = "传入的token是空值";
+        throw JsonValue;
+        return false;
+    }
+    size_t fpos = token.find_first_of('.');
+    if(fpos == jwt::string_view::npos)
+    {
+        cout << "传入的token格式错误"<< endl;
+        cout << "(fpos = " << to_string(fpos) << "  jwt::string_view::npos = " << to_string(jwt::string_view::npos) << ")" <<endl;
+        cout << "(token = " << token <<")" << endl;
+        JsonValue["ErrorMsg"] = "传入的token格式错误";
+        throw JsonValue;
+        return false;
+    }
+    return true;
 }

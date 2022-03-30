@@ -27,6 +27,8 @@ class MyJwt : public drogon::Plugin<MyJwt>
     string      encode(const Json::Value &param);
     Json::Value decode(const string &token);
     bool        verify(const string &token);
+    void        PayloadToJson(const string &token, Json::Value &JsonValue);
+    bool        CheckTokenValidity(const string &token);
 
   private:
     string secret;
