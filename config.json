@@ -262,6 +262,17 @@
     "plugins": [
         {
             //name: The class name of the plugin
+            "name": "MyJson",
+            //dependencies: Plugins that the plugin depends on. It can be commented out
+            "dependencies": [],
+            //config: The configuration of the plugin. This json object is the parameter to initialize the plugin.
+            //It can be commented out
+            "config": {
+                //"secret": "lizhicheng"
+            }
+        },
+        {
+            //name: The class name of the plugin
             "name": "MyTools",
             //dependencies: Plugins that the plugin depends on. It can be commented out
             "dependencies": [],
@@ -273,9 +284,21 @@
         },
         {
             //name: The class name of the plugin
+            "name": "MyRoot",
+            //dependencies: Plugins that the plugin depends on. It can be commented out
+            "dependencies": ["MyTools" , "MyJson"],
+            //config: The configuration of the plugin. This json object is the parameter to initialize the plugin.
+            //It can be commented out
+            "config": {
+                "Account":"admin",
+                "Password":"admin"
+            }
+        },
+        {
+            //name: The class name of the plugin
             "name": "MyJwt",
             //dependencies: Plugins that the plugin depends on. It can be commented out
-            "dependencies": ["MyTools"],
+            "dependencies": ["MyJson"],
             //config: The configuration of the plugin. This json object is the parameter to initialize the plugin.
             //It can be commented out
             "config": {

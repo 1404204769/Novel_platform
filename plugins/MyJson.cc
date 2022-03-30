@@ -73,7 +73,7 @@ void MyJson::writeFileJson(Json::Value &ConfigJson,const string &openFilePath)
  
 	//输出到文件  
 	ofstream os;
-	os.open(openFilePath, std::ios::out | std::ios::app);
+	os.open(openFilePath, std::ios::out);
 	if (!os.is_open())
 	{
 		ConfigJson["ErrorMsg"] = "无法找到或无法创建文件\"./config.json\"\n" ;
