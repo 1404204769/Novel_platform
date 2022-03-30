@@ -29,8 +29,7 @@ void TimeFilter::doFilter(const HttpRequestPtr &req,
                                         [now](trantor::Date &vdate) {
                                             vdate = now;
                                         });
-            fccb();
-            return;
+            return fccb();
         }
         else
         {
@@ -40,12 +39,11 @@ void TimeFilter::doFilter(const HttpRequestPtr &req,
             json["lastDate"]=lastDate.toFormattedString(false);
             json["提示"]="距离上次操作还没超过10s,请缓慢操作";
             auto res=HttpResponse::newHttpJsonResponse(json);
-            fcb(res);
-            return;
+            return fcb(res);
         }
     }
     LOG_TRACE<<"first access,insert visitDate";
     //LOG_DEBUG<<"first access,insert visitDate";
     req->session()->insert(VDate,now);
-    fccb();
+    return fccb();
 }

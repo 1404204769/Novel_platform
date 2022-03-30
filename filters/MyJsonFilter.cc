@@ -18,12 +18,11 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
     if(jsonptr)
     {
         // 若存在Json数据则允许进入下一个地址
-        fccb();
-        return;
+        return fccb();
     }
     Json::Value RespVal;
     RespVal["ErrorMsg"] = "不存在Json数据";
     auto res = HttpResponse::newHttpJsonResponse(RespVal);
     res->setStatusCode(k500InternalServerError);
-    fcb(res);
+    return fcb(res);
 }
