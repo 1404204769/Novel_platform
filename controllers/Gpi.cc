@@ -47,8 +47,8 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         // 创建Token
 		auto *JWTPtr = app().getPlugin<MyJwt>();//获取MyJwt插件
         Json::Value param;
-        param["user"] = "admin";
-        param["Result"] = "success";
+        param["UserID"] = UserID;
+        param["LoginStatus"] = "user";
         RespVal["Token"] = JWTPtr->encode(param);
 
         RespVal["Result"] = "true";

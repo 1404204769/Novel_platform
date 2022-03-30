@@ -117,4 +117,16 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
 }
 
 
+void Admin::User::Update(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>parameters = req->getParameters();
+    Json::Value RespVal;
+    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    cout << RespVal.toStyledString() << endl;
+    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
+    resp->setStatusCode(k200OK);
+    resp->setContentTypeCode(CT_TEXT_HTML);
+    callback(resp);
+}
 
