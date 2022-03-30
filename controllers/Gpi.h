@@ -1,6 +1,7 @@
 #pragma once
 #include <drogon/HttpController.h>
 #include <plugins/MyJwt.h>
+#include <plugins/MyTools.h>
 #include <models/User.h>
 using namespace drogon;
 class Gpi:public drogon::HttpController<Gpi>
