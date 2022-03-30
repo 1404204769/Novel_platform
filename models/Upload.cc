@@ -15,10 +15,11 @@ using namespace drogon_model::novel;
 const std::string Upload::Cols::_Upload_ID = "Upload_ID";
 const std::string Upload::Cols::_User_ID = "User_ID";
 const std::string Upload::Cols::_Book_ID = "Book_ID";
-const std::string Upload::Cols::_Chapter_ID = "Chapter_ID";
+const std::string Upload::Cols::_Order_ID = "Order_ID";
 const std::string Upload::Cols::_Content = "Content";
 const std::string Upload::Cols::_Status = "Status";
 const std::string Upload::Cols::_Time = "Time";
+const std::string Upload::Cols::_Processor = "Processor";
 const std::string Upload::primaryKeyName = "Upload_ID";
 const bool Upload::hasPrimaryKey = true;
 const std::string Upload::tableName = "upload";
@@ -27,10 +28,11 @@ const std::vector<typename Upload::MetaData> Upload::metaData_={
 {"Upload_ID","int32_t","int(10)",4,1,1,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Book_ID","int32_t","int(10)",4,0,0,1},
-{"Chapter_ID","int32_t","int(10)",4,0,0,0},
+{"Order_ID","int32_t","int(10)",4,0,0,0},
 {"Content","std::string","varchar(255)",255,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
-{"Time","::trantor::Date","timestamp",0,0,0,1}
+{"Time","::trantor::Date","timestamp",0,0,0,1},
+{"Processor","std::string","varchar(255)",255,0,0,1}
 };
 const std::string &Upload::getColumnName(size_t index) noexcept(false)
 {
@@ -53,9 +55,9 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         {
             bookId_=std::make_shared<int32_t>(r["Book_ID"].as<int32_t>());
         }
-        if(!r["Chapter_ID"].isNull())
+        if(!r["Order_ID"].isNull())
         {
-            chapterId_=std::make_shared<int32_t>(r["Chapter_ID"].as<int32_t>());
+            orderId_=std::make_shared<int32_t>(r["Order_ID"].as<int32_t>());
         }
         if(!r["Content"].isNull())
         {
@@ -87,11 +89,15 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
                 time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
+        if(!r["Processor"].isNull())
+        {
+            processor_=std::make_shared<std::string>(r["Processor"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 8 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -115,7 +121,7 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 3;
         if(!r[index].isNull())
         {
-            chapterId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            orderId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 4;
         if(!r[index].isNull())
@@ -150,13 +156,18 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
                 time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            processor_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -190,7 +201,7 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            chapterId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -235,6 +246,14 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
             }
         }
     }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
 }
 
 Upload::Upload(const Json::Value &pJson) noexcept(false)
@@ -263,12 +282,12 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Chapter_ID"))
+    if(pJson.isMember("Order_ID"))
     {
         dirtyFlag_[3]=true;
-        if(!pJson["Chapter_ID"].isNull())
+        if(!pJson["Order_ID"].isNull())
         {
-            chapterId_=std::make_shared<int32_t>((int32_t)pJson["Chapter_ID"].asInt64());
+            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
         }
     }
     if(pJson.isMember("Content"))
@@ -313,12 +332,20 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
             }
         }
     }
+    if(pJson.isMember("Processor"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["Processor"].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson["Processor"].asString());
+        }
+    }
 }
 
 void Upload::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -351,7 +378,7 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            chapterId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -396,6 +423,14 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
             }
         }
     }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
 }
                                                                     
 void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -423,12 +458,12 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Chapter_ID"))
+    if(pJson.isMember("Order_ID"))
     {
         dirtyFlag_[3] = true;
-        if(!pJson["Chapter_ID"].isNull())
+        if(!pJson["Order_ID"].isNull())
         {
-            chapterId_=std::make_shared<int32_t>((int32_t)pJson["Chapter_ID"].asInt64());
+            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
         }
     }
     if(pJson.isMember("Content"))
@@ -471,6 +506,14 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
                 }
                 time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
+        }
+    }
+    if(pJson.isMember("Processor"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["Processor"].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson["Processor"].asString());
         }
     }
 }
@@ -531,25 +574,25 @@ void Upload::setBookId(const int32_t &pBookId) noexcept
     dirtyFlag_[2] = true;
 }
 
-const int32_t &Upload::getValueOfChapterId() const noexcept
+const int32_t &Upload::getValueOfOrderId() const noexcept
 {
     const static int32_t defaultValue = int32_t();
-    if(chapterId_)
-        return *chapterId_;
+    if(orderId_)
+        return *orderId_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Upload::getChapterId() const noexcept
+const std::shared_ptr<int32_t> &Upload::getOrderId() const noexcept
 {
-    return chapterId_;
+    return orderId_;
 }
-void Upload::setChapterId(const int32_t &pChapterId) noexcept
+void Upload::setOrderId(const int32_t &pOrderId) noexcept
 {
-    chapterId_ = std::make_shared<int32_t>(pChapterId);
+    orderId_ = std::make_shared<int32_t>(pOrderId);
     dirtyFlag_[3] = true;
 }
-void Upload::setChapterIdToNull() noexcept
+void Upload::setOrderIdToNull() noexcept
 {
-    chapterId_.reset();
+    orderId_.reset();
     dirtyFlag_[3] = true;
 }
 
@@ -614,6 +657,28 @@ void Upload::setTime(const ::trantor::Date &pTime) noexcept
     dirtyFlag_[6] = true;
 }
 
+const std::string &Upload::getValueOfProcessor() const noexcept
+{
+    const static std::string defaultValue = std::string();
+    if(processor_)
+        return *processor_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Upload::getProcessor() const noexcept
+{
+    return processor_;
+}
+void Upload::setProcessor(const std::string &pProcessor) noexcept
+{
+    processor_ = std::make_shared<std::string>(pProcessor);
+    dirtyFlag_[7] = true;
+}
+void Upload::setProcessor(std::string &&pProcessor) noexcept
+{
+    processor_ = std::make_shared<std::string>(std::move(pProcessor));
+    dirtyFlag_[7] = true;
+}
+
 void Upload::updateId(const uint64_t id)
 {
     uploadId_ = std::make_shared<int32_t>(static_cast<int32_t>(id));
@@ -624,10 +689,11 @@ const std::vector<std::string> &Upload::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "User_ID",
         "Book_ID",
-        "Chapter_ID",
+        "Order_ID",
         "Content",
         "Status",
-        "Time"
+        "Time",
+        "Processor"
     };
     return inCols;
 }
@@ -658,9 +724,9 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getChapterId())
+        if(getOrderId())
         {
-            binder << getValueOfChapterId();
+            binder << getValueOfOrderId();
         }
         else
         {
@@ -694,6 +760,17 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
         if(getTime())
         {
             binder << getValueOfTime();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getProcessor())
+        {
+            binder << getValueOfProcessor();
         }
         else
         {
@@ -729,6 +806,10 @@ const std::vector<std::string> Upload::updateColumns() const
     {
         ret.push_back(getColumnName(6));
     }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
     return ret;
 }
 
@@ -758,9 +839,9 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getChapterId())
+        if(getOrderId())
         {
-            binder << getValueOfChapterId();
+            binder << getValueOfOrderId();
         }
         else
         {
@@ -800,6 +881,17 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[7])
+    {
+        if(getProcessor())
+        {
+            binder << getValueOfProcessor();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Upload::toJson() const
 {
@@ -828,13 +920,13 @@ Json::Value Upload::toJson() const
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getChapterId())
+    if(getOrderId())
     {
-        ret["Chapter_ID"]=getValueOfChapterId();
+        ret["Order_ID"]=getValueOfOrderId();
     }
     else
     {
-        ret["Chapter_ID"]=Json::Value();
+        ret["Order_ID"]=Json::Value();
     }
     if(getContent())
     {
@@ -860,6 +952,14 @@ Json::Value Upload::toJson() const
     {
         ret["Time"]=Json::Value();
     }
+    if(getProcessor())
+    {
+        ret["Processor"]=getValueOfProcessor();
+    }
+    else
+    {
+        ret["Processor"]=Json::Value();
+    }
     return ret;
 }
 
@@ -867,7 +967,7 @@ Json::Value Upload::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 8)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -904,9 +1004,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getChapterId())
+            if(getOrderId())
             {
-                ret[pMasqueradingVector[3]]=getValueOfChapterId();
+                ret[pMasqueradingVector[3]]=getValueOfOrderId();
             }
             else
             {
@@ -946,6 +1046,17 @@ Json::Value Upload::toMasqueradedJson(
                 ret[pMasqueradingVector[6]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getProcessor())
+            {
+                ret[pMasqueradingVector[7]]=getValueOfProcessor();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -973,13 +1084,13 @@ Json::Value Upload::toMasqueradedJson(
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getChapterId())
+    if(getOrderId())
     {
-        ret["Chapter_ID"]=getValueOfChapterId();
+        ret["Order_ID"]=getValueOfOrderId();
     }
     else
     {
-        ret["Chapter_ID"]=Json::Value();
+        ret["Order_ID"]=Json::Value();
     }
     if(getContent())
     {
@@ -1004,6 +1115,14 @@ Json::Value Upload::toMasqueradedJson(
     else
     {
         ret["Time"]=Json::Value();
+    }
+    if(getProcessor())
+    {
+        ret["Processor"]=getValueOfProcessor();
+    }
+    else
+    {
+        ret["Processor"]=Json::Value();
     }
     return ret;
 }
@@ -1035,9 +1154,9 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Book_ID column cannot be null";
         return false;
     }
-    if(pJson.isMember("Chapter_ID"))
+    if(pJson.isMember("Order_ID"))
     {
-        if(!validJsonOfField(3, "Chapter_ID", pJson["Chapter_ID"], err, true))
+        if(!validJsonOfField(3, "Order_ID", pJson["Order_ID"], err, true))
             return false;
     }
     if(pJson.isMember("Content"))
@@ -1065,13 +1184,23 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(6, "Time", pJson["Time"], err, true))
             return false;
     }
+    if(pJson.isMember("Processor"))
+    {
+        if(!validJsonOfField(7, "Processor", pJson["Processor"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Processor column cannot be null";
+        return false;
+    }
     return true;
 }
 bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                 const std::vector<std::string> &pMasqueradingVector,
                                                 std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1153,6 +1282,19 @@ bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                   return false;
           }
       }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[7] + " column cannot be null";
+            return false;
+        }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -1183,9 +1325,9 @@ bool Upload::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(2, "Book_ID", pJson["Book_ID"], err, false))
             return false;
     }
-    if(pJson.isMember("Chapter_ID"))
+    if(pJson.isMember("Order_ID"))
     {
-        if(!validJsonOfField(3, "Chapter_ID", pJson["Chapter_ID"], err, false))
+        if(!validJsonOfField(3, "Order_ID", pJson["Order_ID"], err, false))
             return false;
     }
     if(pJson.isMember("Content"))
@@ -1203,13 +1345,18 @@ bool Upload::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(6, "Time", pJson["Time"], err, false))
             return false;
     }
+    if(pJson.isMember("Processor"))
+    {
+        if(!validJsonOfField(7, "Processor", pJson["Processor"], err, false))
+            return false;
+    }
     return true;
 }
 bool Upload::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 8)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1253,6 +1400,11 @@ bool Upload::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
               return false;
       }
     }
@@ -1376,6 +1528,27 @@ bool Upload::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
+            }
+            // asString().length() creates a string object, is there any better way to validate the length?
+            if(pJson.isString() && pJson.asString().length() > 255)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 255)";
+                return false;               
+            }
+
             break;
      
         default:
