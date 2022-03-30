@@ -28,7 +28,7 @@ void MyJwt::shutdown()
 
 string MyJwt::encode(const Json::Value &param)
 {
-	auto *mytools = drogon::app().getPlugin<MyTools>();//获取mytools插件
+	auto *MyJsonPtr = drogon::app().getPlugin<MyJson>();//获取mytools插件
     /*
         iss: jwt签发者
         sub: jwt所面向的用户
@@ -39,7 +39,7 @@ string MyJwt::encode(const Json::Value &param)
         jti: jwt的唯一身份标识，主要用来作为一次性token,从而回避重放攻击。
     */
     jwt::jwt_object obj{jwt::params::algorithm(jwt::algorithm::HS256),
-                    jwt::params::secret(this->secret),jwt::params::payload(mytools->jsonstr2map(param.toStyledString()))};
+                    jwt::params::secret(this->secret),jwt::params::payload(MyJsonPtr->jsonstr2map(param.toStyledString()))};
     
     // cout << "secret: " << this->secret << endl;
     // cout << "Header: " << obj.header() << endl;
@@ -89,7 +89,7 @@ bool MyJwt::verify(const string &token)
     //jwt::theVerificationErrorCategory;
     try{
         array<jwt::string_view,3UL> old_arr = jwt::jwt_object::three_parts(token);
-        auto *mytools = drogon::app().getPlugin<MyTools>();//获取mytools插件
+        auto *MyJsonPtr = drogon::app().getPlugin<MyJson>();//获取mytools插件
 
         jwt::verify_result_t result;
         jwt::jwt_signature signature;
@@ -107,7 +107,7 @@ bool MyJwt::verify(const string &token)
         sspayload << payload;
         sspayload >> strpayload;
         jwt::jwt_object obj{jwt::params::algorithm(header.algo()),
-                      jwt::params::secret(this->secret),jwt::params::payload(mytools->jsonstr2map(strpayload))};
+                      jwt::params::secret(this->secret),jwt::params::payload(MyJsonPtr->jsonstr2map(strpayload))};
         string new_token = obj.signature();
         array<jwt::string_view,3UL> new_arr = jwt::jwt_object::three_parts(new_token);
         string new_sign = new_arr[2].data();

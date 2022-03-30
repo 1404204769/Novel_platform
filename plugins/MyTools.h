@@ -17,9 +17,6 @@
 #include <models/Note.h>
 #include <models/Upload.h>
 #include <models/User.h>
-#include <sstream>
-#include <fstream>
-#include <unistd.h>
 using namespace std;
 using namespace drogon_model::novel;
 class MyTools : public drogon::Plugin<MyTools>
@@ -37,23 +34,12 @@ class MyTools : public drogon::Plugin<MyTools>
     enum ColType{
       STRING,INT,BOOL
     };
-    enum Instructions{
-      RESTART = 1,
-    };
   public:
-    string itoa_self(int i);
-    map<string,string> jsonstr2map(const string& json);
-    void SaveConfig();
-    void readFileJson(Json::Value &ConfigJson);
-    void writeFileJson(Json::Value &ConfigJson);
     void checkMember(Json::Value &ReqVal, Json::Value &RespVal, string colName);
     void checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType);
     void checkMemberAndType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType);
     void checkMemberAndTypeInMap(Json::Value &ReqVal, Json::Value &RespVal, std::map<string,MyTools::ColType> &ColMap);
-    bool restart();
-    void close();
+
   private:
-    Json::Value config;
-    string WorkDirectory;
 };
 
