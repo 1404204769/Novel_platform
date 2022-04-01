@@ -1,7 +1,14 @@
 #pragma once
 #include <drogon/HttpController.h>
+#include <models/User.h>
+#include <models/Upload.h>
+#include <models/Book.h>
 #include <plugins/MyJson.h>
+#include <plugins/MyBase.h>
+#include <plugins/MyTools.h>
+#include <regex>
 using namespace drogon;
+using namespace drogon_model::novel;
 namespace User
 {
 class Resource:public drogon::HttpController<Resource>
