@@ -1,18 +1,27 @@
 {
-   "Data" : {
-      "Login_Time" : null
+   "Data": {
+      "Login_Time": null
    },
-   "Level" : [
+   "Level": [
       // 这是MyTools配置文件  Total_Integral/总积分   Level/等级  Power/权限
       {
-         "Level" : 1,
-         "Power" : 1,
-         "Total_Integral" : 100
+         "Level": 1,
+         "Power": 1,
+         "Total_Integral": 100
       },
       {
-         "Level" : 2,
-         "Power" : 2,
-         "Total_Integral" : 200
+         "Level": 2,
+         "Power": 2,
+         "Total_Integral": 200
       }
-   ]
+   ],
+   "SystemBase": {
+      // 这是系统的基础设置，一般不允许修改
+      "UserType": {
+         // 这是用户权限范围代表的身份
+         "user": 0, // 权限大于0代表用户
+         "admin": 10000, // 权限大于10000代表管理员
+         "root": 1000000000 // 权限大于10000000000代表超级管理员
+      }
+   }
 }
