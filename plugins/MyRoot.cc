@@ -11,78 +11,79 @@ using namespace drogon;
 void MyRoot::initAndStart(const Json::Value &config)
 {
     /// Initialize and start the plugin
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
 	try{
-    	cout << "MyRoot initAndStart" << endl;
+    	MyBasePtr->TRACELog("MyRoot initAndStart",true);
         auto *MyJsonPtr = app().getPlugin<MyJson>();
 		char buffer[256]; 
 		char *val = getcwd(buffer, sizeof(buffer)); 
 		if (val) { 
 			this->WorkDirectory = buffer;
-			//std::cout << "当前工作目录为 " << WorkDirectory << std::endl; 
+			MyBasePtr->DEBUGLog("当前工作目录为 " + WorkDirectory,true);
 		}else{
 			this->config["ErrorMsg"] = "工作目录读取失败";
 			throw this->config;
 		}
-		cout << "开始读取config" << endl;
+		MyBasePtr->TRACELog("开始读取config",true);
 		
 		this->ConfigDirectory = this->WorkDirectory + "/../config";
-		std::cout << "ConfigDirectory : " << this->ConfigDirectory << std::endl; 
+		MyBasePtr->DEBUGLog("ConfigDirectory  : " + WorkDirectory,true);
 		this->SystemConfigDirectory = this->ConfigDirectory + "/system_config.json";
-		std::cout << "SystemConfigDirectory : " << this->SystemConfigDirectory << std::endl; 
+		MyBasePtr->DEBUGLog("SystemConfigDirectory  : " + WorkDirectory,true);
 		MyJsonPtr->readFileJson(this->config, this->SystemConfigDirectory);
 	}catch(Json::Value e)
 	{
-		std::cout << "ErrorMsg : " << e["ErrorMsg"] << std::endl;
-		cout << "读取config失败" << endl;
+    	MyBasePtr->TRACELog("MyRoot::initAndStart::Error : " + e["ErrorMsg"].asString(),true);
 		return;
 	}
-	cout << "读取config成功" << endl;
-	// cout << "config : " << this->config.toStyledString() << endl;
+	MyBasePtr->TRACELog("读取config成功",true);
+	MyBasePtr->DEBUGLog("config : " + this->config.toStyledString(),true);
 }
 
 void MyRoot::shutdown() 
 {
     /// Shutdown the plugin
-    cout << "MyRoot shutdown" << endl;
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
+    MyBasePtr->TRACELog("MyRoot shutdown",true);
 }
 
 void MyRoot::close()
 {
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
 	try{
         auto *MyJsonPtr = app().getPlugin<MyJson>();
-		cout << "准备开始保存配置文件 : " << endl;
+    	MyBasePtr->TRACELog("准备开始保存配置文件",true);
 		MyJsonPtr->SaveConfig(this->config, this->SystemConfigDirectory);
-		cout << "准备开始停止应用" << endl;
+    	MyBasePtr->TRACELog("准备开始停止应用",true);
 		app().quit();
-		cout << "系统是否正在运行 : " << app().isRunning() << endl;
-		cout << "应用停止成功" << endl;
+    	MyBasePtr->TRACELog("系统是否正在运行 : " + app().isRunning(),true);
+    	MyBasePtr->TRACELog("应用停止成功",true);
 	}catch(Json::Value &e)
 	{
-		cout << "ErrorMsg : " << e["ErrorMsg"] << endl;
-		cout << "写入config失败" << endl;
+    	MyBasePtr->TRACELog("MyRoot::close::Error : " + e["ErrorMsg"].asString(),true);
 	}
 }
 
 bool MyRoot::restart()
 {
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
 	try{
         auto *MyJsonPtr = app().getPlugin<MyJson>();
-		cout << "准备开始保存配置文件 : " << endl;
+    	MyBasePtr->TRACELog("准备开始保存配置文件",true);
 		MyJsonPtr->SaveConfig(this->config, this->SystemConfigDirectory);
-		cout << "准备开始停止应用" << endl;
+    	MyBasePtr->TRACELog("准备开始停止应用",true);
 		app().quit();
-		cout << "应用停止成功" << endl;
-		cout << "系统是否正在运行 : " << app().isRunning() << endl;
-		cout << "准备开始启动应用" << endl;
+    	MyBasePtr->TRACELog("应用停止成功",true);
+    	MyBasePtr->TRACELog("系统是否正在运行 : " + app().isRunning(),true);
+    	MyBasePtr->TRACELog("准备开始启动应用",true);
 		app().loadConfigFile("../config.json");
 		//Run HTTP framework,the method will block in the internal event loop
 		//增加响应头
 		app().run();
-		cout << "应用启动成功" << endl;
+    	MyBasePtr->TRACELog("应用启动成功",true);
 	}catch(Json::Value &e)
 	{
-		cout << "ErrorMsg : " << e["ErrorMsg"] << endl;
-		cout << "写入config失败" << endl;
+    	MyBasePtr->TRACELog("MyRoot::restart::Error : " + e["ErrorMsg"].asString(),true);
 		return false;
 	}
 	return true;
@@ -90,9 +91,10 @@ bool MyRoot::restart()
 
 string MyRoot::getUserType(int UserPower)
 {
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
 	try{
 		Json::Value UserType = this->config["SystemBase"]["UserType"];
-		cout << UserType.toStyledString() << endl;
+    	MyBasePtr->DEBUGLog(UserType.toStyledString(),true);
 		if(UserPower >= UserType["root"].asInt())
 			return "root";
 		else if(UserPower >= UserType["admin"].asInt())
@@ -103,6 +105,7 @@ string MyRoot::getUserType(int UserPower)
 	catch(...){
 		Json::Value JsonValue;
 		JsonValue["ErrorMsg"] = "获取用户类型异常，请联系管理员";
+    	MyBasePtr->TRACELog("MyRoot::getUserType::Error : 获取用户类型异常，请联系管理员",true);
 		throw JsonValue;
 	}
 	return "error";

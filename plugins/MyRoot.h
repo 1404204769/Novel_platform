@@ -8,6 +8,7 @@
 
 #include <drogon/plugins/Plugin.h>
 #include <drogon/drogon.h>
+#include <plugins/MyBase.h>
 #include <plugins/MyJson.h>
 using namespace drogon;
 using namespace std;

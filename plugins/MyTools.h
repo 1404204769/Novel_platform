@@ -7,6 +7,10 @@
 #pragma once
 
 #include <drogon/plugins/Plugin.h>
+#include <drogon/drogon.h>
+#include <plugins/MyBase.h>
+#include <locale>
+#include <codecvt>
 using namespace std;
 class MyTools : public drogon::Plugin<MyTools>
 {
@@ -19,5 +23,12 @@ class MyTools : public drogon::Plugin<MyTools>
     /// This method must be called by drogon to shutdown the plugin.
     /// It must be implemented by the user.
     virtual void shutdown() override;
+  public:
+    wstring StringToWString(const string& str);
+    string WStringToString(const wstring& wstr);
+    vector<string> SpiteStringCharacter(const string &ChineseStr);
+    int ChineseNumToAlabNum(const vector<string> &ChineseNum);
+    vector<string> NumberOfChaptersExtracted(vector<string> &Title);
+
 };
 

@@ -9,6 +9,7 @@
 #include <drogon/plugins/Plugin.h>
 #include <drogon/drogon.h>
 #include <plugins/MyJson.h>
+#include <plugins/MyBase.h>
 #include <dependence/cpp-jwt/include/jwt/jwt.hpp>
 using namespace std;
 class MyJwt : public drogon::Plugin<MyJwt>
