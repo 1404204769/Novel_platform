@@ -11,7 +11,7 @@
  Target Server Version : 100334
  File Encoding         : 65001
 
- Date: 30/03/2022 20:07:47
+ Date: 01/04/2022 23:47:12
 */
 
 SET NAMES utf8mb4;
@@ -69,10 +69,11 @@ CREATE TABLE `book`  (
   `Synopsis` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '提要',
   `Publisher` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '出版方',
   `Author` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '作者',
-  `Create` timestamp(0) NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
-  `Update` timestamp(0) NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `Create_time` timestamp(0) NOT NULL DEFAULT current_timestamp() COMMENT '创建时间',
+  `Update_time` timestamp(0) NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `Memo` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '详细参数',
   PRIMARY KEY (`Book_ID`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for chapter
@@ -129,13 +130,13 @@ CREATE TABLE `upload`  (
   `Upload_ID` int(10) NOT NULL AUTO_INCREMENT COMMENT '上传ID',
   `User_ID` int(10) NOT NULL COMMENT '用户ID',
   `Book_ID` int(10) NOT NULL COMMENT '图书ID',
-  `Order_ID` int(10) NULL DEFAULT NULL COMMENT '顺序ID',
-  `Content` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '上传内容',
-  `Status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '上传状态',
+  `Content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '上传内容',
+  `Status` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '上传状态/处理结果',
   `Time` timestamp(0) NOT NULL DEFAULT current_timestamp() COMMENT '上传时间',
-  `Processor` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '处理人',
+  `Processor` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '处理人',
+  `IsManage` tinyint(1) NOT NULL COMMENT '是否处理',
   PRIMARY KEY (`Upload_ID`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 12 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Table structure for user

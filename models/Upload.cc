@@ -15,11 +15,11 @@ using namespace drogon_model::novel;
 const std::string Upload::Cols::_Upload_ID = "Upload_ID";
 const std::string Upload::Cols::_User_ID = "User_ID";
 const std::string Upload::Cols::_Book_ID = "Book_ID";
-const std::string Upload::Cols::_Order_ID = "Order_ID";
 const std::string Upload::Cols::_Content = "Content";
 const std::string Upload::Cols::_Status = "Status";
 const std::string Upload::Cols::_Time = "Time";
 const std::string Upload::Cols::_Processor = "Processor";
+const std::string Upload::Cols::_IsManage = "IsManage";
 const std::string Upload::primaryKeyName = "Upload_ID";
 const bool Upload::hasPrimaryKey = true;
 const std::string Upload::tableName = "upload";
@@ -28,11 +28,11 @@ const std::vector<typename Upload::MetaData> Upload::metaData_={
 {"Upload_ID","int32_t","int(10)",4,1,1,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Book_ID","int32_t","int(10)",4,0,0,1},
-{"Order_ID","int32_t","int(10)",4,0,0,0},
-{"Content","std::string","varchar(255)",255,0,0,1},
+{"Content","std::string","text",0,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
 {"Time","::trantor::Date","timestamp",0,0,0,1},
-{"Processor","std::string","varchar(255)",255,0,0,1}
+{"Processor","std::string","varchar(255)",255,0,0,0},
+{"IsManage","int8_t","tinyint(1)",1,0,0,1}
 };
 const std::string &Upload::getColumnName(size_t index) noexcept(false)
 {
@@ -54,10 +54,6 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         if(!r["Book_ID"].isNull())
         {
             bookId_=std::make_shared<int32_t>(r["Book_ID"].as<int32_t>());
-        }
-        if(!r["Order_ID"].isNull())
-        {
-            orderId_=std::make_shared<int32_t>(r["Order_ID"].as<int32_t>());
         }
         if(!r["Content"].isNull())
         {
@@ -93,6 +89,10 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         {
             processor_=std::make_shared<std::string>(r["Processor"].as<std::string>());
         }
+        if(!r["IsManage"].isNull())
+        {
+            ismanage_=std::make_shared<int8_t>(r["IsManage"].as<int8_t>());
+        }
     }
     else
     {
@@ -121,19 +121,14 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 3;
         if(!r[index].isNull())
         {
-            orderId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            content_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 4;
         if(!r[index].isNull())
         {
-            content_=std::make_shared<std::string>(r[index].as<std::string>());
-        }
-        index = offset + 5;
-        if(!r[index].isNull())
-        {
             status_=std::make_shared<std::string>(r[index].as<std::string>());
         }
-        index = offset + 6;
+        index = offset + 5;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -156,10 +151,15 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
                 time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        index = offset + 7;
+        index = offset + 6;
         if(!r[index].isNull())
         {
             processor_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 7;
+        if(!r[index].isNull())
+        {
+            ismanage_=std::make_shared<int8_t>(r[index].as<int8_t>());
         }
     }
 
@@ -201,7 +201,7 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -209,7 +209,7 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -217,15 +217,7 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
-        }
-    }
-    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
-    {
-        dirtyFlag_[6] = true;
-        if(!pJson[pMasqueradingVector[6]].isNull())
-        {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            auto timeStr = pJson[pMasqueradingVector[5]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -246,12 +238,20 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
             }
         }
     }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
     {
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[7]].asInt64());
         }
     }
 }
@@ -282,17 +282,9 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Order_ID"))
-    {
-        dirtyFlag_[3]=true;
-        if(!pJson["Order_ID"].isNull())
-        {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
-        }
-    }
     if(pJson.isMember("Content"))
     {
-        dirtyFlag_[4]=true;
+        dirtyFlag_[3]=true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
@@ -300,7 +292,7 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[5]=true;
+        dirtyFlag_[4]=true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
@@ -308,7 +300,7 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Time"))
     {
-        dirtyFlag_[6]=true;
+        dirtyFlag_[5]=true;
         if(!pJson["Time"].isNull())
         {
             auto timeStr = pJson["Time"].asString();
@@ -334,10 +326,18 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Processor"))
     {
-        dirtyFlag_[7]=true;
+        dirtyFlag_[6]=true;
         if(!pJson["Processor"].isNull())
         {
             processor_=std::make_shared<std::string>(pJson["Processor"].asString());
+        }
+    }
+    if(pJson.isMember("IsManage"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["IsManage"].isNull())
+        {
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
         }
     }
 }
@@ -378,7 +378,7 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -386,7 +386,7 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -394,15 +394,7 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
-        }
-    }
-    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
-    {
-        dirtyFlag_[6] = true;
-        if(!pJson[pMasqueradingVector[6]].isNull())
-        {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            auto timeStr = pJson[pMasqueradingVector[5]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -423,12 +415,20 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
             }
         }
     }
+    if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson[pMasqueradingVector[6]].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
     {
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[7]].asInt64());
         }
     }
 }
@@ -458,17 +458,9 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Order_ID"))
-    {
-        dirtyFlag_[3] = true;
-        if(!pJson["Order_ID"].isNull())
-        {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
-        }
-    }
     if(pJson.isMember("Content"))
     {
-        dirtyFlag_[4] = true;
+        dirtyFlag_[3] = true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
@@ -476,7 +468,7 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[5] = true;
+        dirtyFlag_[4] = true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
@@ -484,7 +476,7 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Time"))
     {
-        dirtyFlag_[6] = true;
+        dirtyFlag_[5] = true;
         if(!pJson["Time"].isNull())
         {
             auto timeStr = pJson["Time"].asString();
@@ -510,10 +502,18 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Processor"))
     {
-        dirtyFlag_[7] = true;
+        dirtyFlag_[6] = true;
         if(!pJson["Processor"].isNull())
         {
             processor_=std::make_shared<std::string>(pJson["Processor"].asString());
+        }
+    }
+    if(pJson.isMember("IsManage"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["IsManage"].isNull())
+        {
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
         }
     }
 }
@@ -574,28 +574,6 @@ void Upload::setBookId(const int32_t &pBookId) noexcept
     dirtyFlag_[2] = true;
 }
 
-const int32_t &Upload::getValueOfOrderId() const noexcept
-{
-    const static int32_t defaultValue = int32_t();
-    if(orderId_)
-        return *orderId_;
-    return defaultValue;
-}
-const std::shared_ptr<int32_t> &Upload::getOrderId() const noexcept
-{
-    return orderId_;
-}
-void Upload::setOrderId(const int32_t &pOrderId) noexcept
-{
-    orderId_ = std::make_shared<int32_t>(pOrderId);
-    dirtyFlag_[3] = true;
-}
-void Upload::setOrderIdToNull() noexcept
-{
-    orderId_.reset();
-    dirtyFlag_[3] = true;
-}
-
 const std::string &Upload::getValueOfContent() const noexcept
 {
     const static std::string defaultValue = std::string();
@@ -610,12 +588,12 @@ const std::shared_ptr<std::string> &Upload::getContent() const noexcept
 void Upload::setContent(const std::string &pContent) noexcept
 {
     content_ = std::make_shared<std::string>(pContent);
-    dirtyFlag_[4] = true;
+    dirtyFlag_[3] = true;
 }
 void Upload::setContent(std::string &&pContent) noexcept
 {
     content_ = std::make_shared<std::string>(std::move(pContent));
-    dirtyFlag_[4] = true;
+    dirtyFlag_[3] = true;
 }
 
 const std::string &Upload::getValueOfStatus() const noexcept
@@ -632,12 +610,12 @@ const std::shared_ptr<std::string> &Upload::getStatus() const noexcept
 void Upload::setStatus(const std::string &pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(pStatus);
-    dirtyFlag_[5] = true;
+    dirtyFlag_[4] = true;
 }
 void Upload::setStatus(std::string &&pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(std::move(pStatus));
-    dirtyFlag_[5] = true;
+    dirtyFlag_[4] = true;
 }
 
 const ::trantor::Date &Upload::getValueOfTime() const noexcept
@@ -654,7 +632,7 @@ const std::shared_ptr<::trantor::Date> &Upload::getTime() const noexcept
 void Upload::setTime(const ::trantor::Date &pTime) noexcept
 {
     time_ = std::make_shared<::trantor::Date>(pTime);
-    dirtyFlag_[6] = true;
+    dirtyFlag_[5] = true;
 }
 
 const std::string &Upload::getValueOfProcessor() const noexcept
@@ -671,11 +649,33 @@ const std::shared_ptr<std::string> &Upload::getProcessor() const noexcept
 void Upload::setProcessor(const std::string &pProcessor) noexcept
 {
     processor_ = std::make_shared<std::string>(pProcessor);
-    dirtyFlag_[7] = true;
+    dirtyFlag_[6] = true;
 }
 void Upload::setProcessor(std::string &&pProcessor) noexcept
 {
     processor_ = std::make_shared<std::string>(std::move(pProcessor));
+    dirtyFlag_[6] = true;
+}
+void Upload::setProcessorToNull() noexcept
+{
+    processor_.reset();
+    dirtyFlag_[6] = true;
+}
+
+const int8_t &Upload::getValueOfIsmanage() const noexcept
+{
+    const static int8_t defaultValue = int8_t();
+    if(ismanage_)
+        return *ismanage_;
+    return defaultValue;
+}
+const std::shared_ptr<int8_t> &Upload::getIsmanage() const noexcept
+{
+    return ismanage_;
+}
+void Upload::setIsmanage(const int8_t &pIsmanage) noexcept
+{
+    ismanage_ = std::make_shared<int8_t>(pIsmanage);
     dirtyFlag_[7] = true;
 }
 
@@ -689,11 +689,11 @@ const std::vector<std::string> &Upload::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "User_ID",
         "Book_ID",
-        "Order_ID",
         "Content",
         "Status",
         "Time",
-        "Processor"
+        "Processor",
+        "IsManage"
     };
     return inCols;
 }
@@ -724,17 +724,6 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getOrderId())
-        {
-            binder << getValueOfOrderId();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[4])
-    {
         if(getContent())
         {
             binder << getValueOfContent();
@@ -744,7 +733,7 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[4])
     {
         if(getStatus())
         {
@@ -755,7 +744,7 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[5])
     {
         if(getTime())
         {
@@ -766,11 +755,22 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[6])
     {
         if(getProcessor())
         {
             binder << getValueOfProcessor();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getIsmanage())
+        {
+            binder << getValueOfIsmanage();
         }
         else
         {
@@ -839,17 +839,6 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getOrderId())
-        {
-            binder << getValueOfOrderId();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[4])
-    {
         if(getContent())
         {
             binder << getValueOfContent();
@@ -859,7 +848,7 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[5])
+    if(dirtyFlag_[4])
     {
         if(getStatus())
         {
@@ -870,7 +859,7 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[5])
     {
         if(getTime())
         {
@@ -881,11 +870,22 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[6])
     {
         if(getProcessor())
         {
             binder << getValueOfProcessor();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getIsmanage())
+        {
+            binder << getValueOfIsmanage();
         }
         else
         {
@@ -920,14 +920,6 @@ Json::Value Upload::toJson() const
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getOrderId())
-    {
-        ret["Order_ID"]=getValueOfOrderId();
-    }
-    else
-    {
-        ret["Order_ID"]=Json::Value();
-    }
     if(getContent())
     {
         ret["Content"]=getValueOfContent();
@@ -959,6 +951,14 @@ Json::Value Upload::toJson() const
     else
     {
         ret["Processor"]=Json::Value();
+    }
+    if(getIsmanage())
+    {
+        ret["IsManage"]=getValueOfIsmanage();
+    }
+    else
+    {
+        ret["IsManage"]=Json::Value();
     }
     return ret;
 }
@@ -1004,9 +1004,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getOrderId())
+            if(getContent())
             {
-                ret[pMasqueradingVector[3]]=getValueOfOrderId();
+                ret[pMasqueradingVector[3]]=getValueOfContent();
             }
             else
             {
@@ -1015,9 +1015,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getContent())
+            if(getStatus())
             {
-                ret[pMasqueradingVector[4]]=getValueOfContent();
+                ret[pMasqueradingVector[4]]=getValueOfStatus();
             }
             else
             {
@@ -1026,9 +1026,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getStatus())
+            if(getTime())
             {
-                ret[pMasqueradingVector[5]]=getValueOfStatus();
+                ret[pMasqueradingVector[5]]=getTime()->toDbStringLocal();
             }
             else
             {
@@ -1037,9 +1037,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getTime())
+            if(getProcessor())
             {
-                ret[pMasqueradingVector[6]]=getTime()->toDbStringLocal();
+                ret[pMasqueradingVector[6]]=getValueOfProcessor();
             }
             else
             {
@@ -1048,9 +1048,9 @@ Json::Value Upload::toMasqueradedJson(
         }
         if(!pMasqueradingVector[7].empty())
         {
-            if(getProcessor())
+            if(getIsmanage())
             {
-                ret[pMasqueradingVector[7]]=getValueOfProcessor();
+                ret[pMasqueradingVector[7]]=getValueOfIsmanage();
             }
             else
             {
@@ -1084,14 +1084,6 @@ Json::Value Upload::toMasqueradedJson(
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getOrderId())
-    {
-        ret["Order_ID"]=getValueOfOrderId();
-    }
-    else
-    {
-        ret["Order_ID"]=Json::Value();
-    }
     if(getContent())
     {
         ret["Content"]=getValueOfContent();
@@ -1124,6 +1116,14 @@ Json::Value Upload::toMasqueradedJson(
     {
         ret["Processor"]=Json::Value();
     }
+    if(getIsmanage())
+    {
+        ret["IsManage"]=getValueOfIsmanage();
+    }
+    else
+    {
+        ret["IsManage"]=Json::Value();
+    }
     return ret;
 }
 
@@ -1154,14 +1154,9 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Book_ID column cannot be null";
         return false;
     }
-    if(pJson.isMember("Order_ID"))
-    {
-        if(!validJsonOfField(3, "Order_ID", pJson["Order_ID"], err, true))
-            return false;
-    }
     if(pJson.isMember("Content"))
     {
-        if(!validJsonOfField(4, "Content", pJson["Content"], err, true))
+        if(!validJsonOfField(3, "Content", pJson["Content"], err, true))
             return false;
     }
     else
@@ -1171,7 +1166,7 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
     }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(5, "Status", pJson["Status"], err, true))
+        if(!validJsonOfField(4, "Status", pJson["Status"], err, true))
             return false;
     }
     else
@@ -1181,17 +1176,22 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
     }
     if(pJson.isMember("Time"))
     {
-        if(!validJsonOfField(6, "Time", pJson["Time"], err, true))
+        if(!validJsonOfField(5, "Time", pJson["Time"], err, true))
             return false;
     }
     if(pJson.isMember("Processor"))
     {
-        if(!validJsonOfField(7, "Processor", pJson["Processor"], err, true))
+        if(!validJsonOfField(6, "Processor", pJson["Processor"], err, true))
+            return false;
+    }
+    if(pJson.isMember("IsManage"))
+    {
+        if(!validJsonOfField(7, "IsManage", pJson["IsManage"], err, true))
             return false;
     }
     else
     {
-        err="The Processor column cannot be null";
+        err="The IsManage column cannot be null";
         return false;
     }
     return true;
@@ -1247,6 +1247,11 @@ bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(3, pMasqueradingVector[3], pJson[pMasqueradingVector[3]], err, true))
                   return false;
           }
+        else
+        {
+            err="The " + pMasqueradingVector[3] + " column cannot be null";
+            return false;
+        }
       }
       if(!pMasqueradingVector[4].empty())
       {
@@ -1268,11 +1273,6 @@ bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(5, pMasqueradingVector[5], pJson[pMasqueradingVector[5]], err, true))
                   return false;
           }
-        else
-        {
-            err="The " + pMasqueradingVector[5] + " column cannot be null";
-            return false;
-        }
       }
       if(!pMasqueradingVector[6].empty())
       {
@@ -1325,29 +1325,29 @@ bool Upload::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(2, "Book_ID", pJson["Book_ID"], err, false))
             return false;
     }
-    if(pJson.isMember("Order_ID"))
-    {
-        if(!validJsonOfField(3, "Order_ID", pJson["Order_ID"], err, false))
-            return false;
-    }
     if(pJson.isMember("Content"))
     {
-        if(!validJsonOfField(4, "Content", pJson["Content"], err, false))
+        if(!validJsonOfField(3, "Content", pJson["Content"], err, false))
             return false;
     }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(5, "Status", pJson["Status"], err, false))
+        if(!validJsonOfField(4, "Status", pJson["Status"], err, false))
             return false;
     }
     if(pJson.isMember("Time"))
     {
-        if(!validJsonOfField(6, "Time", pJson["Time"], err, false))
+        if(!validJsonOfField(5, "Time", pJson["Time"], err, false))
             return false;
     }
     if(pJson.isMember("Processor"))
     {
-        if(!validJsonOfField(7, "Processor", pJson["Processor"], err, false))
+        if(!validJsonOfField(6, "Processor", pJson["Processor"], err, false))
+            return false;
+    }
+    if(pJson.isMember("IsManage"))
+    {
+        if(!validJsonOfField(7, "IsManage", pJson["IsManage"], err, false))
             return false;
     }
     return true;
@@ -1467,12 +1467,13 @@ bool Upload::validJsonOfField(size_t index,
         case 3:
             if(pJson.isNull())
             {
-                return true;
+                err="The " + fieldName + " column cannot be null";
+                return false;
             }
-            if(!pJson.isInt())
+            if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
-                return false;
+                return false;                
             }
             break;
         case 4:
@@ -1507,6 +1508,17 @@ bool Upload::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
+            break;
+        case 6:
+            if(pJson.isNull())
+            {
+                return true;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
+            }
             // asString().length() creates a string object, is there any better way to validate the length?
             if(pJson.isString() && pJson.asString().length() > 255)
             {
@@ -1516,18 +1528,6 @@ bool Upload::validJsonOfField(size_t index,
                 return false;               
             }
 
-            break;
-        case 6:
-            if(pJson.isNull())
-            {
-                err="The " + fieldName + " column cannot be null";
-                return false;
-            }
-            if(!pJson.isString())
-            {
-                err="Type error in the "+fieldName+" field";
-                return false;                
-            }
             break;
         case 7:
             if(pJson.isNull())
@@ -1535,20 +1535,11 @@ bool Upload::validJsonOfField(size_t index,
                 err="The " + fieldName + " column cannot be null";
                 return false;
             }
-            if(!pJson.isString())
+            if(!pJson.isInt())
             {
                 err="Type error in the "+fieldName+" field";
-                return false;                
+                return false;
             }
-            // asString().length() creates a string object, is there any better way to validate the length?
-            if(pJson.isString() && pJson.asString().length() > 255)
-            {
-                err="String length exceeds limit for the " +
-                    fieldName +
-                    " field (the maximum value is 255)";
-                return false;               
-            }
-
             break;
      
         default:

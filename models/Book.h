@@ -49,8 +49,9 @@ class Book
         static const std::string _Synopsis;
         static const std::string _Publisher;
         static const std::string _Author;
-        static const std::string _Create;
-        static const std::string _Update;
+        static const std::string _Create_time;
+        static const std::string _Update_time;
+        static const std::string _Memo;
     };
 
     const static int primaryKeyNumber;
@@ -155,24 +156,33 @@ class Book
     void setAuthor(const std::string &pAuthor) noexcept;
     void setAuthor(std::string &&pAuthor) noexcept;
 
-    /**  For column Create  */
-    ///Get the value of the column Create, returns the default value if the column is null
-    const ::trantor::Date &getValueOfCreate() const noexcept;
+    /**  For column Create_time  */
+    ///Get the value of the column Create_time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfCreateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getCreate() const noexcept;
-    ///Set the value of the column Create
-    void setCreate(const ::trantor::Date &pCreate) noexcept;
+    const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
+    ///Set the value of the column Create_time
+    void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
 
-    /**  For column Update  */
-    ///Get the value of the column Update, returns the default value if the column is null
-    const ::trantor::Date &getValueOfUpdate() const noexcept;
+    /**  For column Update_time  */
+    ///Get the value of the column Update_time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfUpdateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getUpdate() const noexcept;
-    ///Set the value of the column Update
-    void setUpdate(const ::trantor::Date &pUpdate) noexcept;
+    const std::shared_ptr<::trantor::Date> &getUpdateTime() const noexcept;
+    ///Set the value of the column Update_time
+    void setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept;
+
+    /**  For column Memo  */
+    ///Get the value of the column Memo, returns the default value if the column is null
+    const std::string &getValueOfMemo() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getMemo() const noexcept;
+    ///Set the value of the column Memo
+    void setMemo(const std::string &pMemo) noexcept;
+    void setMemo(std::string &&pMemo) noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 8;  }
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -195,8 +205,9 @@ class Book
     std::shared_ptr<std::string> synopsis_;
     std::shared_ptr<std::string> publisher_;
     std::shared_ptr<std::string> author_;
-    std::shared_ptr<::trantor::Date> create_;
-    std::shared_ptr<::trantor::Date> update_;
+    std::shared_ptr<::trantor::Date> createTime_;
+    std::shared_ptr<::trantor::Date> updateTime_;
+    std::shared_ptr<std::string> memo_;
     struct MetaData
     {
         const std::string colName_;
@@ -208,7 +219,7 @@ class Book
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[8]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -253,17 +264,22 @@ class Book
             sql += "Author,";
             ++parametersCount;
         }
-        sql += "Create,";
+        sql += "Create_time,";
         ++parametersCount;
         if(!dirtyFlag_[6])
         {
             needSelection=true;
         }
-        sql += "Update,";
+        sql += "Update_time,";
         ++parametersCount;
         if(!dirtyFlag_[7])
         {
             needSelection=true;
+        }
+        if(dirtyFlag_[8])
+        {
+            sql += "Memo,";
+            ++parametersCount;
         }
         needSelection=true;
         if(parametersCount > 0)
@@ -318,6 +334,11 @@ class Book
         {
             sql +="default,";
         }
+        if(dirtyFlag_[8])
+        {
+            sql.append("?,");
+
+        } 
         if(parametersCount > 0)
         {
             sql.resize(sql.length() - 1);

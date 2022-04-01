@@ -46,11 +46,11 @@ class Upload
         static const std::string _Upload_ID;
         static const std::string _User_ID;
         static const std::string _Book_ID;
-        static const std::string _Order_ID;
         static const std::string _Content;
         static const std::string _Status;
         static const std::string _Time;
         static const std::string _Processor;
+        static const std::string _IsManage;
     };
 
     const static int primaryKeyNumber;
@@ -126,15 +126,6 @@ class Upload
     ///Set the value of the column Book_ID
     void setBookId(const int32_t &pBookId) noexcept;
 
-    /**  For column Order_ID  */
-    ///Get the value of the column Order_ID, returns the default value if the column is null
-    const int32_t &getValueOfOrderId() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getOrderId() const noexcept;
-    ///Set the value of the column Order_ID
-    void setOrderId(const int32_t &pOrderId) noexcept;
-    void setOrderIdToNull() noexcept;
-
     /**  For column Content  */
     ///Get the value of the column Content, returns the default value if the column is null
     const std::string &getValueOfContent() const noexcept;
@@ -169,6 +160,15 @@ class Upload
     ///Set the value of the column Processor
     void setProcessor(const std::string &pProcessor) noexcept;
     void setProcessor(std::string &&pProcessor) noexcept;
+    void setProcessorToNull() noexcept;
+
+    /**  For column IsManage  */
+    ///Get the value of the column IsManage, returns the default value if the column is null
+    const int8_t &getValueOfIsmanage() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int8_t> &getIsmanage() const noexcept;
+    ///Set the value of the column IsManage
+    void setIsmanage(const int8_t &pIsmanage) noexcept;
 
 
     static size_t getColumnNumber() noexcept {  return 8;  }
@@ -191,11 +191,11 @@ class Upload
     std::shared_ptr<int32_t> uploadId_;
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<int32_t> bookId_;
-    std::shared_ptr<int32_t> orderId_;
     std::shared_ptr<std::string> content_;
     std::shared_ptr<std::string> status_;
     std::shared_ptr<::trantor::Date> time_;
     std::shared_ptr<std::string> processor_;
+    std::shared_ptr<int8_t> ismanage_;
     struct MetaData
     {
         const std::string colName_;
@@ -239,28 +239,28 @@ class Upload
         }
         if(dirtyFlag_[3])
         {
-            sql += "Order_ID,";
-            ++parametersCount;
-        }
-        if(dirtyFlag_[4])
-        {
             sql += "Content,";
             ++parametersCount;
         }
-        if(dirtyFlag_[5])
+        if(dirtyFlag_[4])
         {
             sql += "Status,";
             ++parametersCount;
         }
         sql += "Time,";
         ++parametersCount;
-        if(!dirtyFlag_[6])
+        if(!dirtyFlag_[5])
         {
             needSelection=true;
         }
-        if(dirtyFlag_[7])
+        if(dirtyFlag_[6])
         {
             sql += "Processor,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[7])
+        {
+            sql += "IsManage,";
             ++parametersCount;
         }
         needSelection=true;
@@ -298,15 +298,15 @@ class Upload
             sql.append("?,");
 
         } 
+        else
+        {
+            sql +="default,";
+        }
         if(dirtyFlag_[6])
         {
             sql.append("?,");
 
         } 
-        else
-        {
-            sql +="default,";
-        }
         if(dirtyFlag_[7])
         {
             sql.append("?,");
