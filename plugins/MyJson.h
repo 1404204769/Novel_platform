@@ -7,6 +7,7 @@
 #pragma once
 
 #include <drogon/plugins/Plugin.h>
+#include <plugins/MyBase.h>
 #include <sstream>
 #include <fstream>
 #include <unistd.h>
