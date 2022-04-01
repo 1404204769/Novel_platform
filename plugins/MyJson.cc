@@ -185,3 +185,68 @@ void MyJson::JsonstrToJson(Json::Value &JsonValue,const string& JsonStr)
 		throw JsonValue;
 	}
 }
+
+
+// 检查Json成员
+void MyJson::checkMember(Json::Value &ReqVal, Json::Value &RespVal, string colName)
+{
+	if(!ReqVal.isMember(colName))
+	{
+		RespVal["ErrorMsg"] = "不存在"+colName+"字段";
+		throw RespVal;
+	}
+}
+
+// 检查Json成员类型
+void MyJson::checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType)
+{
+	switch(colType)
+	{
+		case ColType::STRING:
+		{
+			if(ReqVal[colName].isString())
+				return;
+			RespVal["ErrorMsg"] = colName+"字段不是String类型";
+
+		}break;
+		case ColType::INT:
+		{
+			if(ReqVal[colName].isInt())
+				return;
+			RespVal["ErrorMsg"] = colName+"字段不是Int类型";
+		}break;
+		case ColType::BOOL:
+		{
+			if(ReqVal[colName].isBool())
+				return;
+			RespVal["ErrorMsg"] = colName+"字段不是Bool类型";
+		}break;
+		case ColType::JSON:
+		{
+			if(ReqVal[colName].isObject() && !ReqVal[colName].isNull()
+			)
+				return;
+			RespVal["ErrorMsg"] = colName+"字段不是Object类型";
+		}break;
+	}
+	throw RespVal;
+}
+
+// 检查Json成员以及类型
+void MyJson::checkMemberAndType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType)
+{
+	checkMember(ReqVal,RespVal,colName);
+	checkColType(ReqVal,RespVal,colName,colType);
+}
+
+// 检查Json中关于Map涉及的成员以及类型
+void MyJson::checkMemberAndTypeInMap(Json::Value &ReqVal, Json::Value &RespVal, std::map<string,ColType> &ColMap)
+{
+	for(auto one:ColMap)
+	{
+		checkMember(ReqVal,RespVal,one.first);
+		checkColType(ReqVal,RespVal,one.first,one.second);
+	}
+}
+
+

@@ -87,3 +87,24 @@ bool MyRoot::restart()
 	}
 	return true;
 }
+
+string MyRoot::getUserType(int UserPower)
+{
+	try{
+		Json::Value UserType = this->config["SystemBase"]["UserType"];
+		cout << UserType.toStyledString() << endl;
+		if(UserPower >= UserType["root"].asInt())
+			return "root";
+		else if(UserPower >= UserType["admin"].asInt())
+			return "admin";
+		else if(UserPower >= UserType["user"].asInt())
+			return "user";	
+	}
+	catch(...){
+		Json::Value JsonValue;
+		JsonValue["ErrorMsg"] = "获取用户类型异常，请联系管理员";
+		throw JsonValue;
+	}
+	return "error";
+}
+

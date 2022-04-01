@@ -7,8 +7,9 @@
 #pragma once
 
 #include <drogon/plugins/Plugin.h>
-#include <plugins/MyTools.h>
+#include <drogon/drogon.h>
 #include <plugins/MyJson.h>
+using namespace drogon;
 using namespace std;
 class MyRoot : public drogon::Plugin<MyRoot>
 {
@@ -28,6 +29,7 @@ class MyRoot : public drogon::Plugin<MyRoot>
   public:
     bool restart();
     void close();
+    string getUserType(int UserPower);
   private:
     Json::Value config;
     string WorkDirectory;

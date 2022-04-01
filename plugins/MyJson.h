@@ -24,6 +24,10 @@ class MyJson : public drogon::Plugin<MyJson>
     /// It must be implemented by the user.
     virtual void shutdown() override;
   public:
+    enum ColType{
+      STRING,INT,BOOL,JSON
+    };
+  public:
     map<string,string> jsonstr2map(const string& JsonStr);
     void MapToJson(Json::Value &JsonValue, map<string,string>& map_info,const string &DataName);
     void UnMapToJson(Json::Value &JsonValue,const unordered_map<string,string>& umap_info,const string &DataName);
@@ -31,5 +35,10 @@ class MyJson : public drogon::Plugin<MyJson>
     void SaveConfig(Json::Value &config, const string &openFilePath);
     void readFileJson(Json::Value &ConfigJson,const string &openFilePath);
     void writeFileJson(Json::Value &ConfigJson,const string &openFilePath);
+    void checkMember(Json::Value &ReqVal, Json::Value &RespVal, string colName);
+    void checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType);
+    void checkMemberAndType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType);
+    void checkMemberAndTypeInMap(Json::Value &ReqVal, Json::Value &RespVal, std::map<string,ColType> &ColMap);
+
 };
 
