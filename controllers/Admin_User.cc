@@ -42,7 +42,7 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
 	std::cout<< "req body" << req->getBody()<<std::endl;
 	Json::Value RespVal;
     drogon::HttpResponsePtr result;
-    auto *MyToolPtr = app().getPlugin<MyTools>();
+    auto *MyJsonPtr = app().getPlugin<MyJson>();
 	RespVal["Result"] = "false";
 	auto jsonptr=req->getJsonObject();
     std::vector<drogon_model::novel::User> vecUser;
@@ -51,7 +51,7 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
         // 读取Json数据
         Json::Value json=*jsonptr;
 		// std::cout<< json.toStyledString()<<std::endl;
-        MyToolPtr->checkMember(json, RespVal, "UserSearch");
+        MyJsonPtr->checkMember(json, RespVal, "UserSearch");
         Json::Value SearchJson=json["UserSearch"];
         // 检查搜索条件
         {
@@ -59,7 +59,7 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
             string UserID = "";
             if(SearchJson.isMember("UserID"))
             {
-                MyToolPtr->checkColType(SearchJson, RespVal, "UserID", MyTools::ColType::INT);
+                MyJsonPtr->checkColType(SearchJson, RespVal, "UserID", MyJson::ColType::INT);
                 UserID = SearchJson["UserID"].asString();
                 // std::cout << "UserID : " << UserID <<std::endl;
             }
@@ -68,7 +68,7 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
             string UserSex = "";
             if(SearchJson.isMember("UserSex"))
             {
-                MyToolPtr->checkColType(SearchJson, RespVal, "UserSex", MyTools::ColType::STRING);
+                MyJsonPtr->checkColType(SearchJson, RespVal, "UserSex", MyJson::ColType::STRING);
                 UserSex = SearchJson["UserSex"].asString();
             }
             Criteria UserSex_cri(drogon_model::novel::User::Cols::_Sex, CompareOperator::Like, "%"+UserSex+"%");
@@ -76,7 +76,7 @@ void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const Htt
             string UserName = "";
             if(SearchJson.isMember("UserName"))
             {
-                MyToolPtr->checkColType(SearchJson, RespVal, "UserName", MyTools::ColType::STRING);
+                MyJsonPtr->checkColType(SearchJson, RespVal, "UserName", MyJson::ColType::STRING);
                 UserName = SearchJson["UserName"].asString();
             }
             Criteria UserName_cri(drogon_model::novel::User::Cols::_Name, CompareOperator::Like, "%"+UserName+"%");

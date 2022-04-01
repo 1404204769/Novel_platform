@@ -1,6 +1,6 @@
 #pragma once
 #include <drogon/HttpController.h>
-#include <plugins/MyTools.h>
+#include <models/User.h>
 #include <plugins/MyJson.h>
 using namespace drogon;
 using namespace drogon_model::novel;

@@ -5,7 +5,7 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 {
 	//write your application logic here
 	std::cout<< "req body" << req->getBody()<<std::endl;
-	auto *MyToolPtr = app().getPlugin<MyTools>();//获取MyTools插件
+	auto *MyToolPtr = app().getPlugin<MyJson>();//获取MyJson插件
 	Json::Value RespVal;
     drogon::HttpResponsePtr result;
 	RespVal["Result"] = "false";
@@ -19,11 +19,11 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         // 检查数据完整性
         {
             // 创建检查列表
-            std::map<string,MyTools::ColType>ColMap;
+            std::map<string,MyJson::ColType>ColMap;
             // 判断是否存在UserID 判断UserID是否是Int
-            ColMap["UserID"]=MyTools::ColType::INT;
+            ColMap["UserID"]=MyJson::ColType::INT;
             // 判断是否存在UserPwd 判断UserPwd是否是String
-            ColMap["UserPwd"]=MyTools::ColType::STRING;
+            ColMap["UserPwd"]=MyJson::ColType::STRING;
             MyToolPtr->checkMemberAndTypeInMap(json,RespVal,ColMap);
         }
 
@@ -46,12 +46,14 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 
         // 创建Token
 		auto *JWTPtr = app().getPlugin<MyJwt>();//获取MyJwt插件
+		auto *MyRootPtr = app().getPlugin<MyRoot>();//获取MyJwt插件
         Json::Value param;
         param["UserID"] = UserID;
-        param["LoginStatus"] = "user";
+        param["LoginStatus"] = MyRootPtr->getUserType(user.getValueOfPower());
         RespVal["Token"] = JWTPtr->encode(param);
 
         RespVal["Result"] = "true";
+        RespVal["UserData"] = user.toJson();
 		RespVal["msg"]="登入成功";
 
         result=HttpResponse::newHttpJsonResponse(RespVal);
@@ -84,7 +86,7 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     std::cout<< "req body" << req->getBody()<<std::endl;
-	auto *MyToolPtr = app().getPlugin<MyTools>();//获取MyTools插件
+	auto *MyToolPtr = app().getPlugin<MyJson>();//获取MyJson插件
 	Json::Value RespVal;
     drogon::HttpResponsePtr result;
 	RespVal["Result"] = "false";
@@ -98,15 +100,15 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         // 检查数据完整性
         {
             // 创建检查列表
-            std::map<string,MyTools::ColType>ColMap;
+            std::map<string,MyJson::ColType>ColMap;
             // 判断是否存在UserName 判断UserName是否是String
-            ColMap["UserName"]=MyTools::ColType::STRING;
+            ColMap["UserName"]=MyJson::ColType::STRING;
             // 判断是否存在UserID 判断UserID是否是Int
-            ColMap["UserID"]=MyTools::ColType::INT;
+            ColMap["UserID"]=MyJson::ColType::INT;
             // 判断是否存在UserPwd 判断UserPwd是否是String
-            ColMap["UserPwd"]=MyTools::ColType::STRING;
+            ColMap["UserPwd"]=MyJson::ColType::STRING;
             // 判断是否存在UserSex 判断UserSex是否是String
-            ColMap["UserSex"]=MyTools::ColType::STRING;
+            ColMap["UserSex"]=MyJson::ColType::STRING;
             MyToolPtr->checkMemberAndTypeInMap(json,RespVal,ColMap);
         }
 
@@ -118,6 +120,7 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         auto UserSex=json["UserSex"].asString();
         auto UserLevel=1;
         auto UserIntegral=0;
+        auto UserTotalIntegral=0;
         auto UserPower=1;
         auto UserStatus="正常";
         auto dbclientPrt=drogon::app().getDbClient();
@@ -132,6 +135,7 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         newUser.setSex(UserSex);
         newUser.setLevel(UserLevel);
         newUser.setIntegral(UserIntegral);
+        newUser.setTotalIntegral(UserTotalIntegral);
         newUser.setPower(UserPower);
         newUser.setStatus(UserStatus);
 		UserMgr.insert(newUser);

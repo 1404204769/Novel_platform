@@ -42,8 +42,8 @@ void Test::ChineseStr(const HttpRequestPtr &req,std::function<void (const HttpRe
 // 修改系统输出级别
 void Test::SysOutLevel(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    std::cout<< "req body" << req->getBody()<<std::endl;
-	auto *MyBasePtr = app().getPlugin<MyBase>();//获取MyBase插件
+	auto *MyBasePtr = app().getPlugin<MyBase>();//获取MyJson插件
+    MyBasePtr->TRACELog("req body" + string(req->getBody()),true);
 	Json::Value RespVal;
 	auto jsonptr=req->getJsonObject();
     Json::Value json=*jsonptr;

@@ -7,7 +7,7 @@ void Root::Instructions(const HttpRequestPtr &req,std::function<void (const Http
 	std::cout<< "req body" << req->getBody()<<std::endl;
 	Json::Value RespVal;
     drogon::HttpResponsePtr result;
-    auto *MyToolPtr = app().getPlugin<MyTools>();
+    auto *MyJsonPtr = app().getPlugin<MyJson>();
     auto *MyRootPtr = app().getPlugin<MyRoot>();
 	RespVal["Result"] = "false";
 	auto jsonptr=req->getJsonObject();
@@ -15,7 +15,7 @@ void Root::Instructions(const HttpRequestPtr &req,std::function<void (const Http
     try{
         // 读取Json数据
         Json::Value json=*jsonptr;
-        MyToolPtr->checkMember(json,RespVal,"Instruction");
+        MyJsonPtr->checkMember(json,RespVal,"Instruction");
         MyRoot::Instructions instruct;
         if(json["Instruction"].asString() == "restart")
         {
