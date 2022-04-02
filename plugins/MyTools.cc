@@ -59,7 +59,7 @@ vector<string> MyTools::NumberOfChaptersExtracted(vector<string> &Title)
     auto MyBasePtr = drogon::app().getPlugin<MyBase>();
     vector<string>ans;
     int len = Title.size();
-    MyBasePtr->DEBUGLog("进入提取函数",true);
+    MyBasePtr->DEBUGLog("进入章节数提取函数",true);
     for(int i = 0 ; i < len ; i++){
         if(Title[i] != "第")
             continue;
@@ -95,6 +95,7 @@ vector<string> MyTools::NumberOfChaptersExtracted(vector<string> &Title)
             break;
         }
     }
+    MyBasePtr->DEBUGLog("退出章节数提取函数",true);
     return ans;// 防止xxx内还有第yy章，需要二次过滤
 }
 
@@ -170,3 +171,49 @@ int MyTools::ChineseNumToAlabNum(const vector<string> &ChineseNum)
     }
     return Num;
 }
+
+// 从标题中提取章节标题
+string MyTools::TitleOfChaptersExtracted(vector<string> &Title)
+{
+    auto MyBasePtr = drogon::app().getPlugin<MyBase>();
+    string ans;
+    int len = Title.size() ,begin = 0;
+    bool find = false;
+    MyBasePtr->DEBUGLog("进入章节名提取函数",true);
+    for(int i = 0 ; i < len ; i++){
+        if(Title[i] == "章")
+        {
+            find = true;
+            begin = i + 1;
+            break;
+        }
+    }
+    
+    if(find)
+    {   // 如果找到第xxx章 开始复制xxx
+        bool StrKongGe = true;
+        for(int a = begin; a < len ;a++)
+        {
+            if(Title[a] == " " && StrKongGe) // 去除句首空格
+                continue;
+            if(StrKongGe)
+                StrKongGe = false;
+            ans += Title[a];
+        }
+    }
+    MyBasePtr->DEBUGLog("index_begin : " + to_string(begin) + "  index_end : " + to_string(len) + "  开始复制章节名(" + ans +")",true);
+    MyBasePtr->DEBUGLog("退出章节名提取函数",true);
+    return ans;
+}
+
+// 获取章节数与章节名 从第xx章 yyyy中返回 <xx,"yyyy">
+pair<int,string> MyTools::getTitleNumAndTitleStr(const string &Title)
+{
+    pair<int,string> ret;
+    vector<string> vecTitle = SpiteStringCharacter(Title);
+    ret.second = TitleOfChaptersExtracted(vecTitle);
+    vector<string> vecTitleNum = NumberOfChaptersExtracted(vecTitle);
+    ret.first = ChineseNumToAlabNum(vecTitleNum);
+    return ret;
+}
+

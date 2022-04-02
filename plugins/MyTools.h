@@ -26,9 +26,11 @@ class MyTools : public drogon::Plugin<MyTools>
   public:
     wstring StringToWString(const string& str);
     string WStringToString(const wstring& wstr);
+    pair<int,string> getTitleNumAndTitleStr(const string &Title);
+  private:
     vector<string> SpiteStringCharacter(const string &ChineseStr);
     int ChineseNumToAlabNum(const vector<string> &ChineseNum);
     vector<string> NumberOfChaptersExtracted(vector<string> &Title);
-
+    string TitleOfChaptersExtracted(vector<string> &Title);
 };
 

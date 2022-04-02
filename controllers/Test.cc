@@ -8,29 +8,13 @@ void Test::ChineseStr(const HttpRequestPtr &req,std::function<void (const HttpRe
 	Json::Value RespVal;
 	auto jsonptr=req->getJsonObject();
     Json::Value json=*jsonptr;
-    vector<string> Title = MyToolPtr->SpiteStringCharacter(json["context"].asString());
-    for(auto &a:Title)
-    {
-        RespVal["Title"].append(a);
-    }
-    vector<string> Extracted = MyToolPtr->NumberOfChaptersExtracted(Title);
-    for(auto &a:Extracted)
-    {
-        RespVal["Extracted"].append(a);
-    }
-    int AlabNum = MyToolPtr->ChineseNumToAlabNum(Extracted);
-    RespVal["AlabNum"] = AlabNum;
+    pair<int,string> TitleVal = MyToolPtr->getTitleNumAndTitleStr(json["Title"].asString());
+    RespVal["TitleNum"] = TitleVal.first;
+    RespVal["TitleStr"] = TitleVal.second;
     if(MyBasePtr->IsStatus("DEBUG"))
     {
-        cout << "Title : ";
-        for(auto &a:Title)
-            cout << a << " ";
-        cout << endl;
-        cout << "Extracted : ";
-        for(auto &a:Extracted)
-            cout << a << " ";
-        cout << endl;
-        cout << "AlabNum : " << to_string(AlabNum) << endl;
+        cout << "TitleNum : " << RespVal["TitleNum"].asString() << endl;
+        cout << "TitleStr : " << RespVal["TitleStr"].asString() << endl;
     }
     drogon::HttpResponsePtr result=HttpResponse::newHttpJsonResponse(RespVal);
 

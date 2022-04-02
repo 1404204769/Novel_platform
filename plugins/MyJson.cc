@@ -246,11 +246,17 @@ void MyJson::checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colN
 		}break;
 		case ColType::JSON:
 		{
-			if(ReqVal[colName].isObject() && !ReqVal[colName].isNull()
-			)
+			if(ReqVal[colName].isObject() && !ReqVal[colName].isNull())
 				return;
 			RespVal["ErrorMsg"] = colName+"字段不是Object类型";
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Object类型",true);
+		}break;
+		case ColType::ARRAY:
+		{
+			if(ReqVal[colName].isArray())
+				return;
+			RespVal["ErrorMsg"] = colName+"字段不是Array类型";
+    		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Array类型",true);
 		}break;
 	}
 	throw RespVal;

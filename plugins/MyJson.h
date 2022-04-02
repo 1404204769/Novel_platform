@@ -26,7 +26,7 @@ class MyJson : public drogon::Plugin<MyJson>
     virtual void shutdown() override;
   public:
     enum ColType{
-      STRING,INT,BOOL,JSON
+      STRING,INT,BOOL,JSON,ARRAY
     };
   public:
     map<string,string> jsonstr2map(const string& JsonStr);

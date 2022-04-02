@@ -307,6 +307,17 @@
         },
         {
             //name: The class name of the plugin
+            "name": "MyDBService",
+            //dependencies: Plugins that the plugin depends on. It can be commented out
+            "dependencies": ["MyJson", "MyBase","MyTools"],
+            //config: The configuration of the plugin. This json object is the parameter to initialize the plugin.
+            //It can be commented out
+            "config": {
+                "secret": "lizhicheng"
+            }
+        },
+        {
+            //name: The class name of the plugin
             "name": "MyJwt",
             //dependencies: Plugins that the plugin depends on. It can be commented out
             "dependencies": ["MyJson", "MyBase"],
