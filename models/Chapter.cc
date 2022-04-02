@@ -12,27 +12,29 @@
 using namespace drogon;
 using namespace drogon_model::novel;
 
-const std::string Chapter::Cols::_Chapter_D = "Chapter_D";
+const std::string Chapter::Cols::_Chapter_ID = "Chapter_ID";
 const std::string Chapter::Cols::_Book_ID = "Book_ID";
-const std::string Chapter::Cols::_Order_ID = "Order_ID";
+const std::string Chapter::Cols::_Part_Num = "Part_Num";
+const std::string Chapter::Cols::_Chapter_Num = "Chapter_Num";
+const std::string Chapter::Cols::_Title = "Title";
+const std::string Chapter::Cols::_User_ID = "User_ID";
 const std::string Chapter::Cols::_Valid = "Valid";
 const std::string Chapter::Cols::_Content = "Content";
-const std::string Chapter::Cols::_Remarks = "Remarks";
-const std::string Chapter::Cols::_User_ID = "User_ID";
-const std::string Chapter::Cols::_Title = "Title";
-const std::string Chapter::primaryKeyName = "Chapter_D";
+const std::string Chapter::Cols::_Memo = "Memo";
+const std::string Chapter::primaryKeyName = "Chapter_ID";
 const bool Chapter::hasPrimaryKey = true;
 const std::string Chapter::tableName = "chapter";
 
 const std::vector<typename Chapter::MetaData> Chapter::metaData_={
-{"Chapter_D","int32_t","int(10)",4,1,1,1},
+{"Chapter_ID","int32_t","int(10)",4,1,1,1},
 {"Book_ID","int32_t","int(10)",4,0,0,1},
-{"Order_ID","int32_t","int(10)",4,0,0,1},
+{"Part_Num","int32_t","int(10)",4,0,0,1},
+{"Chapter_Num","int32_t","int(10)",4,0,0,1},
+{"Title","std::string","varchar(255)",255,0,0,1},
+{"User_ID","int32_t","int(10)",4,0,0,1},
 {"Valid","int8_t","tinyint(1)",1,0,0,1},
 {"Content","std::string","text",0,0,0,1},
-{"Remarks","std::string","varchar(255)",255,0,0,1},
-{"User_ID","int32_t","int(10)",4,0,0,1},
-{"Title","std::string","varchar(255)",255,0,0,1}
+{"Memo","std::string","text",0,0,0,1}
 };
 const std::string &Chapter::getColumnName(size_t index) noexcept(false)
 {
@@ -43,17 +45,29 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
 {
     if(indexOffset < 0)
     {
-        if(!r["Chapter_D"].isNull())
+        if(!r["Chapter_ID"].isNull())
         {
-            chapterD_=std::make_shared<int32_t>(r["Chapter_D"].as<int32_t>());
+            chapterId_=std::make_shared<int32_t>(r["Chapter_ID"].as<int32_t>());
         }
         if(!r["Book_ID"].isNull())
         {
             bookId_=std::make_shared<int32_t>(r["Book_ID"].as<int32_t>());
         }
-        if(!r["Order_ID"].isNull())
+        if(!r["Part_Num"].isNull())
         {
-            orderId_=std::make_shared<int32_t>(r["Order_ID"].as<int32_t>());
+            partNum_=std::make_shared<int32_t>(r["Part_Num"].as<int32_t>());
+        }
+        if(!r["Chapter_Num"].isNull())
+        {
+            chapterNum_=std::make_shared<int32_t>(r["Chapter_Num"].as<int32_t>());
+        }
+        if(!r["Title"].isNull())
+        {
+            title_=std::make_shared<std::string>(r["Title"].as<std::string>());
+        }
+        if(!r["User_ID"].isNull())
+        {
+            userId_=std::make_shared<int32_t>(r["User_ID"].as<int32_t>());
         }
         if(!r["Valid"].isNull())
         {
@@ -63,23 +77,15 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
         {
             content_=std::make_shared<std::string>(r["Content"].as<std::string>());
         }
-        if(!r["Remarks"].isNull())
+        if(!r["Memo"].isNull())
         {
-            remarks_=std::make_shared<std::string>(r["Remarks"].as<std::string>());
-        }
-        if(!r["User_ID"].isNull())
-        {
-            userId_=std::make_shared<int32_t>(r["User_ID"].as<int32_t>());
-        }
-        if(!r["Title"].isNull())
-        {
-            title_=std::make_shared<std::string>(r["Title"].as<std::string>());
+            memo_=std::make_shared<std::string>(r["Memo"].as<std::string>());
         }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 8 > r.size())
+        if(offset + 9 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -88,7 +94,7 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 0;
         if(!r[index].isNull())
         {
-            chapterD_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            chapterId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 1;
         if(!r[index].isNull())
@@ -98,32 +104,37 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 2;
         if(!r[index].isNull())
         {
-            orderId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            partNum_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 3;
         if(!r[index].isNull())
         {
-            valid_=std::make_shared<int8_t>(r[index].as<int8_t>());
+            chapterNum_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 4;
         if(!r[index].isNull())
         {
-            content_=std::make_shared<std::string>(r[index].as<std::string>());
+            title_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 5;
         if(!r[index].isNull())
         {
-            remarks_=std::make_shared<std::string>(r[index].as<std::string>());
+            userId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 6;
         if(!r[index].isNull())
         {
-            userId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            valid_=std::make_shared<int8_t>(r[index].as<int8_t>());
         }
         index = offset + 7;
         if(!r[index].isNull())
         {
-            title_=std::make_shared<std::string>(r[index].as<std::string>());
+            content_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            memo_=std::make_shared<std::string>(r[index].as<std::string>());
         }
     }
 
@@ -131,7 +142,7 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
 
 Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -141,7 +152,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[0] = true;
         if(!pJson[pMasqueradingVector[0]].isNull())
         {
-            chapterD_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            chapterId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
     if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
@@ -157,7 +168,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[2] = true;
         if(!pJson[pMasqueradingVector[2]].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[2]].asInt64());
+            partNum_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[2]].asInt64());
         }
     }
     if(!pMasqueradingVector[3].empty() && pJson.isMember(pMasqueradingVector[3]))
@@ -165,7 +176,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            valid_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[3]].asInt64());
+            chapterNum_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -173,7 +184,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            title_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -181,7 +192,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            remarks_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -189,7 +200,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[6]].asInt64());
+            valid_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[6]].asInt64());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -197,19 +208,27 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            title_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
 
 Chapter::Chapter(const Json::Value &pJson) noexcept(false)
 {
-    if(pJson.isMember("Chapter_D"))
+    if(pJson.isMember("Chapter_ID"))
     {
         dirtyFlag_[0]=true;
-        if(!pJson["Chapter_D"].isNull())
+        if(!pJson["Chapter_ID"].isNull())
         {
-            chapterD_=std::make_shared<int32_t>((int32_t)pJson["Chapter_D"].asInt64());
+            chapterId_=std::make_shared<int32_t>((int32_t)pJson["Chapter_ID"].asInt64());
         }
     }
     if(pJson.isMember("Book_ID"))
@@ -220,17 +239,41 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Order_ID"))
+    if(pJson.isMember("Part_Num"))
     {
         dirtyFlag_[2]=true;
-        if(!pJson["Order_ID"].isNull())
+        if(!pJson["Part_Num"].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
+            partNum_=std::make_shared<int32_t>((int32_t)pJson["Part_Num"].asInt64());
+        }
+    }
+    if(pJson.isMember("Chapter_Num"))
+    {
+        dirtyFlag_[3]=true;
+        if(!pJson["Chapter_Num"].isNull())
+        {
+            chapterNum_=std::make_shared<int32_t>((int32_t)pJson["Chapter_Num"].asInt64());
+        }
+    }
+    if(pJson.isMember("Title"))
+    {
+        dirtyFlag_[4]=true;
+        if(!pJson["Title"].isNull())
+        {
+            title_=std::make_shared<std::string>(pJson["Title"].asString());
+        }
+    }
+    if(pJson.isMember("User_ID"))
+    {
+        dirtyFlag_[5]=true;
+        if(!pJson["User_ID"].isNull())
+        {
+            userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
         }
     }
     if(pJson.isMember("Valid"))
     {
-        dirtyFlag_[3]=true;
+        dirtyFlag_[6]=true;
         if(!pJson["Valid"].isNull())
         {
             valid_=std::make_shared<int8_t>((int8_t)pJson["Valid"].asInt64());
@@ -238,34 +281,18 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Content"))
     {
-        dirtyFlag_[4]=true;
+        dirtyFlag_[7]=true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
         }
     }
-    if(pJson.isMember("Remarks"))
+    if(pJson.isMember("Memo"))
     {
-        dirtyFlag_[5]=true;
-        if(!pJson["Remarks"].isNull())
+        dirtyFlag_[8]=true;
+        if(!pJson["Memo"].isNull())
         {
-            remarks_=std::make_shared<std::string>(pJson["Remarks"].asString());
-        }
-    }
-    if(pJson.isMember("User_ID"))
-    {
-        dirtyFlag_[6]=true;
-        if(!pJson["User_ID"].isNull())
-        {
-            userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
-        }
-    }
-    if(pJson.isMember("Title"))
-    {
-        dirtyFlag_[7]=true;
-        if(!pJson["Title"].isNull())
-        {
-            title_=std::make_shared<std::string>(pJson["Title"].asString());
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
         }
     }
 }
@@ -273,7 +300,7 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
 void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -282,7 +309,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
     {
         if(!pJson[pMasqueradingVector[0]].isNull())
         {
-            chapterD_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
+            chapterId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[0]].asInt64());
         }
     }
     if(!pMasqueradingVector[1].empty() && pJson.isMember(pMasqueradingVector[1]))
@@ -298,7 +325,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[2] = true;
         if(!pJson[pMasqueradingVector[2]].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[2]].asInt64());
+            partNum_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[2]].asInt64());
         }
     }
     if(!pMasqueradingVector[3].empty() && pJson.isMember(pMasqueradingVector[3]))
@@ -306,7 +333,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            valid_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[3]].asInt64());
+            chapterNum_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -314,7 +341,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            title_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -322,7 +349,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            remarks_=std::make_shared<std::string>(pJson[pMasqueradingVector[5]].asString());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -330,7 +357,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[6]].asInt64());
+            valid_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[6]].asInt64());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -338,18 +365,26 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            title_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
                                                                     
 void Chapter::updateByJson(const Json::Value &pJson) noexcept(false)
 {
-    if(pJson.isMember("Chapter_D"))
+    if(pJson.isMember("Chapter_ID"))
     {
-        if(!pJson["Chapter_D"].isNull())
+        if(!pJson["Chapter_ID"].isNull())
         {
-            chapterD_=std::make_shared<int32_t>((int32_t)pJson["Chapter_D"].asInt64());
+            chapterId_=std::make_shared<int32_t>((int32_t)pJson["Chapter_ID"].asInt64());
         }
     }
     if(pJson.isMember("Book_ID"))
@@ -360,17 +395,41 @@ void Chapter::updateByJson(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Order_ID"))
+    if(pJson.isMember("Part_Num"))
     {
         dirtyFlag_[2] = true;
-        if(!pJson["Order_ID"].isNull())
+        if(!pJson["Part_Num"].isNull())
         {
-            orderId_=std::make_shared<int32_t>((int32_t)pJson["Order_ID"].asInt64());
+            partNum_=std::make_shared<int32_t>((int32_t)pJson["Part_Num"].asInt64());
+        }
+    }
+    if(pJson.isMember("Chapter_Num"))
+    {
+        dirtyFlag_[3] = true;
+        if(!pJson["Chapter_Num"].isNull())
+        {
+            chapterNum_=std::make_shared<int32_t>((int32_t)pJson["Chapter_Num"].asInt64());
+        }
+    }
+    if(pJson.isMember("Title"))
+    {
+        dirtyFlag_[4] = true;
+        if(!pJson["Title"].isNull())
+        {
+            title_=std::make_shared<std::string>(pJson["Title"].asString());
+        }
+    }
+    if(pJson.isMember("User_ID"))
+    {
+        dirtyFlag_[5] = true;
+        if(!pJson["User_ID"].isNull())
+        {
+            userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
         }
     }
     if(pJson.isMember("Valid"))
     {
-        dirtyFlag_[3] = true;
+        dirtyFlag_[6] = true;
         if(!pJson["Valid"].isNull())
         {
             valid_=std::make_shared<int8_t>((int8_t)pJson["Valid"].asInt64());
@@ -378,58 +437,42 @@ void Chapter::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Content"))
     {
-        dirtyFlag_[4] = true;
+        dirtyFlag_[7] = true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
         }
     }
-    if(pJson.isMember("Remarks"))
+    if(pJson.isMember("Memo"))
     {
-        dirtyFlag_[5] = true;
-        if(!pJson["Remarks"].isNull())
+        dirtyFlag_[8] = true;
+        if(!pJson["Memo"].isNull())
         {
-            remarks_=std::make_shared<std::string>(pJson["Remarks"].asString());
-        }
-    }
-    if(pJson.isMember("User_ID"))
-    {
-        dirtyFlag_[6] = true;
-        if(!pJson["User_ID"].isNull())
-        {
-            userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
-        }
-    }
-    if(pJson.isMember("Title"))
-    {
-        dirtyFlag_[7] = true;
-        if(!pJson["Title"].isNull())
-        {
-            title_=std::make_shared<std::string>(pJson["Title"].asString());
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
         }
     }
 }
 
-const int32_t &Chapter::getValueOfChapterD() const noexcept
+const int32_t &Chapter::getValueOfChapterId() const noexcept
 {
     const static int32_t defaultValue = int32_t();
-    if(chapterD_)
-        return *chapterD_;
+    if(chapterId_)
+        return *chapterId_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Chapter::getChapterD() const noexcept
+const std::shared_ptr<int32_t> &Chapter::getChapterId() const noexcept
 {
-    return chapterD_;
+    return chapterId_;
 }
-void Chapter::setChapterD(const int32_t &pChapterD) noexcept
+void Chapter::setChapterId(const int32_t &pChapterId) noexcept
 {
-    chapterD_ = std::make_shared<int32_t>(pChapterD);
+    chapterId_ = std::make_shared<int32_t>(pChapterId);
     dirtyFlag_[0] = true;
 }
 const typename Chapter::PrimaryKeyType & Chapter::getPrimaryKey() const
 {
-    assert(chapterD_);
-    return *chapterD_;
+    assert(chapterId_);
+    return *chapterId_;
 }
 
 const int32_t &Chapter::getValueOfBookId() const noexcept
@@ -449,99 +492,38 @@ void Chapter::setBookId(const int32_t &pBookId) noexcept
     dirtyFlag_[1] = true;
 }
 
-const int32_t &Chapter::getValueOfOrderId() const noexcept
+const int32_t &Chapter::getValueOfPartNum() const noexcept
 {
     const static int32_t defaultValue = int32_t();
-    if(orderId_)
-        return *orderId_;
+    if(partNum_)
+        return *partNum_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Chapter::getOrderId() const noexcept
+const std::shared_ptr<int32_t> &Chapter::getPartNum() const noexcept
 {
-    return orderId_;
+    return partNum_;
 }
-void Chapter::setOrderId(const int32_t &pOrderId) noexcept
+void Chapter::setPartNum(const int32_t &pPartNum) noexcept
 {
-    orderId_ = std::make_shared<int32_t>(pOrderId);
+    partNum_ = std::make_shared<int32_t>(pPartNum);
     dirtyFlag_[2] = true;
 }
 
-const int8_t &Chapter::getValueOfValid() const noexcept
-{
-    const static int8_t defaultValue = int8_t();
-    if(valid_)
-        return *valid_;
-    return defaultValue;
-}
-const std::shared_ptr<int8_t> &Chapter::getValid() const noexcept
-{
-    return valid_;
-}
-void Chapter::setValid(const int8_t &pValid) noexcept
-{
-    valid_ = std::make_shared<int8_t>(pValid);
-    dirtyFlag_[3] = true;
-}
-
-const std::string &Chapter::getValueOfContent() const noexcept
-{
-    const static std::string defaultValue = std::string();
-    if(content_)
-        return *content_;
-    return defaultValue;
-}
-const std::shared_ptr<std::string> &Chapter::getContent() const noexcept
-{
-    return content_;
-}
-void Chapter::setContent(const std::string &pContent) noexcept
-{
-    content_ = std::make_shared<std::string>(pContent);
-    dirtyFlag_[4] = true;
-}
-void Chapter::setContent(std::string &&pContent) noexcept
-{
-    content_ = std::make_shared<std::string>(std::move(pContent));
-    dirtyFlag_[4] = true;
-}
-
-const std::string &Chapter::getValueOfRemarks() const noexcept
-{
-    const static std::string defaultValue = std::string();
-    if(remarks_)
-        return *remarks_;
-    return defaultValue;
-}
-const std::shared_ptr<std::string> &Chapter::getRemarks() const noexcept
-{
-    return remarks_;
-}
-void Chapter::setRemarks(const std::string &pRemarks) noexcept
-{
-    remarks_ = std::make_shared<std::string>(pRemarks);
-    dirtyFlag_[5] = true;
-}
-void Chapter::setRemarks(std::string &&pRemarks) noexcept
-{
-    remarks_ = std::make_shared<std::string>(std::move(pRemarks));
-    dirtyFlag_[5] = true;
-}
-
-const int32_t &Chapter::getValueOfUserId() const noexcept
+const int32_t &Chapter::getValueOfChapterNum() const noexcept
 {
     const static int32_t defaultValue = int32_t();
-    if(userId_)
-        return *userId_;
+    if(chapterNum_)
+        return *chapterNum_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Chapter::getUserId() const noexcept
+const std::shared_ptr<int32_t> &Chapter::getChapterNum() const noexcept
 {
-    return userId_;
+    return chapterNum_;
 }
-void Chapter::setUserId(const int32_t &pUserId) noexcept
+void Chapter::setChapterNum(const int32_t &pChapterNum) noexcept
 {
-    userId_ = std::make_shared<int32_t>(pUserId);
-    dirtyFlag_[6] = true;
+    chapterNum_ = std::make_shared<int32_t>(pChapterNum);
+    dirtyFlag_[3] = true;
 }
 
 const std::string &Chapter::getValueOfTitle() const noexcept
@@ -558,29 +540,108 @@ const std::shared_ptr<std::string> &Chapter::getTitle() const noexcept
 void Chapter::setTitle(const std::string &pTitle) noexcept
 {
     title_ = std::make_shared<std::string>(pTitle);
-    dirtyFlag_[7] = true;
+    dirtyFlag_[4] = true;
 }
 void Chapter::setTitle(std::string &&pTitle) noexcept
 {
     title_ = std::make_shared<std::string>(std::move(pTitle));
+    dirtyFlag_[4] = true;
+}
+
+const int32_t &Chapter::getValueOfUserId() const noexcept
+{
+    const static int32_t defaultValue = int32_t();
+    if(userId_)
+        return *userId_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Chapter::getUserId() const noexcept
+{
+    return userId_;
+}
+void Chapter::setUserId(const int32_t &pUserId) noexcept
+{
+    userId_ = std::make_shared<int32_t>(pUserId);
+    dirtyFlag_[5] = true;
+}
+
+const int8_t &Chapter::getValueOfValid() const noexcept
+{
+    const static int8_t defaultValue = int8_t();
+    if(valid_)
+        return *valid_;
+    return defaultValue;
+}
+const std::shared_ptr<int8_t> &Chapter::getValid() const noexcept
+{
+    return valid_;
+}
+void Chapter::setValid(const int8_t &pValid) noexcept
+{
+    valid_ = std::make_shared<int8_t>(pValid);
+    dirtyFlag_[6] = true;
+}
+
+const std::string &Chapter::getValueOfContent() const noexcept
+{
+    const static std::string defaultValue = std::string();
+    if(content_)
+        return *content_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Chapter::getContent() const noexcept
+{
+    return content_;
+}
+void Chapter::setContent(const std::string &pContent) noexcept
+{
+    content_ = std::make_shared<std::string>(pContent);
     dirtyFlag_[7] = true;
+}
+void Chapter::setContent(std::string &&pContent) noexcept
+{
+    content_ = std::make_shared<std::string>(std::move(pContent));
+    dirtyFlag_[7] = true;
+}
+
+const std::string &Chapter::getValueOfMemo() const noexcept
+{
+    const static std::string defaultValue = std::string();
+    if(memo_)
+        return *memo_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Chapter::getMemo() const noexcept
+{
+    return memo_;
+}
+void Chapter::setMemo(const std::string &pMemo) noexcept
+{
+    memo_ = std::make_shared<std::string>(pMemo);
+    dirtyFlag_[8] = true;
+}
+void Chapter::setMemo(std::string &&pMemo) noexcept
+{
+    memo_ = std::make_shared<std::string>(std::move(pMemo));
+    dirtyFlag_[8] = true;
 }
 
 void Chapter::updateId(const uint64_t id)
 {
-    chapterD_ = std::make_shared<int32_t>(static_cast<int32_t>(id));
+    chapterId_ = std::make_shared<int32_t>(static_cast<int32_t>(id));
 }
 
 const std::vector<std::string> &Chapter::insertColumns() noexcept
 {
     static const std::vector<std::string> inCols={
         "Book_ID",
-        "Order_ID",
+        "Part_Num",
+        "Chapter_Num",
+        "Title",
+        "User_ID",
         "Valid",
         "Content",
-        "Remarks",
-        "User_ID",
-        "Title"
+        "Memo"
     };
     return inCols;
 }
@@ -600,9 +661,9 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[2])
     {
-        if(getOrderId())
+        if(getPartNum())
         {
-            binder << getValueOfOrderId();
+            binder << getValueOfPartNum();
         }
         else
         {
@@ -611,9 +672,9 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getValid())
+        if(getChapterNum())
         {
-            binder << getValueOfValid();
+            binder << getValueOfChapterNum();
         }
         else
         {
@@ -622,9 +683,9 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
-        if(getContent())
+        if(getTitle())
         {
-            binder << getValueOfContent();
+            binder << getValueOfTitle();
         }
         else
         {
@@ -632,17 +693,6 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
     if(dirtyFlag_[5])
-    {
-        if(getRemarks())
-        {
-            binder << getValueOfRemarks();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[6])
     {
         if(getUserId())
         {
@@ -653,11 +703,33 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[6])
+    {
+        if(getValid())
+        {
+            binder << getValueOfValid();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
     if(dirtyFlag_[7])
     {
-        if(getTitle())
+        if(getContent())
         {
-            binder << getValueOfTitle();
+            binder << getValueOfContent();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getMemo())
+        {
+            binder << getValueOfMemo();
         }
         else
         {
@@ -697,6 +769,10 @@ const std::vector<std::string> Chapter::updateColumns() const
     {
         ret.push_back(getColumnName(7));
     }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
     return ret;
 }
 
@@ -715,9 +791,9 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[2])
     {
-        if(getOrderId())
+        if(getPartNum())
         {
-            binder << getValueOfOrderId();
+            binder << getValueOfPartNum();
         }
         else
         {
@@ -726,9 +802,9 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getValid())
+        if(getChapterNum())
         {
-            binder << getValueOfValid();
+            binder << getValueOfChapterNum();
         }
         else
         {
@@ -736,39 +812,6 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
     if(dirtyFlag_[4])
-    {
-        if(getContent())
-        {
-            binder << getValueOfContent();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[5])
-    {
-        if(getRemarks())
-        {
-            binder << getValueOfRemarks();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[6])
-    {
-        if(getUserId())
-        {
-            binder << getValueOfUserId();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[7])
     {
         if(getTitle())
         {
@@ -779,17 +822,61 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[5])
+    {
+        if(getUserId())
+        {
+            binder << getValueOfUserId();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[6])
+    {
+        if(getValid())
+        {
+            binder << getValueOfValid();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getContent())
+        {
+            binder << getValueOfContent();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getMemo())
+        {
+            binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Chapter::toJson() const
 {
     Json::Value ret;
-    if(getChapterD())
+    if(getChapterId())
     {
-        ret["Chapter_D"]=getValueOfChapterD();
+        ret["Chapter_ID"]=getValueOfChapterId();
     }
     else
     {
-        ret["Chapter_D"]=Json::Value();
+        ret["Chapter_ID"]=Json::Value();
     }
     if(getBookId())
     {
@@ -799,13 +886,37 @@ Json::Value Chapter::toJson() const
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getOrderId())
+    if(getPartNum())
     {
-        ret["Order_ID"]=getValueOfOrderId();
+        ret["Part_Num"]=getValueOfPartNum();
     }
     else
     {
-        ret["Order_ID"]=Json::Value();
+        ret["Part_Num"]=Json::Value();
+    }
+    if(getChapterNum())
+    {
+        ret["Chapter_Num"]=getValueOfChapterNum();
+    }
+    else
+    {
+        ret["Chapter_Num"]=Json::Value();
+    }
+    if(getTitle())
+    {
+        ret["Title"]=getValueOfTitle();
+    }
+    else
+    {
+        ret["Title"]=Json::Value();
+    }
+    if(getUserId())
+    {
+        ret["User_ID"]=getValueOfUserId();
+    }
+    else
+    {
+        ret["User_ID"]=Json::Value();
     }
     if(getValid())
     {
@@ -823,29 +934,13 @@ Json::Value Chapter::toJson() const
     {
         ret["Content"]=Json::Value();
     }
-    if(getRemarks())
+    if(getMemo())
     {
-        ret["Remarks"]=getValueOfRemarks();
+        ret["Memo"]=getValueOfMemo();
     }
     else
     {
-        ret["Remarks"]=Json::Value();
-    }
-    if(getUserId())
-    {
-        ret["User_ID"]=getValueOfUserId();
-    }
-    else
-    {
-        ret["User_ID"]=Json::Value();
-    }
-    if(getTitle())
-    {
-        ret["Title"]=getValueOfTitle();
-    }
-    else
-    {
-        ret["Title"]=Json::Value();
+        ret["Memo"]=Json::Value();
     }
     return ret;
 }
@@ -854,13 +949,13 @@ Json::Value Chapter::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 8)
+    if(pMasqueradingVector.size() == 9)
     {
         if(!pMasqueradingVector[0].empty())
         {
-            if(getChapterD())
+            if(getChapterId())
             {
-                ret[pMasqueradingVector[0]]=getValueOfChapterD();
+                ret[pMasqueradingVector[0]]=getValueOfChapterId();
             }
             else
             {
@@ -880,9 +975,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[2].empty())
         {
-            if(getOrderId())
+            if(getPartNum())
             {
-                ret[pMasqueradingVector[2]]=getValueOfOrderId();
+                ret[pMasqueradingVector[2]]=getValueOfPartNum();
             }
             else
             {
@@ -891,9 +986,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getValid())
+            if(getChapterNum())
             {
-                ret[pMasqueradingVector[3]]=getValueOfValid();
+                ret[pMasqueradingVector[3]]=getValueOfChapterNum();
             }
             else
             {
@@ -902,9 +997,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getContent())
+            if(getTitle())
             {
-                ret[pMasqueradingVector[4]]=getValueOfContent();
+                ret[pMasqueradingVector[4]]=getValueOfTitle();
             }
             else
             {
@@ -913,9 +1008,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getRemarks())
+            if(getUserId())
             {
-                ret[pMasqueradingVector[5]]=getValueOfRemarks();
+                ret[pMasqueradingVector[5]]=getValueOfUserId();
             }
             else
             {
@@ -924,9 +1019,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getUserId())
+            if(getValid())
             {
-                ret[pMasqueradingVector[6]]=getValueOfUserId();
+                ret[pMasqueradingVector[6]]=getValueOfValid();
             }
             else
             {
@@ -935,25 +1030,36 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[7].empty())
         {
-            if(getTitle())
+            if(getContent())
             {
-                ret[pMasqueradingVector[7]]=getValueOfTitle();
+                ret[pMasqueradingVector[7]]=getValueOfContent();
             }
             else
             {
                 ret[pMasqueradingVector[7]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getMemo())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfMemo();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
-    if(getChapterD())
+    if(getChapterId())
     {
-        ret["Chapter_D"]=getValueOfChapterD();
+        ret["Chapter_ID"]=getValueOfChapterId();
     }
     else
     {
-        ret["Chapter_D"]=Json::Value();
+        ret["Chapter_ID"]=Json::Value();
     }
     if(getBookId())
     {
@@ -963,13 +1069,37 @@ Json::Value Chapter::toMasqueradedJson(
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getOrderId())
+    if(getPartNum())
     {
-        ret["Order_ID"]=getValueOfOrderId();
+        ret["Part_Num"]=getValueOfPartNum();
     }
     else
     {
-        ret["Order_ID"]=Json::Value();
+        ret["Part_Num"]=Json::Value();
+    }
+    if(getChapterNum())
+    {
+        ret["Chapter_Num"]=getValueOfChapterNum();
+    }
+    else
+    {
+        ret["Chapter_Num"]=Json::Value();
+    }
+    if(getTitle())
+    {
+        ret["Title"]=getValueOfTitle();
+    }
+    else
+    {
+        ret["Title"]=Json::Value();
+    }
+    if(getUserId())
+    {
+        ret["User_ID"]=getValueOfUserId();
+    }
+    else
+    {
+        ret["User_ID"]=Json::Value();
     }
     if(getValid())
     {
@@ -987,38 +1117,22 @@ Json::Value Chapter::toMasqueradedJson(
     {
         ret["Content"]=Json::Value();
     }
-    if(getRemarks())
+    if(getMemo())
     {
-        ret["Remarks"]=getValueOfRemarks();
+        ret["Memo"]=getValueOfMemo();
     }
     else
     {
-        ret["Remarks"]=Json::Value();
-    }
-    if(getUserId())
-    {
-        ret["User_ID"]=getValueOfUserId();
-    }
-    else
-    {
-        ret["User_ID"]=Json::Value();
-    }
-    if(getTitle())
-    {
-        ret["Title"]=getValueOfTitle();
-    }
-    else
-    {
-        ret["Title"]=Json::Value();
+        ret["Memo"]=Json::Value();
     }
     return ret;
 }
 
 bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err)
 {
-    if(pJson.isMember("Chapter_D"))
+    if(pJson.isMember("Chapter_ID"))
     {
-        if(!validJsonOfField(0, "Chapter_D", pJson["Chapter_D"], err, true))
+        if(!validJsonOfField(0, "Chapter_ID", pJson["Chapter_ID"], err, true))
             return false;
     }
     if(pJson.isMember("Book_ID"))
@@ -1031,19 +1145,49 @@ bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err
         err="The Book_ID column cannot be null";
         return false;
     }
-    if(pJson.isMember("Order_ID"))
+    if(pJson.isMember("Part_Num"))
     {
-        if(!validJsonOfField(2, "Order_ID", pJson["Order_ID"], err, true))
+        if(!validJsonOfField(2, "Part_Num", pJson["Part_Num"], err, true))
             return false;
     }
     else
     {
-        err="The Order_ID column cannot be null";
+        err="The Part_Num column cannot be null";
+        return false;
+    }
+    if(pJson.isMember("Chapter_Num"))
+    {
+        if(!validJsonOfField(3, "Chapter_Num", pJson["Chapter_Num"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Chapter_Num column cannot be null";
+        return false;
+    }
+    if(pJson.isMember("Title"))
+    {
+        if(!validJsonOfField(4, "Title", pJson["Title"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Title column cannot be null";
+        return false;
+    }
+    if(pJson.isMember("User_ID"))
+    {
+        if(!validJsonOfField(5, "User_ID", pJson["User_ID"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The User_ID column cannot be null";
         return false;
     }
     if(pJson.isMember("Valid"))
     {
-        if(!validJsonOfField(3, "Valid", pJson["Valid"], err, true))
+        if(!validJsonOfField(6, "Valid", pJson["Valid"], err, true))
             return false;
     }
     else
@@ -1053,7 +1197,7 @@ bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err
     }
     if(pJson.isMember("Content"))
     {
-        if(!validJsonOfField(4, "Content", pJson["Content"], err, true))
+        if(!validJsonOfField(7, "Content", pJson["Content"], err, true))
             return false;
     }
     else
@@ -1061,34 +1205,14 @@ bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err
         err="The Content column cannot be null";
         return false;
     }
-    if(pJson.isMember("Remarks"))
+    if(pJson.isMember("Memo"))
     {
-        if(!validJsonOfField(5, "Remarks", pJson["Remarks"], err, true))
+        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, true))
             return false;
     }
     else
     {
-        err="The Remarks column cannot be null";
-        return false;
-    }
-    if(pJson.isMember("User_ID"))
-    {
-        if(!validJsonOfField(6, "User_ID", pJson["User_ID"], err, true))
-            return false;
-    }
-    else
-    {
-        err="The User_ID column cannot be null";
-        return false;
-    }
-    if(pJson.isMember("Title"))
-    {
-        if(!validJsonOfField(7, "Title", pJson["Title"], err, true))
-            return false;
-    }
-    else
-    {
-        err="The Title column cannot be null";
+        err="The Memo column cannot be null";
         return false;
     }
     return true;
@@ -1097,7 +1221,7 @@ bool Chapter::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                  const std::vector<std::string> &pMasqueradingVector,
                                                  std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1202,6 +1326,19 @@ bool Chapter::validateMasqueradedJsonForCreation(const Json::Value &pJson,
             return false;
         }
       }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[8] + " column cannot be null";
+            return false;
+        }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -1212,9 +1349,9 @@ bool Chapter::validateMasqueradedJsonForCreation(const Json::Value &pJson,
 }
 bool Chapter::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
 {
-    if(pJson.isMember("Chapter_D"))
+    if(pJson.isMember("Chapter_ID"))
     {
-        if(!validJsonOfField(0, "Chapter_D", pJson["Chapter_D"], err, false))
+        if(!validJsonOfField(0, "Chapter_ID", pJson["Chapter_ID"], err, false))
             return false;
     }
     else
@@ -1227,34 +1364,39 @@ bool Chapter::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(1, "Book_ID", pJson["Book_ID"], err, false))
             return false;
     }
-    if(pJson.isMember("Order_ID"))
+    if(pJson.isMember("Part_Num"))
     {
-        if(!validJsonOfField(2, "Order_ID", pJson["Order_ID"], err, false))
+        if(!validJsonOfField(2, "Part_Num", pJson["Part_Num"], err, false))
             return false;
     }
-    if(pJson.isMember("Valid"))
+    if(pJson.isMember("Chapter_Num"))
     {
-        if(!validJsonOfField(3, "Valid", pJson["Valid"], err, false))
-            return false;
-    }
-    if(pJson.isMember("Content"))
-    {
-        if(!validJsonOfField(4, "Content", pJson["Content"], err, false))
-            return false;
-    }
-    if(pJson.isMember("Remarks"))
-    {
-        if(!validJsonOfField(5, "Remarks", pJson["Remarks"], err, false))
-            return false;
-    }
-    if(pJson.isMember("User_ID"))
-    {
-        if(!validJsonOfField(6, "User_ID", pJson["User_ID"], err, false))
+        if(!validJsonOfField(3, "Chapter_Num", pJson["Chapter_Num"], err, false))
             return false;
     }
     if(pJson.isMember("Title"))
     {
-        if(!validJsonOfField(7, "Title", pJson["Title"], err, false))
+        if(!validJsonOfField(4, "Title", pJson["Title"], err, false))
+            return false;
+    }
+    if(pJson.isMember("User_ID"))
+    {
+        if(!validJsonOfField(5, "User_ID", pJson["User_ID"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Valid"))
+    {
+        if(!validJsonOfField(6, "Valid", pJson["Valid"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Content"))
+    {
+        if(!validJsonOfField(7, "Content", pJson["Content"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Memo"))
+    {
+        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, false))
             return false;
     }
     return true;
@@ -1263,7 +1405,7 @@ bool Chapter::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                const std::vector<std::string> &pMasqueradingVector,
                                                std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1312,6 +1454,11 @@ bool Chapter::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
       {
           if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
               return false;
       }
     }
@@ -1394,18 +1541,6 @@ bool Chapter::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
-            break;
-        case 5:
-            if(pJson.isNull())
-            {
-                err="The " + fieldName + " column cannot be null";
-                return false;
-            }
-            if(!pJson.isString())
-            {
-                err="Type error in the "+fieldName+" field";
-                return false;                
-            }
             // asString().length() creates a string object, is there any better way to validate the length?
             if(pJson.isString() && pJson.asString().length() > 255)
             {
@@ -1415,6 +1550,18 @@ bool Chapter::validJsonOfField(size_t index,
                 return false;               
             }
 
+            break;
+        case 5:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
             break;
         case 6:
             if(pJson.isNull())
@@ -1439,15 +1586,18 @@ bool Chapter::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
-            // asString().length() creates a string object, is there any better way to validate the length?
-            if(pJson.isString() && pJson.asString().length() > 255)
+            break;
+        case 8:
+            if(pJson.isNull())
             {
-                err="String length exceeds limit for the " +
-                    fieldName +
-                    " field (the maximum value is 255)";
-                return false;               
+                err="The " + fieldName + " column cannot be null";
+                return false;
             }
-
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
+            }
             break;
      
         default:

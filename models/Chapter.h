@@ -43,14 +43,15 @@ class Chapter
   public:
     struct Cols
     {
-        static const std::string _Chapter_D;
+        static const std::string _Chapter_ID;
         static const std::string _Book_ID;
-        static const std::string _Order_ID;
+        static const std::string _Part_Num;
+        static const std::string _Chapter_Num;
+        static const std::string _Title;
+        static const std::string _User_ID;
         static const std::string _Valid;
         static const std::string _Content;
-        static const std::string _Remarks;
-        static const std::string _User_ID;
-        static const std::string _Title;
+        static const std::string _Memo;
     };
 
     const static int primaryKeyNumber;
@@ -102,13 +103,13 @@ class Chapter
                           std::string &err, 
                           bool isForCreation);
 
-    /**  For column Chapter_D  */
-    ///Get the value of the column Chapter_D, returns the default value if the column is null
-    const int32_t &getValueOfChapterD() const noexcept;
+    /**  For column Chapter_ID  */
+    ///Get the value of the column Chapter_ID, returns the default value if the column is null
+    const int32_t &getValueOfChapterId() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getChapterD() const noexcept;
-    ///Set the value of the column Chapter_D
-    void setChapterD(const int32_t &pChapterD) noexcept;
+    const std::shared_ptr<int32_t> &getChapterId() const noexcept;
+    ///Set the value of the column Chapter_ID
+    void setChapterId(const int32_t &pChapterId) noexcept;
 
     /**  For column Book_ID  */
     ///Get the value of the column Book_ID, returns the default value if the column is null
@@ -118,13 +119,38 @@ class Chapter
     ///Set the value of the column Book_ID
     void setBookId(const int32_t &pBookId) noexcept;
 
-    /**  For column Order_ID  */
-    ///Get the value of the column Order_ID, returns the default value if the column is null
-    const int32_t &getValueOfOrderId() const noexcept;
+    /**  For column Part_Num  */
+    ///Get the value of the column Part_Num, returns the default value if the column is null
+    const int32_t &getValueOfPartNum() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getOrderId() const noexcept;
-    ///Set the value of the column Order_ID
-    void setOrderId(const int32_t &pOrderId) noexcept;
+    const std::shared_ptr<int32_t> &getPartNum() const noexcept;
+    ///Set the value of the column Part_Num
+    void setPartNum(const int32_t &pPartNum) noexcept;
+
+    /**  For column Chapter_Num  */
+    ///Get the value of the column Chapter_Num, returns the default value if the column is null
+    const int32_t &getValueOfChapterNum() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int32_t> &getChapterNum() const noexcept;
+    ///Set the value of the column Chapter_Num
+    void setChapterNum(const int32_t &pChapterNum) noexcept;
+
+    /**  For column Title  */
+    ///Get the value of the column Title, returns the default value if the column is null
+    const std::string &getValueOfTitle() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getTitle() const noexcept;
+    ///Set the value of the column Title
+    void setTitle(const std::string &pTitle) noexcept;
+    void setTitle(std::string &&pTitle) noexcept;
+
+    /**  For column User_ID  */
+    ///Get the value of the column User_ID, returns the default value if the column is null
+    const int32_t &getValueOfUserId() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int32_t> &getUserId() const noexcept;
+    ///Set the value of the column User_ID
+    void setUserId(const int32_t &pUserId) noexcept;
 
     /**  For column Valid  */
     ///Get the value of the column Valid, returns the default value if the column is null
@@ -143,34 +169,17 @@ class Chapter
     void setContent(const std::string &pContent) noexcept;
     void setContent(std::string &&pContent) noexcept;
 
-    /**  For column Remarks  */
-    ///Get the value of the column Remarks, returns the default value if the column is null
-    const std::string &getValueOfRemarks() const noexcept;
+    /**  For column Memo  */
+    ///Get the value of the column Memo, returns the default value if the column is null
+    const std::string &getValueOfMemo() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getRemarks() const noexcept;
-    ///Set the value of the column Remarks
-    void setRemarks(const std::string &pRemarks) noexcept;
-    void setRemarks(std::string &&pRemarks) noexcept;
-
-    /**  For column User_ID  */
-    ///Get the value of the column User_ID, returns the default value if the column is null
-    const int32_t &getValueOfUserId() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getUserId() const noexcept;
-    ///Set the value of the column User_ID
-    void setUserId(const int32_t &pUserId) noexcept;
-
-    /**  For column Title  */
-    ///Get the value of the column Title, returns the default value if the column is null
-    const std::string &getValueOfTitle() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getTitle() const noexcept;
-    ///Set the value of the column Title
-    void setTitle(const std::string &pTitle) noexcept;
-    void setTitle(std::string &&pTitle) noexcept;
+    const std::shared_ptr<std::string> &getMemo() const noexcept;
+    ///Set the value of the column Memo
+    void setMemo(const std::string &pMemo) noexcept;
+    void setMemo(std::string &&pMemo) noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 8;  }
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -187,14 +196,15 @@ class Chapter
     void updateArgs(drogon::orm::internal::SqlBinder &binder) const;
     ///For mysql or sqlite3
     void updateId(const uint64_t id);
-    std::shared_ptr<int32_t> chapterD_;
+    std::shared_ptr<int32_t> chapterId_;
     std::shared_ptr<int32_t> bookId_;
-    std::shared_ptr<int32_t> orderId_;
+    std::shared_ptr<int32_t> partNum_;
+    std::shared_ptr<int32_t> chapterNum_;
+    std::shared_ptr<std::string> title_;
+    std::shared_ptr<int32_t> userId_;
     std::shared_ptr<int8_t> valid_;
     std::shared_ptr<std::string> content_;
-    std::shared_ptr<std::string> remarks_;
-    std::shared_ptr<int32_t> userId_;
-    std::shared_ptr<std::string> title_;
+    std::shared_ptr<std::string> memo_;
     struct MetaData
     {
         const std::string colName_;
@@ -206,17 +216,17 @@ class Chapter
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[8]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
-        static const std::string sql="select * from " + tableName + " where Chapter_D = ?";
+        static const std::string sql="select * from " + tableName + " where Chapter_ID = ?";
         return sql;                   
     }
 
     static const std::string &sqlForDeletingByPrimaryKey()
     {
-        static const std::string sql="delete from " + tableName + " where Chapter_D = ?";
+        static const std::string sql="delete from " + tableName + " where Chapter_ID = ?";
         return sql;                   
     }
     std::string sqlForInserting(bool &needSelection) const
@@ -224,7 +234,7 @@ class Chapter
         std::string sql="insert into " + tableName + " (";
         size_t parametersCount = 0;
         needSelection = false;
-            sql += "Chapter_D,";
+            sql += "Chapter_ID,";
             ++parametersCount;
         if(dirtyFlag_[1])
         {
@@ -233,32 +243,37 @@ class Chapter
         }
         if(dirtyFlag_[2])
         {
-            sql += "Order_ID,";
+            sql += "Part_Num,";
             ++parametersCount;
         }
         if(dirtyFlag_[3])
         {
-            sql += "Valid,";
+            sql += "Chapter_Num,";
             ++parametersCount;
         }
         if(dirtyFlag_[4])
         {
-            sql += "Content,";
+            sql += "Title,";
             ++parametersCount;
         }
         if(dirtyFlag_[5])
         {
-            sql += "Remarks,";
+            sql += "User_ID,";
             ++parametersCount;
         }
         if(dirtyFlag_[6])
         {
-            sql += "User_ID,";
+            sql += "Valid,";
             ++parametersCount;
         }
         if(dirtyFlag_[7])
         {
-            sql += "Title,";
+            sql += "Content,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[8])
+        {
+            sql += "Memo,";
             ++parametersCount;
         }
         needSelection=true;
@@ -302,6 +317,11 @@ class Chapter
 
         } 
         if(dirtyFlag_[7])
+        {
+            sql.append("?,");
+
+        } 
+        if(dirtyFlag_[8])
         {
             sql.append("?,");
 
