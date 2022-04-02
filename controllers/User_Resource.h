@@ -3,9 +3,11 @@
 #include <models/User.h>
 #include <models/Upload.h>
 #include <models/Book.h>
+#include <models/Chapter.h>
 #include <plugins/MyJson.h>
 #include <plugins/MyBase.h>
 #include <plugins/MyTools.h>
+#include <plugins/MyDBService.h>
 #include <regex>
 using namespace drogon;
 using namespace drogon_model::novel;
