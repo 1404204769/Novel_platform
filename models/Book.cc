@@ -29,7 +29,7 @@ const std::vector<typename Book::MetaData> Book::metaData_={
 {"Book_ID","int32_t","int(10)",4,1,1,1},
 {"Name","std::string","varchar(255)",255,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
-{"Synopsis","std::string","varchar(255)",255,0,0,1},
+{"Synopsis","std::string","varchar(512)",512,0,0,1},
 {"Publisher","std::string","varchar(255)",255,0,0,1},
 {"Author","std::string","varchar(255)",255,0,0,1},
 {"Create_time","::trantor::Date","timestamp",0,0,0,1},
@@ -1759,11 +1759,11 @@ bool Book::validJsonOfField(size_t index,
                 return false;                
             }
             // asString().length() creates a string object, is there any better way to validate the length?
-            if(pJson.isString() && pJson.asString().length() > 255)
+            if(pJson.isString() && pJson.asString().length() > 512)
             {
                 err="String length exceeds limit for the " +
                     fieldName +
-                    " field (the maximum value is 255)";
+                    " field (the maximum value is 512)";
                 return false;               
             }
 

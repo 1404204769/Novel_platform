@@ -20,6 +20,7 @@ const std::string Upload::Cols::_Status = "Status";
 const std::string Upload::Cols::_Time = "Time";
 const std::string Upload::Cols::_Processor = "Processor";
 const std::string Upload::Cols::_IsManage = "IsManage";
+const std::string Upload::Cols::_Memo = "Memo";
 const std::string Upload::primaryKeyName = "Upload_ID";
 const bool Upload::hasPrimaryKey = true;
 const std::string Upload::tableName = "upload";
@@ -32,7 +33,8 @@ const std::vector<typename Upload::MetaData> Upload::metaData_={
 {"Status","std::string","varchar(255)",255,0,0,1},
 {"Time","::trantor::Date","timestamp",0,0,0,1},
 {"Processor","std::string","varchar(255)",255,0,0,0},
-{"IsManage","int8_t","tinyint(1)",1,0,0,1}
+{"IsManage","int8_t","tinyint(1)",1,0,0,1},
+{"Memo","std::string","text",0,0,0,1}
 };
 const std::string &Upload::getColumnName(size_t index) noexcept(false)
 {
@@ -93,11 +95,15 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         {
             ismanage_=std::make_shared<int8_t>(r["IsManage"].as<int8_t>());
         }
+        if(!r["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(r["Memo"].as<std::string>());
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 8 > r.size())
+        if(offset + 9 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -161,13 +167,18 @@ Upload::Upload(const Row &r, const ssize_t indexOffset) noexcept
         {
             ismanage_=std::make_shared<int8_t>(r[index].as<int8_t>());
         }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            memo_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
     }
 
 }
 
 Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -252,6 +263,14 @@ Upload::Upload(const Json::Value &pJson, const std::vector<std::string> &pMasque
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
             ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[7]].asInt64());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
@@ -340,12 +359,20 @@ Upload::Upload(const Json::Value &pJson) noexcept(false)
             ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
         }
     }
+    if(pJson.isMember("Memo"))
+    {
+        dirtyFlag_[8]=true;
+        if(!pJson["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
+        }
+    }
 }
 
 void Upload::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -431,6 +458,14 @@ void Upload::updateByMasqueradedJson(const Json::Value &pJson,
             ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[7]].asInt64());
         }
     }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
 }
                                                                     
 void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -514,6 +549,14 @@ void Upload::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["IsManage"].isNull())
         {
             ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
+        }
+    }
+    if(pJson.isMember("Memo"))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
         }
     }
 }
@@ -679,6 +722,28 @@ void Upload::setIsmanage(const int8_t &pIsmanage) noexcept
     dirtyFlag_[7] = true;
 }
 
+const std::string &Upload::getValueOfMemo() const noexcept
+{
+    const static std::string defaultValue = std::string();
+    if(memo_)
+        return *memo_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Upload::getMemo() const noexcept
+{
+    return memo_;
+}
+void Upload::setMemo(const std::string &pMemo) noexcept
+{
+    memo_ = std::make_shared<std::string>(pMemo);
+    dirtyFlag_[8] = true;
+}
+void Upload::setMemo(std::string &&pMemo) noexcept
+{
+    memo_ = std::make_shared<std::string>(std::move(pMemo));
+    dirtyFlag_[8] = true;
+}
+
 void Upload::updateId(const uint64_t id)
 {
     uploadId_ = std::make_shared<int32_t>(static_cast<int32_t>(id));
@@ -693,7 +758,8 @@ const std::vector<std::string> &Upload::insertColumns() noexcept
         "Status",
         "Time",
         "Processor",
-        "IsManage"
+        "IsManage",
+        "Memo"
     };
     return inCols;
 }
@@ -777,6 +843,17 @@ void Upload::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[8])
+    {
+        if(getMemo())
+        {
+            binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Upload::updateColumns() const
@@ -809,6 +886,10 @@ const std::vector<std::string> Upload::updateColumns() const
     if(dirtyFlag_[7])
     {
         ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
     }
     return ret;
 }
@@ -892,6 +973,17 @@ void Upload::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[8])
+    {
+        if(getMemo())
+        {
+            binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 Json::Value Upload::toJson() const
 {
@@ -960,6 +1052,14 @@ Json::Value Upload::toJson() const
     {
         ret["IsManage"]=Json::Value();
     }
+    if(getMemo())
+    {
+        ret["Memo"]=getValueOfMemo();
+    }
+    else
+    {
+        ret["Memo"]=Json::Value();
+    }
     return ret;
 }
 
@@ -967,7 +1067,7 @@ Json::Value Upload::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 8)
+    if(pMasqueradingVector.size() == 9)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1057,6 +1157,17 @@ Json::Value Upload::toMasqueradedJson(
                 ret[pMasqueradingVector[7]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getMemo())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfMemo();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -1123,6 +1234,14 @@ Json::Value Upload::toMasqueradedJson(
     else
     {
         ret["IsManage"]=Json::Value();
+    }
+    if(getMemo())
+    {
+        ret["Memo"]=getValueOfMemo();
+    }
+    else
+    {
+        ret["Memo"]=Json::Value();
     }
     return ret;
 }
@@ -1194,13 +1313,23 @@ bool Upload::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The IsManage column cannot be null";
         return false;
     }
+    if(pJson.isMember("Memo"))
+    {
+        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Memo column cannot be null";
+        return false;
+    }
     return true;
 }
 bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                 const std::vector<std::string> &pMasqueradingVector,
                                                 std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1295,6 +1424,19 @@ bool Upload::validateMasqueradedJsonForCreation(const Json::Value &pJson,
             return false;
         }
       }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[8] + " column cannot be null";
+            return false;
+        }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -1350,13 +1492,18 @@ bool Upload::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(7, "IsManage", pJson["IsManage"], err, false))
             return false;
     }
+    if(pJson.isMember("Memo"))
+    {
+        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, false))
+            return false;
+    }
     return true;
 }
 bool Upload::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1405,6 +1552,11 @@ bool Upload::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
       {
           if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
               return false;
       }
     }
@@ -1539,6 +1691,18 @@ bool Upload::validJsonOfField(size_t index,
             {
                 err="Type error in the "+fieldName+" field";
                 return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
             }
             break;
      

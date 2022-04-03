@@ -51,6 +51,7 @@ class Upload
         static const std::string _Time;
         static const std::string _Processor;
         static const std::string _IsManage;
+        static const std::string _Memo;
     };
 
     const static int primaryKeyNumber;
@@ -170,8 +171,17 @@ class Upload
     ///Set the value of the column IsManage
     void setIsmanage(const int8_t &pIsmanage) noexcept;
 
+    /**  For column Memo  */
+    ///Get the value of the column Memo, returns the default value if the column is null
+    const std::string &getValueOfMemo() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getMemo() const noexcept;
+    ///Set the value of the column Memo
+    void setMemo(const std::string &pMemo) noexcept;
+    void setMemo(std::string &&pMemo) noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 8;  }
+
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -196,6 +206,7 @@ class Upload
     std::shared_ptr<::trantor::Date> time_;
     std::shared_ptr<std::string> processor_;
     std::shared_ptr<int8_t> ismanage_;
+    std::shared_ptr<std::string> memo_;
     struct MetaData
     {
         const std::string colName_;
@@ -207,7 +218,7 @@ class Upload
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[8]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -263,6 +274,11 @@ class Upload
             sql += "IsManage,";
             ++parametersCount;
         }
+        if(dirtyFlag_[8])
+        {
+            sql += "Memo,";
+            ++parametersCount;
+        }
         needSelection=true;
         if(parametersCount > 0)
         {
@@ -308,6 +324,11 @@ class Upload
 
         } 
         if(dirtyFlag_[7])
+        {
+            sql.append("?,");
+
+        } 
+        if(dirtyFlag_[8])
         {
             sql.append("?,");
 
