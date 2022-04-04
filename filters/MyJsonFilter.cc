@@ -12,17 +12,23 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    // 获取Json数据指针
-	auto jsonptr=req->getJsonObject();
-    // 判断是否存在Json数据
-    if(jsonptr)
+    Json::Value RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+    MyBasePtr->TRACELog("MyJsonFilter::body" + string(req->getBody()), true);
+    // 判断是否存在Json数据 若存在Json数据则允许进入下一个地址
+    if(req->getJsonObject())
     {
-        // 若存在Json数据则允许进入下一个地址
+        MyBasePtr->TRACELog("LoginFilter 验证成功", true);
         return fccb();
     }
-    Json::Value RespVal;
+
     RespVal["ErrorMsg"] = "不存在Json数据";
+    MyBasePtr->TRACELog("LoginFilter 验证失败", true);
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
     auto res = HttpResponse::newHttpJsonResponse(RespVal);
+
     res->setStatusCode(k500InternalServerError);
     return fcb(res);
 }

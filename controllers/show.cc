@@ -1,17 +1,41 @@
 #include "show.h"
 void show::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback)
 {
-    //write your application logic here
-	Json::Value RespVal;
-	const std::string token = req->getHeader("Authorization");
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *JWTPtr = app().getPlugin<MyJwt>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+	const string token = req->getHeader("Authorization");
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("show::body" + string(req->getBody()), true);
 
-    //std::cout<< "req header Authorization:" << req->getHeader("Authorization")<<std::endl;
-    //std::cout<< "token:" << token << std::endl;
 
-	auto *JWTPtr = app().getPlugin<MyJwt>();//获取mytools插件
-	RespVal = JWTPtr->decode(token);
-	auto result=HttpResponse::newHttpJsonResponse(RespVal);
-	result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-	callback(result);
+    try{
+        ReqVal=*req->getJsonObject();
+
+        MyBasePtr->DEBUGLog("开始解析Token", true);
+        RespVal = JWTPtr->decode(token);
+        MyBasePtr->DEBUGLog("解析Token成功", true);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"] = "Test::SysOutLevel";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+
+
+	Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+	callback(Result);
 }

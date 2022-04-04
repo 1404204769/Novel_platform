@@ -2,40 +2,94 @@
 //add definition of your processing function here
 void Test::ChineseStr(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-	auto *MyToolPtr = app().getPlugin<MyTools>();//获取MyJson插件
-	auto *MyBasePtr = app().getPlugin<MyBase>();//获取MyJson插件
-    MyBasePtr->TRACELog("req body" + string(req->getBody()),true);
-	Json::Value RespVal;
-	auto jsonptr=req->getJsonObject();
-    Json::Value json=*jsonptr;
-    pair<int,string> TitleVal = MyToolPtr->getTitleNumAndTitleStr(json["Title"].asString());
-    RespVal["TitleNum"] = TitleVal.first;
-    RespVal["TitleStr"] = TitleVal.second;
-    if(MyBasePtr->IsStatus("DEBUG"))
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+	auto *MyToolPtr = app().getPlugin<MyTools>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Test::ChineseStr::body" + string(req->getBody()), true);
+    
+    try
     {
-        cout << "TitleNum : " << RespVal["TitleNum"].asString() << endl;
-        cout << "TitleStr : " << RespVal["TitleStr"].asString() << endl;
-    }
-    drogon::HttpResponsePtr result=HttpResponse::newHttpJsonResponse(RespVal);
+        ReqVal=*req->getJsonObject();
+    
+        MyBasePtr->DEBUGLog("开始解析中文标题", true);
+        pair<int,string> TitleVal = MyToolPtr->getTitleNumAndTitleStr(ReqVal["Title"].asString());
+        RespVal["TitleNum"] = TitleVal.first;
+        RespVal["TitleStr"] = TitleVal.second;
+        MyBasePtr->DEBUGLog("中文标题解析完成", true);
 
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
+        MyBasePtr->DEBUGLog("TitleNum : " + RespVal["TitleNum"].asString(), true);
+        MyBasePtr->DEBUGLog("TitleStr : " + RespVal["TitleStr"].asString(), true);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"] = "Test::ChineseStr发生异常";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 // 修改系统输出级别
 void Test::SysOutLevel(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-	auto *MyBasePtr = app().getPlugin<MyBase>();//获取MyJson插件
-    MyBasePtr->TRACELog("req body" + string(req->getBody()),true);
-	Json::Value RespVal;
-	auto jsonptr=req->getJsonObject();
-    Json::Value json=*jsonptr;
-    string ChangeLevel = json["Level"].asString();
-    MyBasePtr->ChangeStatus(ChangeLevel);
-    drogon::HttpResponsePtr result=HttpResponse::newHttpJsonResponse(RespVal);
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+	auto *MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Test::SysOutLevel::body" + string(req->getBody()), true);
 
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
+    try{
+        ReqVal=*req->getJsonObject();
+
+        // 检测参数
+        {
+            std::map<string,MyJson::ColType>ColMap;
+            ColMap["Level"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
+        }
+
+        MyBasePtr->TRACELog("开始改变输出模式", true);
+        MyBasePtr->ChangeStatus(ReqVal["Level"].asString());
+        MyBasePtr->TRACELog("改变输出模式成功", true);
+        RespVal["DEBUG"] = MyBasePtr->IsStatus("DEBUG");
+        RespVal["TRACE"] = MyBasePtr->IsStatus("TRACE");
+        RespVal["INFO"] = MyBasePtr->IsStatus("INFO");
+        RespVal["WARN"] = MyBasePtr->IsStatus("WARN");
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"] = "Test::SysOutLevel";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }

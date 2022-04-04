@@ -1,6 +1,7 @@
 #pragma once
 #include <drogon/HttpController.h>
 #include <plugins/MyRoot.h>
+#include <plugins/MyBase.h>
 using namespace drogon;
 class Root:public drogon::HttpController<Root>
 {  

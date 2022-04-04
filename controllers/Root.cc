@@ -3,47 +3,52 @@
 
 void Root::Instructions(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    //write your application logic here
-	std::cout<< "req body" << req->getBody()<<std::endl;
-	Json::Value RespVal;
-    drogon::HttpResponsePtr result;
-    auto *MyJsonPtr = app().getPlugin<MyJson>();
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
     auto *MyRootPtr = app().getPlugin<MyRoot>();
-	RespVal["Result"] = "false";
-	auto jsonptr=req->getJsonObject();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::Instructions::body" + string(req->getBody()), true);
+
 
     try{
         // 读取Json数据
-        Json::Value json=*jsonptr;
-        MyJsonPtr->checkMember(json,RespVal,"Instruction");
-        MyRoot::Instructions instruct;
-        if(json["Instruction"].asString() == "restart")
+        Json::Value ReqVal=*req->getJsonObject();
+
+        MyJsonPtr->checkMember(ReqVal,RespVal,"Instruction");
+        if(ReqVal["Instruction"].asString() == "restart")
         {
             MyRootPtr->restart();
-            RespVal["Result"]="success";
+            RespVal["Result"]="重启成功";
         }
-        if(json["Instruction"].asString() == "close")
+        if(ReqVal["Instruction"].asString() == "close")
         {
             MyRootPtr->close();
-            RespVal["Result"]="success";
+            RespVal["Result"]="关机成功";
         }
         
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-	    std::cout << "RespVal : "<< RespVal.toStyledString() <<std::endl;
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch(Json::Value &e)
+    catch(Json::Value &RespVal)
     {
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
+	    RespVal["Result"] = "指令错误";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
+	    RespVal["Result"] = "指令错误";
         RespVal["ErrorMsg"] = e.base().what();
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
 
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }

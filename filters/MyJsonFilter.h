@@ -7,6 +7,7 @@
 #pragma once
 
 #include <drogon/HttpFilter.h>
+#include <plugins/MyBase.h>
 using namespace drogon;
 
 

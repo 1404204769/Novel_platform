@@ -5,29 +5,41 @@ using namespace Admin;
 // 管理员审核用户上传接口
 void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
     Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Examine::UpList::body" + string(req->getBody()), true);
+    
     RespVal["简介"] = "管理员审核用户上传接口";
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result=HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 // 管理员查看用户意见接口
 void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
     Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Examine::IdeaList::body" + string(req->getBody()), true);
+    
     RespVal["简介"] = "管理员查看用户意见接口";
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result=HttpResponse::newHttpJsonResponse(RespVal);
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }

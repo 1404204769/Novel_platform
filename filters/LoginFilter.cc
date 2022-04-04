@@ -12,18 +12,26 @@ void LoginFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value RespVal;
-    const std::string LoginStatus = req->getParameter("LoginStatus");
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+	auto *MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("LoginFilter::body" + string(req->getBody()), true);
+
+    const std::string LoginStatus = umapPara.at("Login_Status");
     if((LoginStatus == "user") || (LoginStatus == "admin") || (LoginStatus == "root"))
     {
-        std::cout << "LoginFilter 验证成功" << std::endl;
+        MyBasePtr->TRACELog("LoginFilter 验证成功", true);
         return fccb();
     }
-    RespVal["LoginStatus"] = LoginStatus;
+    RespVal["Login_Status"] = LoginStatus;
     RespVal["ErrorMsg"] = "游客权限不足，请注册账号";
-    auto res = HttpResponse::newHttpJsonResponse(RespVal);
-    res->setStatusCode(k500InternalServerError);
-    std::cout << "LoginFilter 验证失败" << std::endl;
-    // Return the response and let's tell this endpoint request was cancelled
-    return fcb(res);
+    MyBasePtr->TRACELog("LoginFilter 验证失败", true);
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k500InternalServerError);
+    return fcb(Result);
 }

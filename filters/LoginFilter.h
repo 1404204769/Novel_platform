@@ -8,6 +8,7 @@
 
 #include <drogon/HttpFilter.h>
 #include <plugins/MyJwt.h>
+#include <plugins/MyBase.h>
 using namespace drogon;
 
 

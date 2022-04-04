@@ -102,6 +102,8 @@ void MyBase::TRACELog(const string &str,const  bool Line_feed)
         cout << str << endl;
     else
         cout << str;
+    LOG_TRACE<<"";
+    LOG_TRACE << str;
 }
 
 void MyBase::DEBUGLog(const string &str,const  bool Line_feed)
@@ -111,6 +113,8 @@ void MyBase::DEBUGLog(const string &str,const  bool Line_feed)
         cout << str << endl;
     else
         cout << str;
+    LOG_DEBUG<<"";
+    LOG_DEBUG << str;
 }
 
 void MyBase::INFOLog(const string &str,const  bool Line_feed)
@@ -120,6 +124,8 @@ void MyBase::INFOLog(const string &str,const  bool Line_feed)
         cout << str << endl;
     else
         cout << str;
+    LOG_INFO<<"";
+    LOG_INFO << str;
 }
 
 void MyBase::WARNLog(const string &str,const  bool Line_feed)
@@ -129,4 +135,6 @@ void MyBase::WARNLog(const string &str,const  bool Line_feed)
         cout << str << endl;
     else
         cout << str;
+    LOG_WARN<<"";
+    LOG_WARN << str;
 }

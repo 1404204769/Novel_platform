@@ -2,6 +2,7 @@
 #include <drogon/HttpController.h>
 #include <models/User.h>
 #include <plugins/MyJson.h>
+#include <plugins/MyDBService.h>
 using namespace drogon;
 using namespace drogon_model::novel;
 namespace Admin

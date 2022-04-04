@@ -5,44 +5,62 @@ using namespace Admin;
 // 管理员资源上传接口
 void Resource::Upload(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
     Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::Upload::body" + string(req->getBody()), true);
+
     RespVal["简介"] = "管理员资源上传接口";
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result=HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 // 管理员资源下载接口
 void Resource::Download(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
     Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::Download::body" + string(req->getBody()), true);
+    
     RespVal["简介"] = "管理员资源下载接口";
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result=HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 // 管理员资源查询接口
 void Resource::Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
     Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
+    
     RespVal["简介"] = "管理员资源查询接口";
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result=HttpResponse::newHttpJsonResponse(RespVal);
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }

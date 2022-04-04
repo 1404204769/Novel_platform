@@ -87,7 +87,6 @@ Json::Value MyJwt::decode(const string &token)
         cout<< "header:" << strHeader << endl;
         cout<< "payload:" << strPayload << endl;
         cout<< "RespVal:" << RespVal << endl;
-        
     }
     return RespVal;
 }

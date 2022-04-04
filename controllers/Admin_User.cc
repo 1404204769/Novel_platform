@@ -1,132 +1,124 @@
 #include "Admin_User.h"
-//add definition of your processing function here
-void Admin::User::List(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+// add definition of your processing function here
+void Admin::User::List(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    	//write your application logic here
-	std::cout<< "req body" << req->getBody()<<std::endl;
-	Json::Value RespVal;
-    drogon::HttpResponsePtr result;
-    try{
-        // 读取数据库数据
-        auto dbclientPrt=drogon::app().getDbClient();
-        Mapper<drogon_model::novel::User>UserMgr(dbclientPrt);
-        
-        std::cout << "开始查询所有用户" <<std::endl;
-        std::vector<drogon_model::novel::User> vecUser = UserMgr.findAll();
-        Json::Value vecJsonVal;
-        for(auto &user:vecUser)
-        {
-            vecJsonVal.append(user.toJson());
-            // std::cout << user.toJson().toStyledString() <<std::endl;
-        }
-        RespVal["UserList"] = vecJsonVal;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-	    std::cout << "RespVal : "<< RespVal.toStyledString() <<std::endl;
-    }
-    catch(const drogon::orm::DrogonDbException &e)
-    {
-        RespVal["ErrorMsg"] = e.base().what();
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-    }
-
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
-}
-
-void Admin::User::Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
-{
-    
-	//write your application logic here
-	std::cout<< "req body" << req->getBody()<<std::endl;
-	Json::Value RespVal;
-    drogon::HttpResponsePtr result;
-    auto *MyJsonPtr = app().getPlugin<MyJson>();
-	RespVal["Result"] = "false";
-	auto jsonptr=req->getJsonObject();
-    std::vector<drogon_model::novel::User> vecUser;
-
-    try{
-        // 读取Json数据
-        Json::Value json=*jsonptr;
-		// std::cout<< json.toStyledString()<<std::endl;
-        MyJsonPtr->checkMember(json, RespVal, "UserSearch");
-        Json::Value SearchJson=json["UserSearch"];
-        // 检查搜索条件
-        {
-            // 制作筛选条件
-            string UserID = "";
-            if(SearchJson.isMember("UserID"))
-            {
-                MyJsonPtr->checkColType(SearchJson, RespVal, "UserID", MyJson::ColType::INT);
-                UserID = SearchJson["UserID"].asString();
-                // std::cout << "UserID : " << UserID <<std::endl;
-            }
-            Criteria UserID_cri(drogon_model::novel::User::Cols::_User_ID, CompareOperator::Like, "%"+UserID+"%");
-
-            string UserSex = "";
-            if(SearchJson.isMember("UserSex"))
-            {
-                MyJsonPtr->checkColType(SearchJson, RespVal, "UserSex", MyJson::ColType::STRING);
-                UserSex = SearchJson["UserSex"].asString();
-            }
-            Criteria UserSex_cri(drogon_model::novel::User::Cols::_Sex, CompareOperator::Like, "%"+UserSex+"%");
-            
-            string UserName = "";
-            if(SearchJson.isMember("UserName"))
-            {
-                MyJsonPtr->checkColType(SearchJson, RespVal, "UserName", MyJson::ColType::STRING);
-                UserName = SearchJson["UserName"].asString();
-            }
-            Criteria UserName_cri(drogon_model::novel::User::Cols::_Name, CompareOperator::Like, "%"+UserName+"%");
-
-            auto dbclientPrt=drogon::app().getDbClient();
-            Mapper<drogon_model::novel::User>UserMgr(dbclientPrt);
-            
-            std::cout << "开始查询指定用户" <<std::endl;
-            vecUser = UserMgr.findBy(UserID_cri&&UserName_cri&&UserSex_cri);
-            RespVal["Result"] = "success";
-        }
-
-        Json::Value vecJsonVal;
-        for(auto &user:vecUser)
-        {
-            vecJsonVal.append(user.toJson());
-            // std::cout << user.toJson().toStyledString() <<std::endl;
-        }
-        RespVal["UserList"] = vecJsonVal;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-	    // std::cout << "RespVal : "<< RespVal.toStyledString() <<std::endl;
-    }
-    catch(Json::Value e)
-    {
-        std::cout << e["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(e);
-    }
-    catch(const drogon::orm::DrogonDbException &e)
-    {
-        RespVal["ErrorMsg"] = e.base().what();
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-    }
-
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
-}
-
-
-void Admin::User::Update(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
-{
+    drogon::HttpResponsePtr Result;
+    Json::Value ReqVal, RespVal, FilterVal;
+    auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>parameters = req->getParameters();
-    Json::Value RespVal;
-    MyJsonPtr->UnMapToJson(RespVal, parameters, "parameters");
-    cout << RespVal.toStyledString() << endl;
-    auto resp=HttpResponse::newHttpJsonResponse(RespVal);
-    resp->setStatusCode(k200OK);
-    resp->setContentTypeCode(CT_TEXT_HTML);
-    callback(resp);
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Admin::User::List::body" + string(req->getBody()), true);
+
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->TRACELog("Admin::User::List::ReqVal" + ReqVal.toStyledString(), true);
+
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+        RespVal["简介"] = "管理员查询所有用户接口";
+
+        ReqVal["Search_All"] = true;
+        FilterVal["User_ID"] = 0;
+        FilterVal["User_Name"] = "";
+        FilterVal["User_Sex"] = "";
+        ReqVal["Filter"] = FilterVal;
+
+        MyDBSPtr->Admin_Search_User(ReqVal, RespVal);
+
+        RespVal["Result"] = "查询所有用户成功";
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        RespVal["Result"] = "查询所有用户失败";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        RespVal["Result"] = "查询所有用户失败";
+        RespVal["ErrorMsg"] = e.base().what();
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
+void Admin::User::Search(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Admin::User::Search::body" + string(req->getBody()), true);
+
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->TRACELog("Admin::User::Search::ReqVal" + ReqVal.toStyledString(), true);
+
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+        RespVal["简介"] = "管理员查询指定用户接口";
+        ReqVal["Search_All"] = false;
+        ReqVal["Filter"] = ReqVal["UserSearch"];
+
+        MyDBSPtr->Admin_Search_User(ReqVal, RespVal);
+
+        RespVal["Result"] = "查询指定用户成功";
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        RespVal["Result"] = "查询指定用户失败";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        RespVal["Result"] = "查询指定用户失败";
+        RespVal["ErrorMsg"] = e.base().what();
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Admin::User::Update::body" + string(req->getBody()), true);
+    
+    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}

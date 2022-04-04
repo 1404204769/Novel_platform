@@ -12,17 +12,25 @@ void AdminFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value RespVal;
-    const std::string LoginStatus = req->getParameter("LoginStatus");
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+    MyBasePtr->TRACELog("AdminFilter::body" + string(req->getBody()), true);
+
+
+    const std::string LoginStatus = req->getParameter("Login_Status");
     if((LoginStatus == "admin") || (LoginStatus == "root"))
     {
-        std::cout << "AdminFilter 验证成功" << std::endl;
+        MyBasePtr->DEBUGLog("AdminFilter 验证成功", true);
         return fccb();
     }
+    
     RespVal["ErrorMsg"] = "用户权限不足，请联系管理员";
-    auto res = HttpResponse::newHttpJsonResponse(RespVal);
-    res->setStatusCode(k500InternalServerError);
-    std::cout << "AdminFilter 验证失败" << std::endl;
+    MyBasePtr->TRACELog("AdminFilter 验证失败", true);
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+    Result->setStatusCode(k500InternalServerError);
     // Return the response and let's tell this endpoint request was cancelled
-    return fcb(res);
+    return fcb(Result);
 }

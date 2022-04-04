@@ -1,5 +1,6 @@
 #pragma once
 #include <drogon/HttpSimpleController.h>
+#include <plugins/MyBase.h>
 using namespace drogon;
 class Introduce:public drogon::HttpSimpleController<Introduce>
 {

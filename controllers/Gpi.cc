@@ -3,69 +3,75 @@
 
 void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-	//write your application logic here
-	std::cout<< "req body" << req->getBody()<<std::endl;
-	auto *MyToolPtr = app().getPlugin<MyJson>();//获取MyJson插件
-	Json::Value RespVal;
-    drogon::HttpResponsePtr result;
-	RespVal["Result"] = "false";
-	auto jsonptr=req->getJsonObject();
+    drogon::HttpResponsePtr Result;
+	Json::Value ReqVal, RespVal,ParaVal;
+    auto JWTPtr = app().getPlugin<MyJwt>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Gpi::Login::body" + string(req->getBody()), true);
+    
     try{
 
         // 读取Json数据
-        Json::Value json=*jsonptr;
-		std::cout<< json.toStyledString()<<std::endl;
+	    ReqVal=*req->getJsonObject();
+        MyBasePtr->TRACELog("Gpi::Login::ReqVal" + ReqVal.toStyledString(), true);
 
         // 检查数据完整性
         {
             // 创建检查列表
+            // 判断是否存在User_ID 判断User_ID是否是Int
+            // 判断是否存在User_Pwd 判断User_Pwd是否是String
             std::map<string,MyJson::ColType>ColMap;
-            // 判断是否存在UserID 判断UserID是否是Int
-            ColMap["UserID"]=MyJson::ColType::INT;
-            // 判断是否存在UserPwd 判断UserPwd是否是String
-            ColMap["UserPwd"]=MyJson::ColType::STRING;
-            MyToolPtr->checkMemberAndTypeInMap(json,RespVal,ColMap);
+            ColMap["User_ID"]=MyJson::ColType::INT;
+            ColMap["User_Pwd"]=MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
         }
 
         // 读取UserID UserPwd数据
-        auto UserID=json["UserID"].asInt();
-		auto UserPwd=json["UserPwd"].asString();
+        auto UserID=ReqVal["User_ID"].asInt();
+		auto UserPwd=ReqVal["User_Pwd"].asString();
         auto dbclientPrt=drogon::app().getDbClient();
         Mapper<drogon_model::novel::User>UserMgr(dbclientPrt);
         
-        std::cout << "开始查询用户" <<std::endl;
+        MyBasePtr->DEBUGLog("开始查询用户", true);
         drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
+        MyBasePtr->DEBUGLog("用户查询完毕", true);
 
         // 判断用户密码是否正确
+        MyBasePtr->DEBUGLog("开始验证密码", true);
         if(user.getValueOfPassword() != UserPwd)
         {
-            std::cout << "用户密码不正确" <<std::endl;
-            RespVal["ErrorMsg"] = "用户密码不正确";
+            RespVal["ErrorMsg"] = "用户密码错误";
             throw RespVal;
         }
+        MyBasePtr->DEBUGLog("密码验证通过", true);
 
         // 创建Token
-		auto *JWTPtr = app().getPlugin<MyJwt>();//获取MyJwt插件
-		auto *MyRootPtr = app().getPlugin<MyRoot>();//获取MyJwt插件
-        Json::Value param;
-        param["UserID"] = UserID;
-        param["LoginStatus"] = MyRootPtr->getUserType(user.getValueOfPower());
-        RespVal["Token"] = JWTPtr->encode(param);
+        MyBasePtr->DEBUGLog("开始创建Token", true);
+        ParaVal["User_ID"] = UserID;
+        ParaVal["Login_Status"] = MyRootPtr->getUserType(user.getValueOfPower());
 
-        RespVal["Result"] = "true";
-        RespVal["UserData"] = user.toJson();
-		RespVal["msg"]="登入成功";
+        RespVal["Token"] = JWTPtr->encode(ParaVal);
+        MyBasePtr->DEBUGLog("Token创建成功", true);
 
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-	    std::cout << "login result "<< RespVal["Result"].asString() <<std::endl;
+        RespVal["Result"] = "登入成功";
+        RespVal["User_Data"] = user.toJson();
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch(Json::Value e)
+    catch(Json::Value RespVal)
     {
-        std::cout << e["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(e);
+	    RespVal["Result"] = "登入失败";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
+	    RespVal["Result"] = "登入失败";
         if(e.base().what() == string("0 rows found"))
         {
             RespVal["ErrorMsg"] = "此用户不存在";
@@ -74,95 +80,90 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         {
             RespVal["ErrorMsg"] = "用户ID重复,请联系管理员";
         }
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(RespVal);
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
 
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    std::cout<< "req body" << req->getBody()<<std::endl;
-	auto *MyToolPtr = app().getPlugin<MyJson>();//获取MyJson插件
-	Json::Value RespVal;
-    drogon::HttpResponsePtr result;
-	RespVal["Result"] = "false";
-	auto jsonptr=req->getJsonObject();
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Gpi::Register::body" + string(req->getBody()), true);
 
     try{
         // 读取Json数据
-        Json::Value json=*jsonptr;
-		std::cout<< json.toStyledString()<<std::endl;
+        ReqVal=*req->getJsonObject();
+        MyBasePtr->TRACELog("Admin::User::List::ReqVal" + ReqVal.toStyledString(), true);
 
         // 检查数据完整性
         {
             // 创建检查列表
+            // "User_Name":""
+            // "User_ID":0
+            // "User_Pwd":""
+            // "User_Sex":""
             std::map<string,MyJson::ColType>ColMap;
-            // 判断是否存在UserName 判断UserName是否是String
-            ColMap["UserName"]=MyJson::ColType::STRING;
-            // 判断是否存在UserID 判断UserID是否是Int
-            ColMap["UserID"]=MyJson::ColType::INT;
-            // 判断是否存在UserPwd 判断UserPwd是否是String
-            ColMap["UserPwd"]=MyJson::ColType::STRING;
-            // 判断是否存在UserSex 判断UserSex是否是String
-            ColMap["UserSex"]=MyJson::ColType::STRING;
-            MyToolPtr->checkMemberAndTypeInMap(json,RespVal,ColMap);
+            ColMap["User_Name"]=MyJson::ColType::STRING;
+            ColMap["User_ID"]=MyJson::ColType::INT;
+            ColMap["User_Pwd"]=MyJson::ColType::STRING;
+            ColMap["User_Sex"]=MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
         }
 
 
         // 读取UserID UserPwd数据
-        auto UserID=json["UserID"].asInt();
-		auto UserName=json["UserName"].asString();
-		auto UserPwd=json["UserPwd"].asString();
-        auto UserSex=json["UserSex"].asString();
-        auto UserLevel=1;
-        auto UserIntegral=0;
-        auto UserTotalIntegral=0;
-        auto UserPower=1;
-        auto UserStatus="正常";
         auto dbclientPrt=drogon::app().getDbClient();
         Mapper<drogon_model::novel::User>UserMgr(dbclientPrt);
-        Criteria cri_User_ID(drogon_model::novel::User::Cols::_User_ID, CompareOperator::EQ, UserID);
+        Criteria cri_User_ID(drogon_model::novel::User::Cols::_User_ID, CompareOperator::EQ, ReqVal["User_ID"].asInt());
         
-        std::cout << "开始注册新用户" <<std::endl;
+        MyBasePtr->DEBUGLog("开始注册新用户", true);
         drogon_model::novel::User newUser;
-        newUser.setUserId(UserID);
-        newUser.setName(UserName);
-        newUser.setPassword(UserPwd);
-        newUser.setSex(UserSex);
-        newUser.setLevel(UserLevel);
-        newUser.setIntegral(UserIntegral);
-        newUser.setTotalIntegral(UserTotalIntegral);
-        newUser.setPower(UserPower);
-        newUser.setStatus(UserStatus);
+        newUser.setUserId(ReqVal["User_ID"].asInt());
+        newUser.setName(ReqVal["User_Name"].asString());
+        newUser.setPassword(ReqVal["User_Pwd"].asString());
+        newUser.setSex(ReqVal["User_Sex"].asString());
+        newUser.setLevel(1);
+        newUser.setIntegral(0);
+        newUser.setTotalIntegral(0);
+        newUser.setPower(1);
+        newUser.setStatus("正常");
 		UserMgr.insert(newUser);
-		RespVal["msg"]="注册成功";
-        RespVal["Result"] = "true";
+        RespVal["Result"] = "注册成功";
+        MyBasePtr->DEBUGLog("注册新用户完成", true);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        result=HttpResponse::newHttpJsonResponse(RespVal);
-	    std::cout << "register result "<< RespVal["Result"].asString() <<std::endl;
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch(Json::Value e)
+    catch(Json::Value RespVal)
     {
-        std::cout << e["ErrorMsg"] <<std::endl;
-        result=HttpResponse::newHttpJsonResponse(e);
+	    RespVal["Result"] = "注册失败";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
         // 判断是否是UserID冲突导致的插入失败
         // Duplicate entry '911222' for key 'PRIMARY'
+	    RespVal["Result"] = "注册失败";
         if(std::regex_match(e.base().what(), std::regex("Duplicate entry '.*' for key 'PRIMARY'")))
             RespVal["ErrorMsg"] = "注册失败/此UserID已存在";
         else
-            RespVal["ErrorMsg"] = "注册失败";
-        std::cout << RespVal["ErrorMsg"] <<std::endl;
-        RespVal["DrogonDbException"] = e.base().what();
-        result=HttpResponse::newHttpJsonResponse(RespVal);
+            RespVal["ErrorMsg"] = "注册失败/" + string(e.base().what());
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    result->setStatusCode(k200OK);
-    result->setContentTypeCode(CT_TEXT_HTML);
-    callback(result);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }

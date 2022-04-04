@@ -1,5 +1,6 @@
 #pragma once
 #include <drogon/HttpController.h>
+#include <plugins/MyJson.h>
 #include <plugins/MyTools.h>
 #include <plugins/MyBase.h>
 using namespace drogon;

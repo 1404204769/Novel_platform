@@ -12,17 +12,26 @@ void RootFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value RespVal;
-    const std::string LoginStatus = req->getParameter("LoginStatus");
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+    MyBasePtr->TRACELog("RootFilter::body" + string(req->getBody()), true);
+
+
+    const std::string LoginStatus = req->getParameter("Login_Status");
     if(LoginStatus == "root")
     {
-        std::cout << "RootFilter 验证成功" << std::endl;
+        MyBasePtr->TRACELog("RootFilter 验证成功", true);
         return fccb();
     }
+    
     RespVal["ErrorMsg"] = "权限不足，请联系站长";
-    auto res = HttpResponse::newHttpJsonResponse(RespVal);
-    res->setStatusCode(k500InternalServerError);
-    std::cout << "RootFilter 验证失败" << std::endl;
+    MyBasePtr->TRACELog("RootFilter 验证失败", true);
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+    Result->setStatusCode(k500InternalServerError);
     // Return the response and let's tell this endpoint request was cancelled
-    return fcb(res);
+    return fcb(Result);
 }
