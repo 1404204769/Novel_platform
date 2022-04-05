@@ -19,12 +19,12 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
     // 判断是否存在Json数据 若存在Json数据则允许进入下一个地址
     if(req->getJsonObject())
     {
-        MyBasePtr->TRACELog("LoginFilter 验证成功", true);
+        MyBasePtr->TRACELog("MyJsonFilter 验证成功", true);
         return fccb();
     }
 
     RespVal["ErrorMsg"] = "不存在Json数据";
-    MyBasePtr->TRACELog("LoginFilter 验证失败", true);
+    MyBasePtr->TRACELog("MyJsonFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
     auto res = HttpResponse::newHttpJsonResponse(RespVal);
