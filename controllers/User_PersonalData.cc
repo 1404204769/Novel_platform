@@ -110,7 +110,7 @@ void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const Ht
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
             MyBasePtr->DEBUGLog("传入参数合法", true);
         }
-        ReqVal["User_ID"] = std::atoi(RespVal["Para"]["UserID"].asString().c_str());
+        ReqVal["User_ID"] = std::atoi(RespVal["Para"]["User_ID"].asString().c_str());
 
         // 检查是否修改的是自己的资料
         if (ReqVal["Change_ID"].asInt() != ReqVal["User_ID"].asInt())
