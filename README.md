@@ -16,3 +16,4 @@ $ cmake .. \
 $ make \
 $ ./Novel_platform \
 
+AliYun Test
