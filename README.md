@@ -17,3 +17,6 @@ $ make \
 $ ./Novel_platform \
 
 AliYun Test
+
+
+测试Ubuntu的GitKraken
