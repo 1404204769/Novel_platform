@@ -114,24 +114,25 @@ void Resource::Download(const HttpRequestPtr &req, std::function<void(const Http
 
 
         RespVal["简介"] = "图书下载接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         // 检查数据完整性
         {
             MyBasePtr->DEBUGLog("开始检查数据完整性", true);
             // "Book_ID":0,
-            // "Chapter_ID":[],
+            // "Chapter_Num":[],
             // 创建检查列表 key是字段名 value 是字段类型
             std::map<string, MyJson::ColType> ColMap;
             ColMap["Book_ID"] = MyJson::ColType::INT;
-            ColMap["Chapter_ID"] = MyJson::ColType::ARRAY;
+            ColMap["Chapter_Num"] = MyJson::ColType::ARRAY;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
             MyBasePtr->DEBUGLog("检查数据完整性完成", true);
         }
 
         // 读取UserID LoginStatus数据
 
-        MyDBSPtr->User_Download(ReqVal, RespVal);
+        MyDBSPtr->Download_Resource(ReqVal, RespVal);
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
@@ -179,6 +180,7 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
         MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
 
         RespVal["简介"] = "图书查找接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);

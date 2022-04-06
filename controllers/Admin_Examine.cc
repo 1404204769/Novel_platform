@@ -5,7 +5,7 @@ using namespace Admin;
 // 管理员审核用户上传接口
 void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value RespVal;
+    Json::Value ReqVal,RespVal;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -13,6 +13,7 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
     MyBasePtr->TRACELog("Examine::UpList::body" + string(req->getBody()), true);
     
     RespVal["简介"] = "管理员审核用户上传接口";
+    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
     MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
@@ -26,7 +27,7 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
 // 管理员查看用户意见接口
 void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value RespVal;
+    Json::Value ReqVal,RespVal;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -34,6 +35,7 @@ void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpR
     MyBasePtr->TRACELog("Examine::IdeaList::body" + string(req->getBody()), true);
     
     RespVal["简介"] = "管理员查看用户意见接口";
+    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
     MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

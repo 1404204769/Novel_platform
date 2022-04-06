@@ -19,6 +19,7 @@ void Posts::Like(const HttpRequestPtr &req,std::function<void (const HttpRespons
         MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
 
         RespVal["简介"] = "用户点赞接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
@@ -57,6 +58,7 @@ void Posts::Reply(const HttpRequestPtr &req,std::function<void (const HttpRespon
     try
     {
         RespVal["简介"] = "用户回复接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);

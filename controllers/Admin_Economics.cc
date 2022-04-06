@@ -2,7 +2,7 @@
 using namespace Admin;
 void Economics::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void (const HttpResponsePtr &)> &&callback)
 {
-    Json::Value RespVal;
+    Json::Value ReqVal,RespVal;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -11,6 +11,7 @@ void Economics::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<
 
 
     RespVal["简介"] = "管理员查看系统经济报表接口";
+    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
     MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

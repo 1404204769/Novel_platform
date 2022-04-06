@@ -13,6 +13,7 @@ void Feedback::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<v
     try
     {
         RespVal["简介"] = "用户问题反馈接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);

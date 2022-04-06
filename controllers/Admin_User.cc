@@ -114,6 +114,7 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Admin::User::Update::body" + string(req->getBody()), true);
     
+    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
     MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
