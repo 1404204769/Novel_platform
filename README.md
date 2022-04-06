@@ -20,3 +20,5 @@ AliYun Test
 
 
 测试Ubuntu的GitKraken
+
+测试Vscode提交GitKraken处理好的数据
