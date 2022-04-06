@@ -26,10 +26,14 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void User_Upload_New_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void User_Upload_Exist_Book_New_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
     void User_Upload_Exist_Book_Update_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
-    void User_Download(Json::Value &ReqJson, Json::Value &RespJson);
+    
 
+    void Download_Resource(Json::Value &ReqJson, Json::Value &RespJson);
+
+    
     void Admin_Search_User(Json::Value &ReqJson, Json::Value &RespJson);
     void Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson);
+    void Admin_Update_Resource(Json::Value &ReqJson, Json::Value &RespJson);
 
   public:
     void Search_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);

@@ -25,7 +25,6 @@ void MyDBService::shutdown()
 // 用户上传新书的接口
 void MyDBService::User_Upload_New_Book(Json::Value &ReqJson, Json::Value &RespJson)
 {
-    Json::Value ParaJson;
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyToolsPtr = app().getPlugin<MyTools>();
@@ -35,6 +34,10 @@ void MyDBService::User_Upload_New_Book(Json::Value &ReqJson, Json::Value &RespJs
     Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
     Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
     Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int UserID,Book_ID;
+    string Book_Name,Book_Author,LoginStatus;
+    Json::Value ContentJson,UploadMemo,ParaJson;
 
     // 检查ReqJson数据
     {
@@ -61,14 +64,22 @@ void MyDBService::User_Upload_New_Book(Json::Value &ReqJson, Json::Value &RespJs
         ParaJson = ReqJson["Para"];
         ColMap["User_ID"] = MyJson::ColType::STRING;
         ColMap["Login_Status"] = MyJson::ColType::STRING;
-        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+        UserID = std::atoi(ParaJson["User_ID"].asString().c_str());
+        LoginStatus = ParaJson["Login_Status"].asString();
+        if((LoginStatus!="user")&&(LoginStatus!="admin")&&(LoginStatus!="root"))
+        {
+            RespJson["ErrorMsg"] = "账户权限错误,请联系管理员";
+            throw RespJson;
+        }
+        Book_ID = ReqJson["Book_ID"].asInt();
+        ContentJson = ReqJson["Content"];
     }
 
-    int UserID = std::atoi(ReqJson["Para"]["User_ID"].asString().c_str());
-    int Book_ID = ReqJson["Book_ID"].asInt();
-    Json::Value ContentJson = ReqJson["Content"];
-    Json::Value UploadMemo;
+
+
 
     // 插入前检查content数据是否合法
     {
@@ -269,13 +280,54 @@ void MyDBService::User_Upload_Exist_Book_New_Chapter(Json::Value &ReqJson, Json:
     Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
     Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
 
-    int UserID = ReqJson["User_ID"].asInt();
-    int Book_ID = ReqJson["Book_ID"].asInt();
-    string Book_Name = ReqJson["Book_Name"].asString();
-    string Book_Author = ReqJson["Book_Author"].asString();
-    Json::Value ContentJson = ReqJson["Content"];
-    Json::Value UploadMemo;
+    int UserID,Book_ID;
+    string Book_Name,Book_Author,LoginStatus;
+    Json::Value ContentJson,UploadMemo,ParaJson;
     drogon_model::novel::Book TBook; // 目标图书
+    // 检查数据完整性
+    {
+        MyBasePtr->DEBUGLog("开始检查数据完整性", true);
+        // "Book_ID"   :   0,
+        // "Content"   :   "",
+        // "Book_Author":"爱潜水的乌贼",//作者
+        // "Book_Name":"诡秘之主", // 书名
+        // "Upload_Type":   ""
+        // "Para":   {}
+        // 创建检查列表 key是字段名 value 是字段类型
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        ColMap["Content"] = MyJson::ColType::JSON;
+        ColMap["Book_Author"] = MyJson::ColType::STRING;
+        ColMap["Book_Name"] = MyJson::ColType::STRING;
+        ColMap["Upload_Type"] = MyJson::ColType::STRING;
+        ColMap["Para"] = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("检查数据完整性完成", true);
+
+        MyBasePtr->DEBUGLog("开始检查Para数据", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+        UserID = std::atoi(ParaJson["User_ID"].asString().c_str());
+        LoginStatus = ParaJson["Login_Status"].asString();
+        if((LoginStatus!="user")&&(LoginStatus!="admin")&&(LoginStatus!="root"))
+        {
+            RespJson["ErrorMsg"] = "账户权限错误,请联系管理员";
+            throw RespJson;
+        }
+        Book_ID     = ReqJson["Book_ID"].asInt();
+        ContentJson = ReqJson["Content"];
+        Book_Name   = ReqJson["Book_Name"].asString();
+        Book_Author = ReqJson["Book_Author"].asString();
+    }
+
+ 
+
+    
 
     // 先判断传入数据的Book_Name和Book_Author是否存在 若存在则判断目标图书ID是否正确
     {
@@ -458,9 +510,10 @@ void MyDBService::User_Upload_Exist_Book_New_Chapter(Json::Value &ReqJson, Json:
             NewUpload.setProcessor("System");
             NewUpload.setStatus("已通过");
             NewUpload.setIsmanage(true);
-            int count = UploadMgr.update(NewUpload);
+            
             UploadMemo["Explain"] = "上传新章节成功";
             NewUpload.setMemo(UploadMemo.toStyledString());
+            int count = UploadMgr.update(NewUpload);
             MyBasePtr->DEBUGLog("更新的新数据为 : " + NewUpload.toJson().toStyledString(), true);
             if (!count)
             {
@@ -658,13 +711,13 @@ void MyDBService::User_Upload_Exist_Book_Update_Chapter(Json::Value &ReqJson, Js
 }
 
 // 用户下载已有的书的章节
-void MyDBService::User_Download(Json::Value &ReqJson, Json::Value &RespJson)
+void MyDBService::Download_Resource(Json::Value &ReqJson, Json::Value &RespJson)
 {
     Json::Value ParaJson;
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyToolsPtr = app().getPlugin<MyTools>();
-    MyBasePtr->DEBUGLog("User_Download::ReqJson: " + ReqJson.toStyledString(), true);
+    MyBasePtr->DEBUGLog("Download_Resource::ReqJson: " + ReqJson.toStyledString(), true);
 
     auto dbclientPrt = drogon::app().getDbClient();
     Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
@@ -672,17 +725,19 @@ void MyDBService::User_Download(Json::Value &ReqJson, Json::Value &RespJson)
     Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
     Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
 
+    int UserID,Book_ID;
+    string LoginStatus;
     // 检查ReqJson数据
     {
         MyBasePtr->DEBUGLog("开始检查ReqJson数据", true);
         // "Book_ID":0,
-        // "Chapter_ID":[],
+        // "Chapter_Num":[],
         // "Para" : {}
         // 创建检查列表 key是字段名 value 是字段类型
         std::map<string, MyJson::ColType> ColMap;
         ColMap["Para"] = MyJson::ColType::JSON;
         ColMap["Book_ID"] = MyJson::ColType::INT;
-        ColMap["Chapter_ID"] = MyJson::ColType::ARRAY;
+        ColMap["Chapter_Num"] = MyJson::ColType::ARRAY;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("检查ReqJson数据完成", true);
 
@@ -691,14 +746,21 @@ void MyDBService::User_Download(Json::Value &ReqJson, Json::Value &RespJson)
         ParaJson = ReqJson["Para"];
         ColMap["User_ID"] = MyJson::ColType::STRING;
         ColMap["Login_Status"] = MyJson::ColType::STRING;
-        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+        UserID = std::atoi(ParaJson["User_ID"].asString().c_str());
+        LoginStatus = ParaJson["Login_Status"].asString();
+        if((LoginStatus!="user")&&(LoginStatus!="admin")&&(LoginStatus!="root"))
+        {
+            RespJson["ErrorMsg"] = "账户权限错误,请联系管理员";
+            throw RespJson;
+        }
+        Book_ID     = ReqJson["Book_ID"].asInt();
     }
 
-    int UserID = std::atoi(ReqJson["Para"]["User_ID"].asString().c_str());
-    int Book_ID = ReqJson["Book_ID"].asInt();
 
-    vector<int> vecChapter_ID;
+    vector<int> vecChapter_Num;
     drogon_model::novel::Book TBook; // 目标图书
     Json::Value TBookMemo;
     Json::Value TBookMemoChapter;      //  Memo/Chapter
@@ -773,10 +835,10 @@ void MyDBService::User_Download(Json::Value &ReqJson, Json::Value &RespJson)
     {
 
         MyBasePtr->DEBUGLog("开始获取要下载的图书的章节ID", true);
-        int ChapterSize = ReqJson["Chapter_ID"].size();
+        int ChapterSize = ReqJson["Chapter_Num"].size();
         for (int i = 0; i < ChapterSize; i++)
         {
-            vecChapter_ID.push_back(ReqJson["Chapter_ID"][i].asInt());
+            vecChapter_Num.push_back(ReqJson["Chapter_Num"][i].asInt());
         }
         MyBasePtr->DEBUGLog("要下载的图书的章节ID获取完成", true);
     }
@@ -784,10 +846,10 @@ void MyDBService::User_Download(Json::Value &ReqJson, Json::Value &RespJson)
     // 下载并保存章节信息
     {
         MyBasePtr->DEBUGLog("开始获取指定的图书的章节数据", true);
-        Criteria ChapterID_cri(drogon_model::novel::Chapter::Cols::_Chapter_ID, CompareOperator::In, vecChapter_ID);
+        Criteria ChapterNum_cri(drogon_model::novel::Chapter::Cols::_Chapter_Num, CompareOperator::In, vecChapter_Num);
         Criteria Valid_cri(drogon_model::novel::Chapter::Cols::_Valid, CompareOperator::EQ, true);
-        MyBasePtr->DEBUGLog("使用的SQL语句为 " + ChapterID_cri.criteriaString(), true);
-        vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(ChapterID_cri && Valid_cri);
+        MyBasePtr->DEBUGLog("使用的SQL语句为 " + ChapterNum_cri.criteriaString(), true);
+        vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(ChapterNum_cri && Valid_cri);
         int ChapterSize = vecChapter.size();
         if (ChapterSize == 0)
         {
@@ -827,6 +889,9 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     auto dbclientPrt = drogon::app().getDbClient();
     Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
 
+    int UserID;
+    string LoginStatus;
+    Json::Value ParaJson;
     // 检查ReqJson数据是否合法
     {
         MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
@@ -835,9 +900,26 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
         ColMap["Para"] = MyJson::ColType::JSON;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查Para数据", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+        UserID = std::atoi(ParaJson["User_ID"].asString().c_str());
+        LoginStatus = ParaJson["Login_Status"].asString();
+        if((LoginStatus!="user")&&(LoginStatus!="admin")&&(LoginStatus!="root"))
+        {
+            RespJson["ErrorMsg"] = "账户权限错误,请联系管理员";
+            throw RespJson;
+        }
     }
-    MyBasePtr->DEBUGLog("开始查询用户 : " + ReqJson["Para"]["User_ID"].asString(), true);
-    drogon_model::novel::User user = UserMgr.findByPrimaryKey(std::atoi(ReqJson["Para"]["User_ID"].asString().c_str()));
+
+    MyBasePtr->DEBUGLog("开始查询用户 : " + ParaJson["User_ID"].asString(), true);
+    drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
     MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
 
     RespJson["User_Data"] = user.toJson();
@@ -846,6 +928,7 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
 // 更改用户资料的接口
 void MyDBService::Update_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson)
 {
+    Json::Value ParaJson;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
     MyBasePtr->DEBUGLog("Update_User_PersonalData::ReqJson: " + ReqJson.toStyledString(), true);
@@ -856,27 +939,57 @@ void MyDBService::Update_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     // 检查ReqJson数据是否合法
     {
         MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
-        // "User_ID"    :   0,执行者
+        // "Para"    :   {},
         // "Change_ID"  :   0,被执行者
+        // "Change_Name"    :   "",
+        // "Change_Password":   "",
+        // "Change_Sex"     :   "",
+        // "Change_Col"     :   ["Change_Name","Change_Password","Change_Sex"]
+                    
         std::map<string, MyJson::ColType> ColMap;
-        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Para"] = MyJson::ColType::JSON;
         ColMap["Change_ID"] = MyJson::ColType::INT;
+        ColMap["Change_Name"] = MyJson::ColType::STRING;
+        ColMap["Change_Password"] = MyJson::ColType::STRING;
+        ColMap["Change_Sex"] = MyJson::ColType::STRING;
+        ColMap["Change_Col"] = MyJson::ColType::ARRAY;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("Para数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查操作权限", true);
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root")
+        {
+            RespJson["ErrorMsg"] = "权限不足，请联系管理员";
+            throw RespJson;
+        }
+        MyBasePtr->DEBUGLog("操作权限检测通过", true);
+
     }
 
     // 检查是否修改的是自己的资料
     {
-        if (ReqJson["Change_ID"].asInt() != ReqJson["User_ID"].asInt())
+        if (ReqJson["Change_ID"].asInt() != ParaJson["User_ID"].asInt())
         {
-            RespJson["ErrorMsg"] = "权限不足，请联系管理员(操作用户: " + to_string(ReqJson["User_ID"].asInt()) + ",被操作用户: " + to_string(ReqJson["Change_ID"].asInt()) + ")";
+            RespJson["ErrorMsg"] = "权限不足，请联系管理员(操作用户: " 
+                        + to_string(ParaJson["User_ID"].asInt()) 
+                        + ",被操作用户: " 
+                        + to_string(ReqJson["Change_ID"].asInt()) + ")";
             throw RespJson;
         }
     }
 
     // Name  Password  Sex  用户有权修改这三项
     MyBasePtr->DEBUGLog("开始查询用户 : " + to_string(ReqJson["Change_ID"].asInt()), true);
-    drogon_model::novel::User user = UserMgr.findByPrimaryKey(ReqJson["User_ID"].asInt());
+    drogon_model::novel::User user = UserMgr.findByPrimaryKey(ReqJson["Change_ID"].asInt());
     MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
 
     MyBasePtr->DEBUGLog("开始修改用户数据", true);
@@ -981,7 +1094,8 @@ void MyDBService::Admin_Search_User(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("Para数据合法", true);
 
         MyBasePtr->DEBUGLog("开始检查操作权限", true);
-        if (ParaJson["Login_Status"].asString() != "admin" && ParaJson["Login_Status"].asString() != "root")
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root")
         {
             RespJson["ErrorMsg"] = "权限不足，请联系管理员";
             throw RespJson;
@@ -1069,7 +1183,8 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("Para数据合法", true);
 
         MyBasePtr->DEBUGLog("开始检查操作权限", true);
-        if (ParaJson["Login_Status"].asString() != "admin" && ParaJson["Login_Status"].asString() != "root")
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root")
         {
             RespJson["ErrorMsg"] = "权限不足，请联系管理员";
             throw RespJson;
@@ -1250,3 +1365,444 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
 
     RespJson["Change_Target"] = ChangeTargetArray;
 }
+
+
+// 管理员修改图书资源数据
+void MyDBService::Admin_Update_Resource(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    Json::Value ParaJson,ChangeTargetArray;
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->DEBUGLog("Admin_Update_Resource::ReqJson: " + ReqJson.toStyledString(), true);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
+    drogon_model::novel::Book book;
+    drogon_model::novel::Chapter chapter;
+    
+    std::map<string, MyJson::ColType> ColMap,BookColMap,ChapterColMap;
+    int ChangeSize,ChangeColSize,ChangeCount,ChangeIntegralNum;
+    // 检查ReqJson数据是否合法
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Change_Target"  :   [{},{}],被执行者们
+        // "Para"           :   {"User_ID":"","Login_Status":""} 执行者
+        ColMap["Para"] = MyJson::ColType::JSON;
+        ColMap["Change_Target"] = MyJson::ColType::ARRAY;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("Para数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查操作权限", true);
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root")
+        {
+            RespJson["ErrorMsg"] = "权限不足，请联系管理员";
+            throw RespJson;
+        }
+        MyBasePtr->DEBUGLog("操作权限检测通过", true);
+
+        
+    }
+        
+        
+    MyBasePtr->DEBUGLog("开始检查被修改的数据是否合法", true);
+    ChangeTargetArray = ReqJson["Change_Target"];
+    ChangeSize = ChangeTargetArray.size();
+    MyBasePtr->DEBUGLog("要修改的对象一共有"+ to_string(ChangeSize) +"项", true);
+    Json::Value TempReqJson,TempRespJson;
+
+    // 设置数据校验格式
+    {
+        ColMap.clear();
+        // "Change_Type"        :   "Book/Chapter" ,
+        // "Change_Content"     :   {},
+        ColMap["Change_Type"]   =   MyJson::ColType::STRING;
+        ColMap["Change_Content"]=   MyJson::ColType::JSON;
+        
+        BookColMap.clear();
+        // "Change_ID"          :   0,
+        // "Change_Name"        :   "",
+        // "Change_Status"      :   "",
+        // "Change_Synopsis"    :   "",
+        // "Change_Publisher"   :   "",
+        // "Change_Author"      :   "",
+        // "Change_Memo"        :   {}
+        // "Change_Col"         :   ["Change_Name","Change_Status","Change_Synopsis","Change_Publisher","Change_Author","Change_Memo"]
+        BookColMap["Change_ID"]         =   MyJson::ColType::INT;
+        BookColMap["Change_Name"]       =   MyJson::ColType::STRING;
+        BookColMap["Change_Status"]     =   MyJson::ColType::STRING;
+        BookColMap["Change_Synopsis"]   =   MyJson::ColType::STRING;
+        BookColMap["Change_Publisher"]  =   MyJson::ColType::STRING;
+        BookColMap["Change_Author"]     =   MyJson::ColType::STRING;
+        BookColMap["Change_Memo"]       =   MyJson::ColType::JSON;
+        BookColMap["Change_Col"]        =   MyJson::ColType::ARRAY;
+
+
+        ChapterColMap.clear();
+        // "Change_ID"          :   0,
+        // "Change_Book_ID"     :   0,
+        // "Change_Part_Num"    :   0,
+        // "Change_Chapter_Num" :   0,
+        // "Change_Title"       :   "",
+        // "Change_User_ID"     :   0,
+        // "Change_Valid"       :   true/false,
+        // "Change_Content"     :   [],
+        // "Change_Memo"        :   {}
+        // "Change_Col"         :   ["Change_Name","Change_Status","Change_Synopsis","Change_Publisher","Change_Author","Change_Memo"]
+        ChapterColMap["Change_ID"]          =   MyJson::ColType::INT;
+        ChapterColMap["Change_Book_ID"]     =   MyJson::ColType::INT;
+        ChapterColMap["Change_Part_Num"]    =   MyJson::ColType::INT;
+        ChapterColMap["Change_Chapter_Num"] =   MyJson::ColType::INT;
+        ChapterColMap["Change_Title"]       =   MyJson::ColType::STRING;
+        ChapterColMap["Change_User_ID"]     =   MyJson::ColType::INT;
+        ChapterColMap["Change_Valid"]       =   MyJson::ColType::BOOL;
+        ChapterColMap["Change_Content"]     =   MyJson::ColType::ARRAY;
+        ChapterColMap["Change_Memo"]        =   MyJson::ColType::JSON;
+        ChapterColMap["Change_Col"]         =   MyJson::ColType::ARRAY;
+
+    }
+    
+    for(int i = 0; i < ChangeSize; i++)
+    {
+        TempReqJson.clear();
+        TempReqJson = ChangeTargetArray[i];
+        TempRespJson.clear();
+        try{
+            MyBasePtr->DEBUGLog("开始检查第"+to_string(i)+"项的数据结构是否合法", true);
+            MyJsonPtr->checkMemberAndTypeInMap(TempReqJson, TempRespJson, ColMap);
+            MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据结构合法", true);
+            if(TempReqJson["Change_Type"].asString() == "Book")
+            {
+                MyBasePtr->DEBUGLog("开始检查第"+to_string(i)+"项的(图书)数据是否合法", true);
+                TempReqJson.clear();
+                TempReqJson = ChangeTargetArray[i]["Change_Content"];
+                MyJsonPtr->checkMemberAndTypeInMap(TempReqJson, TempRespJson, BookColMap);
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项的(章节)数据合法", true);
+            }
+            else if(TempReqJson["Change_Type"].asString() == "Chapter")
+            {
+                MyBasePtr->DEBUGLog("开始检查第"+to_string(i)+"项的(章节)数据是否合法", true);
+                TempReqJson.clear();
+                TempReqJson = ChangeTargetArray[i]["Change_Content"];
+                MyJsonPtr->checkMemberAndTypeInMap(TempReqJson, TempRespJson, ChapterColMap);
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项的(章节)数据合法", true);
+            }
+            else
+            {
+                ChangeTargetArray[i]["Result"] = false;
+                ChangeTargetArray[i]["ErrorMsg"] = "资源类型数据不合法("+TempReqJson["Change_Type"].asString()+")";
+                continue;
+            }
+            MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据合法", true);
+        }
+        catch(Json::Value &TempRespJson)
+        {
+            ChangeTargetArray[i]["Result"] = false;
+            ChangeTargetArray[i]["ErrorMsg"] = "资源数据不合法::" + TempRespJson["ErrorMsg"].asString();
+            MyBasePtr->DEBUGLog(ChangeTargetArray[i]["ErrorMsg"].asString(), true);
+            continue;
+        }
+    }
+
+    for(int i = 0;i < ChangeSize; i++)
+    {
+        try
+        {
+            /* code */
+        
+            if(ChangeTargetArray[i].isMember("Result"))
+            {
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据不合法,跳过", true);
+                continue;
+            }
+            
+            MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据合法,开始准备修改", true);
+
+            string ChangeColName;
+            ChangeCount = 0;
+            ChangeColSize = ChangeTargetArray[i]["Change_Content"]["Change_Col"].size();
+            if(ChangeTargetArray[i]["Change_Type"].asString() == "Book")
+            {
+                MyBasePtr->DEBUGLog("开始查询图书 : " + to_string(ChangeTargetArray[i]["Change_Content"]["Change_ID"].asInt()), true);
+                book = BookMgr.findByPrimaryKey(ChangeTargetArray[i]["Change_Content"]["Change_ID"].asInt());
+                MyBasePtr->DEBUGLog("图书查询完毕 : " + book.toJson().toStyledString(), true);
+
+                for (int j = 0; j < ChangeColSize; j++)
+                {
+                    ChangeColName = ChangeTargetArray[i]["Change_Content"]["Change_Col"][j].asString();
+                    MyBasePtr->DEBUGLog("开始修改图书数据(" + ChangeColName + ")", true);
+                    // "Change_Name"        :   "",
+                    // "Change_Status"      :   "",
+                    // "Change_Synopsis"    :   "",
+                    // "Change_Publisher"   :   "",
+                    // "Change_Author"      :   "",
+                    // "Change_Memo"        :   {}
+
+                    // 根据Change_Col改变状态值
+                    {
+                        if (ChangeColName == "Change_Name")
+                        {
+                            if (book.getValueOfName() == ChangeTargetArray[i]["Change_Content"]["Change_Name"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setName(ChangeTargetArray[i]["Change_Content"]["Change_Name"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Status")
+                        {
+                            if (book.getValueOfStatus() == ChangeTargetArray[i]["Change_Content"]["Change_Status"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setStatus(ChangeTargetArray[i]["Change_Content"]["Change_Status"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Synopsis")
+                        {
+                            if (book.getValueOfSynopsis() == ChangeTargetArray[i]["Change_Content"]["Change_Synopsis"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setSynopsis(ChangeTargetArray[i]["Change_Content"]["Change_Synopsis"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Publisher")
+                        {
+                            if (book.getValueOfPublisher() == ChangeTargetArray[i]["Change_Content"]["Change_Publisher"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setPublisher(ChangeTargetArray[i]["Change_Content"]["Change_Publisher"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Author")
+                        {
+                            if (book.getValueOfAuthor() == ChangeTargetArray[i]["Change_Content"]["Change_Author"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setAuthor(ChangeTargetArray[i]["Change_Content"]["Change_Author"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Memo")
+                        {
+                            if (book.getValueOfMemo() == ChangeTargetArray[i]["Change_Content"]["Change_Memo"].toStyledString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            book.setMemo(ChangeTargetArray[i]["Change_Content"]["Change_Memo"].toStyledString());
+                            ChangeCount++;
+                        }
+                        else
+                        {
+                            MyBasePtr->DEBUGLog("Change_Col包含错误字段(" + ChangeColName + ")", true);
+                        }
+                    }
+                    
+                }
+                
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据修改完成", true);
+                
+                // 统计更新的字段数
+                MyBasePtr->DEBUGLog("统计第"+to_string(i)+"项更新的字段数为" + to_string(ChangeCount), true);
+
+                if (ChangeCount == 0)
+                {
+                    MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据无需更新", true);
+                    ChangeTargetArray[i]["ErrorMsg"] = "资源数据无需更新";
+                    ChangeTargetArray[i]["Result"] = false;
+                    continue;
+                }
+
+                MyBasePtr->DEBUGLog("开始更新第"+to_string(i)+"项的数据", true);
+                int row = BookMgr.update(book);
+                if (row != 1)
+                {
+                    ChangeTargetArray[i]["ErrorMsg"] = "图书资料更新失败";
+                    ChangeTargetArray[i]["Result"] = false;
+                    continue;
+                }
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项数据更新完成: " + book.toJson().toStyledString(), true);
+
+                ChangeTargetArray[i]["Result"] = true;
+            }
+            else if(ChangeTargetArray[i]["Change_Type"].asString() == "Chapter")
+            {
+                MyBasePtr->DEBUGLog("开始查询章节 : " + to_string(ChangeTargetArray[i]["Change_Content"]["Change_ID"].asInt()), true);
+                chapter = ChapterMgr.findByPrimaryKey(ChangeTargetArray[i]["Change_Content"]["Change_ID"].asInt());
+                MyBasePtr->DEBUGLog("章节查询完毕 : " + chapter.toJson().toStyledString(), true);
+                
+                for (int j = 0; j < ChangeColSize; j++)
+                {
+                    ChangeColName = ChangeTargetArray[i]["Change_Content"]["Change_Col"][j].asString();
+                    MyBasePtr->DEBUGLog("开始修改章节数据(" + ChangeColName + ")", true);
+                    // "Change_Book_ID"     :   0,
+                    // "Change_Part_Num"    :   0,
+                    // "Change_Chapter_Num" :   0,
+                    // "Change_Title"       :   "",
+                    // "Change_User_ID"     :   0,
+                    // "Change_Valid"       :   true/false,
+                    // "Change_Content"     :   {},
+                    // "Change_Memo"        :   {}
+
+                    // 根据Change_Col改变状态值
+                    {
+                        if (ChangeColName == "Change_Book_ID")
+                        {
+                            if (chapter.getValueOfBookId() == ChangeTargetArray[i]["Change_Content"]["Change_Book_ID"].asInt())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setBookId(ChangeTargetArray[i]["Change_Content"]["Change_Book_ID"].asInt());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Part_Num")
+                        {
+                            if (chapter.getValueOfPartNum() == ChangeTargetArray[i]["Change_Content"]["Change_Part_Num"].asInt())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setPartNum(ChangeTargetArray[i]["Change_Content"]["Change_Part_Num"].asInt());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Chapter_Num")
+                        {
+                            if (chapter.getValueOfChapterNum() == ChangeTargetArray[i]["Change_Content"]["Change_Chapter_Num"].asInt())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setChapterNum(ChangeTargetArray[i]["Change_Content"]["Change_Chapter_Num"].asInt());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Title")
+                        {
+                            if (chapter.getValueOfTitle() == ChangeTargetArray[i]["Change_Content"]["Change_Title"].asString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setTitle(ChangeTargetArray[i]["Change_Content"]["Change_Title"].asString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_User_ID")
+                        {
+                            if (chapter.getValueOfUserId() == ChangeTargetArray[i]["Change_Content"]["Change_User_ID"].asInt())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setUserId(ChangeTargetArray[i]["Change_Content"]["Change_User_ID"].asInt());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Valid")
+                        {
+                            if (chapter.getValueOfValid() == ChangeTargetArray[i]["Change_Content"]["Change_Valid"].asBool())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setValid(ChangeTargetArray[i]["Change_Content"]["Change_Valid"].asBool());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Content")
+                        {
+                            if (chapter.getValueOfContent() == ChangeTargetArray[i]["Change_Content"]["Change_Content"].toStyledString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setContent(ChangeTargetArray[i]["Change_Content"]["Change_Content"].toStyledString());
+                            ChangeCount++;
+                        }
+                        else if (ChangeColName == "Change_Memo")
+                        {
+                            if (chapter.getValueOfMemo() == ChangeTargetArray[i]["Change_Content"]["Change_Memo"].toStyledString())
+                            {
+                                MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                                continue;
+                            }
+                            chapter.setMemo(ChangeTargetArray[i]["Change_Content"]["Change_Memo"].toStyledString());
+                            ChangeCount++;
+                        }
+                        else
+                        {
+                            MyBasePtr->DEBUGLog("Change_Col包含错误字段(" + ChangeColName + ")", true);
+                        }
+                    }
+                    
+                }
+                
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据修改完成", true);
+                
+                // 统计更新的字段数
+                MyBasePtr->DEBUGLog("统计第"+to_string(i)+"项更新的字段数为" + to_string(ChangeCount), true);
+
+                if (ChangeCount == 0)
+                {
+                    MyBasePtr->DEBUGLog("第"+to_string(i)+"项的数据无需更新", true);
+                    ChangeTargetArray[i]["ErrorMsg"] = "资源数据无需更新";
+                    ChangeTargetArray[i]["Result"] = false;
+                    continue;
+                }
+
+                MyBasePtr->DEBUGLog("开始更新第"+to_string(i)+"项的数据", true);
+                int row = ChapterMgr.update(chapter);
+                if (row != 1)
+                {
+                    ChangeTargetArray[i]["ErrorMsg"] = "图书资料更新失败";
+                    ChangeTargetArray[i]["Result"] = false;
+                    continue;
+                }
+                MyBasePtr->DEBUGLog("第"+to_string(i)+"项数据更新完成: " + chapter.toJson().toStyledString(), true);
+
+                ChangeTargetArray[i]["Result"] = true;
+
+            }
+
+        }
+        catch(const drogon::orm::DrogonDbException &e)
+        {
+            if (e.base().what() == string("0 rows found"))
+            {
+                ChangeTargetArray[i]["ErrorMsg"] = "要更改的资源不存在";
+            }
+            else if (e.base().what() == string("Found more than one row"))
+            {
+                ChangeTargetArray[i]["ErrorMsg"] = "要更改的资源ID重复,请联系管理员";
+            }
+            else
+            {
+                ChangeTargetArray[i]["ErrorMsg"] = e.base().what();
+            }
+
+            MyBasePtr->DEBUGLog("ErrorMsg::" + ChangeTargetArray[i]["ErrorMsg"].toStyledString(), true);
+            ChangeTargetArray[i]["Result"] = false;
+            continue;
+        }
+    }
+
+    RespJson["Change_Target"] = ChangeTargetArray;
+}
+
