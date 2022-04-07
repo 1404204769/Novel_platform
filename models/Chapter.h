@@ -50,6 +50,7 @@ class Chapter
         static const std::string _Title;
         static const std::string _User_ID;
         static const std::string _Valid;
+        static const std::string _Version;
         static const std::string _Content;
         static const std::string _Memo;
     };
@@ -160,6 +161,14 @@ class Chapter
     ///Set the value of the column Valid
     void setValid(const int8_t &pValid) noexcept;
 
+    /**  For column Version  */
+    ///Get the value of the column Version, returns the default value if the column is null
+    const int32_t &getValueOfVersion() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int32_t> &getVersion() const noexcept;
+    ///Set the value of the column Version
+    void setVersion(const int32_t &pVersion) noexcept;
+
     /**  For column Content  */
     ///Get the value of the column Content, returns the default value if the column is null
     const std::string &getValueOfContent() const noexcept;
@@ -179,7 +188,7 @@ class Chapter
     void setMemo(std::string &&pMemo) noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 9;  }
+    static size_t getColumnNumber() noexcept {  return 10;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -203,6 +212,7 @@ class Chapter
     std::shared_ptr<std::string> title_;
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<int8_t> valid_;
+    std::shared_ptr<int32_t> version_;
     std::shared_ptr<std::string> content_;
     std::shared_ptr<std::string> memo_;
     struct MetaData
@@ -216,7 +226,7 @@ class Chapter
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[9]={ false };
+    bool dirtyFlag_[10]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -268,10 +278,15 @@ class Chapter
         }
         if(dirtyFlag_[7])
         {
-            sql += "Content,";
+            sql += "Version,";
             ++parametersCount;
         }
         if(dirtyFlag_[8])
+        {
+            sql += "Content,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[9])
         {
             sql += "Memo,";
             ++parametersCount;
@@ -322,6 +337,11 @@ class Chapter
 
         } 
         if(dirtyFlag_[8])
+        {
+            sql.append("?,");
+
+        } 
+        if(dirtyFlag_[9])
         {
             sql.append("?,");
 

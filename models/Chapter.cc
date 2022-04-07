@@ -19,6 +19,7 @@ const std::string Chapter::Cols::_Chapter_Num = "Chapter_Num";
 const std::string Chapter::Cols::_Title = "Title";
 const std::string Chapter::Cols::_User_ID = "User_ID";
 const std::string Chapter::Cols::_Valid = "Valid";
+const std::string Chapter::Cols::_Version = "Version";
 const std::string Chapter::Cols::_Content = "Content";
 const std::string Chapter::Cols::_Memo = "Memo";
 const std::string Chapter::primaryKeyName = "Chapter_ID";
@@ -33,6 +34,7 @@ const std::vector<typename Chapter::MetaData> Chapter::metaData_={
 {"Title","std::string","varchar(255)",255,0,0,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Valid","int8_t","tinyint(1)",1,0,0,1},
+{"Version","int32_t","int(10)",4,0,0,1},
 {"Content","std::string","text",0,0,0,1},
 {"Memo","std::string","text",0,0,0,1}
 };
@@ -73,6 +75,10 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
         {
             valid_=std::make_shared<int8_t>(r["Valid"].as<int8_t>());
         }
+        if(!r["Version"].isNull())
+        {
+            version_=std::make_shared<int32_t>(r["Version"].as<int32_t>());
+        }
         if(!r["Content"].isNull())
         {
             content_=std::make_shared<std::string>(r["Content"].as<std::string>());
@@ -85,7 +91,7 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 9 > r.size())
+        if(offset + 10 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -129,9 +135,14 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 7;
         if(!r[index].isNull())
         {
-            content_=std::make_shared<std::string>(r[index].as<std::string>());
+            version_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 8;
+        if(!r[index].isNull())
+        {
+            content_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 9;
         if(!r[index].isNull())
         {
             memo_=std::make_shared<std::string>(r[index].as<std::string>());
@@ -142,7 +153,7 @@ Chapter::Chapter(const Row &r, const ssize_t indexOffset) noexcept
 
 Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -208,7 +219,7 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            version_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[7]].asInt64());
         }
     }
     if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
@@ -216,7 +227,15 @@ Chapter::Chapter(const Json::Value &pJson, const std::vector<std::string> &pMasq
         dirtyFlag_[8] = true;
         if(!pJson[pMasqueradingVector[8]].isNull())
         {
-            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
         }
     }
 }
@@ -279,9 +298,17 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
             valid_=std::make_shared<int8_t>((int8_t)pJson["Valid"].asInt64());
         }
     }
-    if(pJson.isMember("Content"))
+    if(pJson.isMember("Version"))
     {
         dirtyFlag_[7]=true;
+        if(!pJson["Version"].isNull())
+        {
+            version_=std::make_shared<int32_t>((int32_t)pJson["Version"].asInt64());
+        }
+    }
+    if(pJson.isMember("Content"))
+    {
+        dirtyFlag_[8]=true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
@@ -289,7 +316,7 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Memo"))
     {
-        dirtyFlag_[8]=true;
+        dirtyFlag_[9]=true;
         if(!pJson["Memo"].isNull())
         {
             memo_=std::make_shared<std::string>(pJson["Memo"].asString());
@@ -300,7 +327,7 @@ Chapter::Chapter(const Json::Value &pJson) noexcept(false)
 void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -365,7 +392,7 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            version_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[7]].asInt64());
         }
     }
     if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
@@ -373,7 +400,15 @@ void Chapter::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[8] = true;
         if(!pJson[pMasqueradingVector[8]].isNull())
         {
-            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+            content_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
+        }
+    }
+    if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+    {
+        dirtyFlag_[9] = true;
+        if(!pJson[pMasqueradingVector[9]].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[9]].asString());
         }
     }
 }
@@ -435,9 +470,17 @@ void Chapter::updateByJson(const Json::Value &pJson) noexcept(false)
             valid_=std::make_shared<int8_t>((int8_t)pJson["Valid"].asInt64());
         }
     }
-    if(pJson.isMember("Content"))
+    if(pJson.isMember("Version"))
     {
         dirtyFlag_[7] = true;
+        if(!pJson["Version"].isNull())
+        {
+            version_=std::make_shared<int32_t>((int32_t)pJson["Version"].asInt64());
+        }
+    }
+    if(pJson.isMember("Content"))
+    {
+        dirtyFlag_[8] = true;
         if(!pJson["Content"].isNull())
         {
             content_=std::make_shared<std::string>(pJson["Content"].asString());
@@ -445,7 +488,7 @@ void Chapter::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Memo"))
     {
-        dirtyFlag_[8] = true;
+        dirtyFlag_[9] = true;
         if(!pJson["Memo"].isNull())
         {
             memo_=std::make_shared<std::string>(pJson["Memo"].asString());
@@ -582,6 +625,23 @@ void Chapter::setValid(const int8_t &pValid) noexcept
     dirtyFlag_[6] = true;
 }
 
+const int32_t &Chapter::getValueOfVersion() const noexcept
+{
+    const static int32_t defaultValue = int32_t();
+    if(version_)
+        return *version_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Chapter::getVersion() const noexcept
+{
+    return version_;
+}
+void Chapter::setVersion(const int32_t &pVersion) noexcept
+{
+    version_ = std::make_shared<int32_t>(pVersion);
+    dirtyFlag_[7] = true;
+}
+
 const std::string &Chapter::getValueOfContent() const noexcept
 {
     const static std::string defaultValue = std::string();
@@ -596,12 +656,12 @@ const std::shared_ptr<std::string> &Chapter::getContent() const noexcept
 void Chapter::setContent(const std::string &pContent) noexcept
 {
     content_ = std::make_shared<std::string>(pContent);
-    dirtyFlag_[7] = true;
+    dirtyFlag_[8] = true;
 }
 void Chapter::setContent(std::string &&pContent) noexcept
 {
     content_ = std::make_shared<std::string>(std::move(pContent));
-    dirtyFlag_[7] = true;
+    dirtyFlag_[8] = true;
 }
 
 const std::string &Chapter::getValueOfMemo() const noexcept
@@ -618,12 +678,12 @@ const std::shared_ptr<std::string> &Chapter::getMemo() const noexcept
 void Chapter::setMemo(const std::string &pMemo) noexcept
 {
     memo_ = std::make_shared<std::string>(pMemo);
-    dirtyFlag_[8] = true;
+    dirtyFlag_[9] = true;
 }
 void Chapter::setMemo(std::string &&pMemo) noexcept
 {
     memo_ = std::make_shared<std::string>(std::move(pMemo));
-    dirtyFlag_[8] = true;
+    dirtyFlag_[9] = true;
 }
 
 void Chapter::updateId(const uint64_t id)
@@ -640,6 +700,7 @@ const std::vector<std::string> &Chapter::insertColumns() noexcept
         "Title",
         "User_ID",
         "Valid",
+        "Version",
         "Content",
         "Memo"
     };
@@ -716,6 +777,17 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[7])
     {
+        if(getVersion())
+        {
+            binder << getValueOfVersion();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
         if(getContent())
         {
             binder << getValueOfContent();
@@ -725,7 +797,7 @@ void Chapter::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[8])
+    if(dirtyFlag_[9])
     {
         if(getMemo())
         {
@@ -772,6 +844,10 @@ const std::vector<std::string> Chapter::updateColumns() const
     if(dirtyFlag_[8])
     {
         ret.push_back(getColumnName(8));
+    }
+    if(dirtyFlag_[9])
+    {
+        ret.push_back(getColumnName(9));
     }
     return ret;
 }
@@ -846,6 +922,17 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[7])
     {
+        if(getVersion())
+        {
+            binder << getValueOfVersion();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
         if(getContent())
         {
             binder << getValueOfContent();
@@ -855,7 +942,7 @@ void Chapter::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[8])
+    if(dirtyFlag_[9])
     {
         if(getMemo())
         {
@@ -926,6 +1013,14 @@ Json::Value Chapter::toJson() const
     {
         ret["Valid"]=Json::Value();
     }
+    if(getVersion())
+    {
+        ret["Version"]=getValueOfVersion();
+    }
+    else
+    {
+        ret["Version"]=Json::Value();
+    }
     if(getContent())
     {
         ret["Content"]=getValueOfContent();
@@ -949,7 +1044,7 @@ Json::Value Chapter::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 9)
+    if(pMasqueradingVector.size() == 10)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1030,9 +1125,9 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[7].empty())
         {
-            if(getContent())
+            if(getVersion())
             {
-                ret[pMasqueradingVector[7]]=getValueOfContent();
+                ret[pMasqueradingVector[7]]=getValueOfVersion();
             }
             else
             {
@@ -1041,13 +1136,24 @@ Json::Value Chapter::toMasqueradedJson(
         }
         if(!pMasqueradingVector[8].empty())
         {
-            if(getMemo())
+            if(getContent())
             {
-                ret[pMasqueradingVector[8]]=getValueOfMemo();
+                ret[pMasqueradingVector[8]]=getValueOfContent();
             }
             else
             {
                 ret[pMasqueradingVector[8]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[9].empty())
+        {
+            if(getMemo())
+            {
+                ret[pMasqueradingVector[9]]=getValueOfMemo();
+            }
+            else
+            {
+                ret[pMasqueradingVector[9]]=Json::Value();
             }
         }
         return ret;
@@ -1108,6 +1214,14 @@ Json::Value Chapter::toMasqueradedJson(
     else
     {
         ret["Valid"]=Json::Value();
+    }
+    if(getVersion())
+    {
+        ret["Version"]=getValueOfVersion();
+    }
+    else
+    {
+        ret["Version"]=Json::Value();
     }
     if(getContent())
     {
@@ -1195,9 +1309,19 @@ bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err
         err="The Valid column cannot be null";
         return false;
     }
+    if(pJson.isMember("Version"))
+    {
+        if(!validJsonOfField(7, "Version", pJson["Version"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Version column cannot be null";
+        return false;
+    }
     if(pJson.isMember("Content"))
     {
-        if(!validJsonOfField(7, "Content", pJson["Content"], err, true))
+        if(!validJsonOfField(8, "Content", pJson["Content"], err, true))
             return false;
     }
     else
@@ -1207,7 +1331,7 @@ bool Chapter::validateJsonForCreation(const Json::Value &pJson, std::string &err
     }
     if(pJson.isMember("Memo"))
     {
-        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, true))
+        if(!validJsonOfField(9, "Memo", pJson["Memo"], err, true))
             return false;
     }
     else
@@ -1221,7 +1345,7 @@ bool Chapter::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                  const std::vector<std::string> &pMasqueradingVector,
                                                  std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1339,6 +1463,19 @@ bool Chapter::validateMasqueradedJsonForCreation(const Json::Value &pJson,
             return false;
         }
       }
+      if(!pMasqueradingVector[9].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[9]))
+          {
+              if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[9] + " column cannot be null";
+            return false;
+        }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -1389,14 +1526,19 @@ bool Chapter::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(6, "Valid", pJson["Valid"], err, false))
             return false;
     }
+    if(pJson.isMember("Version"))
+    {
+        if(!validJsonOfField(7, "Version", pJson["Version"], err, false))
+            return false;
+    }
     if(pJson.isMember("Content"))
     {
-        if(!validJsonOfField(7, "Content", pJson["Content"], err, false))
+        if(!validJsonOfField(8, "Content", pJson["Content"], err, false))
             return false;
     }
     if(pJson.isMember("Memo"))
     {
-        if(!validJsonOfField(8, "Memo", pJson["Memo"], err, false))
+        if(!validJsonOfField(9, "Memo", pJson["Memo"], err, false))
             return false;
     }
     return true;
@@ -1405,7 +1547,7 @@ bool Chapter::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                                const std::vector<std::string> &pMasqueradingVector,
                                                std::string &err)
 {
-    if(pMasqueradingVector.size() != 9)
+    if(pMasqueradingVector.size() != 10)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1459,6 +1601,11 @@ bool Chapter::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
       {
           if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[9].empty() && pJson.isMember(pMasqueradingVector[9]))
+      {
+          if(!validJsonOfField(9, pMasqueradingVector[9], pJson[pMasqueradingVector[9]], err, false))
               return false;
       }
     }
@@ -1581,13 +1728,25 @@ bool Chapter::validJsonOfField(size_t index,
                 err="The " + fieldName + " column cannot be null";
                 return false;
             }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 8:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
             if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
             break;
-        case 8:
+        case 9:
             if(pJson.isNull())
             {
                 err="The " + fieldName + " column cannot be null";
