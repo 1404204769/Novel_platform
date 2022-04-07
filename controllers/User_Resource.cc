@@ -31,6 +31,7 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
             // "Book_Author":"爱潜水的乌贼",//作者
             // "Book_Name":"诡秘之主", // 书名
             // "Upload_Type":   ""
+            // "Para"       :   {}
             // 创建检查列表 key是字段名 value 是字段类型
             std::map<string, MyJson::ColType> ColMap;
             ColMap["Book_ID"] = MyJson::ColType::INT;
@@ -38,31 +39,67 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
             ColMap["Book_Author"] = MyJson::ColType::STRING;
             ColMap["Book_Name"] = MyJson::ColType::STRING;
             ColMap["Upload_Type"] = MyJson::ColType::STRING;
+            ColMap["Para"] = MyJson::ColType::JSON;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
             MyBasePtr->DEBUGLog("检查数据完整性完成", true);
         }
 
         // 读取UserID LoginStatus数据
+        Json::Value ExamineJson;
+        // "Processor_Type"     :   "",         //审核人类型(system/admin/root)
+        // "Processor_ID"       :   0,          //审核人ID
+        // "Examine_Result"     :   true/false, //审核结果             
+        // "Upload_ID"          :   0,          //审核对象
+        // "Examine_Type"       :   "",         //审核对象类型(Book/Chapter)    
+        ExamineJson["Processor_Type"] = "System";
+        ExamineJson["Processor_ID"] = 0;
         auto UploadType = ReqVal["Upload_Type"].asString();
-
         // 纯粹的新书，直接插入图书类即可
         if (UploadType == "new_book")
         {
-            MyDBSPtr->User_Upload_New_Book(ReqVal, RespVal);
+            MyDBSPtr->Upload_Book(ReqVal, RespVal);
+            if(RespVal["Result"].asBool() == true)
+            {
+                ExamineJson["Examine_Type"] =   "Book";
+                ExamineJson["Upload_ID"]    =   RespVal["Upload_ID"].asInt();
+                ExamineJson["Examine_Result"]   =   true;
+                MyDBSPtr->Examine_Upload(ExamineJson, RespVal);
+                if(RespVal.isMember("Result") && RespVal["Result"].isBool() && RespVal["Result"].asBool())
+                {
+                    // 创建图书成功，准备创建资源贴
+                    // Para中获取用户ID，Resp中Book_Data获取图书数据
+                    ////----待完成
+                }
+            }
         }
         // 已存在的书上传新的章节
         else if (UploadType == "old_book_new")
         {
-            MyDBSPtr->User_Upload_Exist_Book_New_Chapter(ReqVal, RespVal);
+            MyDBSPtr->Upload_Chapter(ReqVal, RespVal);
+            if(RespVal["Result"].asBool() == true)
+            {
+                ExamineJson["Examine_Type"] =   "Chapter";
+                ExamineJson["Upload_ID"]    =   RespVal["Upload_ID"].asInt();
+                ExamineJson["Examine_Result"]   =   true;
+                MyDBSPtr->Examine_Upload(ExamineJson, RespVal);
+            }
         }
         // 已存在的书更正章节
         else if (UploadType == "old_book_old")
         {
-            MyDBSPtr->User_Upload_Exist_Book_Update_Chapter(ReqVal, RespVal);
+            MyDBSPtr->Upload_Chapter(ReqVal, RespVal);
+            if(RespVal["Result"].asBool() == true)
+            {
+                ExamineJson["Examine_Type"] =   "Chapter_Update";
+                ExamineJson["Upload_ID"]    =   RespVal["Upload_ID"].asInt();
+                ExamineJson["Examine_Result"]   =   true;
+                MyDBSPtr->Auto_Examine_Chapter_Update(ExamineJson, RespVal);
+                
+            }
         }
         else
         {
-            RespVal["ErrorMsg"] = "UploadType无效";
+            RespVal["ErrorMsg"] = "Upload_Type无效";
             throw RespVal;
         }
 
@@ -72,7 +109,8 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
     }
     catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
