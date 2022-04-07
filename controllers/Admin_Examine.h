@@ -1,6 +1,7 @@
 #pragma once
 #include <drogon/HttpController.h>
 #include <plugins/MyJson.h>
+#include <plugins/MyDBService.h>
 using namespace drogon;
 namespace Admin
 {
@@ -10,9 +11,11 @@ class Examine:public drogon::HttpController<Examine>
     METHOD_LIST_BEGIN
       METHOD_ADD(Examine::UpList,"/UpList",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
       METHOD_ADD(Examine::IdeaList,"/IdeaList",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
+      METHOD_ADD(Examine::Resolve,"/Resolve",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
 
     METHOD_LIST_END
     void UpList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void IdeaList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
+    void Resolve(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
 };
 }
