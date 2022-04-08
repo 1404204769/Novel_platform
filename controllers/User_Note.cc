@@ -83,3 +83,83 @@ void Note::Reply(const HttpRequestPtr &req,std::function<void (const HttpRespons
     Result->setContentTypeCode(CT_TEXT_HTML);
     callback(Result);
 }
+
+
+// 用户发布求助帖接口
+void Note::Appeal(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal, ParaVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Note::Appeal::body" + string(req->getBody()), true);
+    
+        
+    try
+    {
+        RespVal["简介"] = "用户发布求助帖接口";
+        ReqVal = *req->getJsonObject();
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+         // 插入前检查帖子数据是否合法
+
+        MyBasePtr->DEBUGLog("插入前检查帖子数据是否合法", true);
+        // "Note_Title"    :   "", // 帖子标题,图书资源帖标题由书名(作者名)构成
+        // "Note_Content"  :   {
+        //     "Content"   :   "",// 如果是图书资源则内容为图书简介
+        //     "Book_ID"   :   0,// 只有图书资源有此项 连接到图书ID 
+        // }, 
+        // "Note_Type"     :   "",// 帖子类型，(Help/Resource)
+        // 创建检查列表 key是字段名 value 是字段类型
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Note_Title"] = MyJson::ColType::STRING;
+        ColMap["Note_Content"] = MyJson::ColType::JSON;
+        ColMap["Note_Type"] = MyJson::ColType::STRING;
+        ColMap["Para"]  = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+        MyBasePtr->DEBUGLog("插入前检查显示帖子数据合法", true);
+
+        ParaVal = ReqVal["Para"];
+        MyBasePtr->DEBUGLog("开始检查Para数据", true);
+        ColMap.clear();
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaVal, RespVal, ColMap);
+        MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+        ReqVal["User_ID"] = atoi(ParaVal["User_ID"].asString().c_str());
+        ReqVal["Processor_Type"] = ParaVal["Login_Status"].asString();
+        
+        MyDBSPtr->Create_Note(ReqVal,RespVal);
+        
+        if(RespVal["Result"].asBool())
+        {
+            MyBasePtr->DEBUGLog("帖子发布成功::Note::" + RespVal["Note_Data"].toStyledString(), true);
+        }
+        else
+        {
+            MyBasePtr->DEBUGLog("帖子发布失败::Note::" + RespVal["ErrorMsg"].toStyledString(), true);
+        }
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value RespVal)
+    {
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"] = "Feedback::Error";
+        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
