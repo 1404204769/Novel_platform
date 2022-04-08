@@ -1,9 +1,9 @@
-#include "User_Posts.h"
+#include "User_Note.h"
 using namespace User;
 //add definition of your processing function here
 
 // 用户点赞接口
-void Posts::Like(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+void Note::Like(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     Json::Value ReqVal, RespVal;
     drogon::HttpResponsePtr Result;
@@ -46,7 +46,7 @@ void Posts::Like(const HttpRequestPtr &req,std::function<void (const HttpRespons
 }
 
 // 用户回复接口
-void Posts::Reply(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+void Note::Reply(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     Json::Value ReqVal, RespVal;
     drogon::HttpResponsePtr Result;
