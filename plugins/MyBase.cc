@@ -138,3 +138,26 @@ void MyBase::WARNLog(const string &str,const  bool Line_feed)
     LOG_WARN<<"";
     LOG_WARN << str;
 }
+
+
+void MyBase::INFO_Mark(const string &Func_Name)
+{
+    if(!INFO)return;
+    cout << "-----------------------------------------";
+    cout << Func_Name;
+    cout << "-----------------------------------------" << endl;
+}
+
+void MyBase::INFO_Func(const string &Func_Name,const bool &Is_Req,Json::Value &JsonVal)
+{
+    if(!INFO)return;
+    if(Is_Req)
+    {
+        // 说明是函数首部
+        INFO_Mark("进入"+Func_Name+"函数");
+        INFOLog("ReqVal::" + JsonVal.toStyledString(), true);
+        return;
+    }
+    INFOLog("\nRespVal::" + JsonVal.toStyledString(), true);
+    INFO_Mark("退出"+Func_Name+"函数");
+}

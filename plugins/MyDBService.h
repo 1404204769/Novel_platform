@@ -15,6 +15,7 @@
 #include <models/Upload.h>
 #include <models/Book.h>
 #include <models/Chapter.h>
+#include <models/Note.h>
 
 class MyDBService : public drogon::Plugin<MyDBService>
 {
