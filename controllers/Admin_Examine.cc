@@ -139,7 +139,7 @@ void Examine::Resolve(const HttpRequestPtr &req,std::function<void (const HttpRe
         // "Examine_Type"       :   "",         //审核对象类型(Book/Chapter)    
         ExamineJson["Processor_Type"] = ParaJson["Login_Status"].asString();
         ExamineJson["Processor_ID"] = std::atoi(ParaJson["User_ID"].asString().c_str());
-        ExamineJson["Examine_Type"] =  MyDBSPtr->getUploadType(ReqVal["Upload_ID"].asInt());
+        ExamineJson["Examine_Type"] =  MyDBSPtr->Get_Upload_Type(ReqVal["Upload_ID"].asInt());
         ExamineJson["Upload_ID"]    =   ReqVal["Upload_ID"].asInt();
         ExamineJson["Examine_Result"]   =   ReqVal["Examine_Result"].asBool();
         MyBasePtr->DEBUGLog("设置ExamineJson结束", true);
