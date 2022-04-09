@@ -72,7 +72,17 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
             {
                 ExamineJson["Examine_Type"] =   "Book";
                 ExamineJson["Upload_ID"]    =   RespVal["Upload_ID"].asInt();
-                ExamineJson["Examine_Result"]   =   true;
+                // 检查图书是否存在 存在则拒绝申请，不存在则同意
+                if(MyDBSPtr->Is_Book_Exist(ReqVal,RespVal))
+                {
+                    ExamineJson["Examine_Result"] = false;
+                    
+                    ExamineJson["Examine_Explain"] = "要新增的图书已存在";
+                }
+                else
+                {
+                    ExamineJson["Examine_Result"] = true;
+                }
                 MyBasePtr->DEBUGLog("开始审核申请", true);
                 MyDBSPtr->Examine_Upload(ExamineJson, RespVal);
                 MyBasePtr->DEBUGLog("审核申请完成", true);
@@ -121,17 +131,16 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
         else if (UploadType == "old_book_new")
         {
             MyBasePtr->DEBUGLog("开始申请加入后续章节", true);
-            MyDBSPtr->Upload_Book(ReqVal, RespVal);
-            MyBasePtr->DEBUGLog("申请加入后续章节完成", true);
             MyDBSPtr->Upload_Chapter(ReqVal, RespVal);
+            MyBasePtr->DEBUGLog("申请加入后续章节完成", true);
             if(RespVal["Result"].asBool() == true)
             {
                 ExamineJson["Examine_Type"] =   "Chapter";
                 ExamineJson["Upload_ID"]    =   RespVal["Upload_ID"].asInt();
                 ExamineJson["Examine_Result"]   =   true;
-                MyBasePtr->DEBUGLog("开始审核申请", true);
-                MyDBSPtr->Examine_Upload(ExamineJson, RespVal);
-                MyBasePtr->DEBUGLog("审核申请完成", true);
+                MyBasePtr->DEBUGLog("开始自动审核申请", true);
+                MyDBSPtr->Auto_Examine_Chapter_Update(ExamineJson, RespVal);
+                MyBasePtr->DEBUGLog("自动审核申请完成", true);
             }
         }
         // 已存在的书更正章节
@@ -153,7 +162,7 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
         }
         else
         {
-            RespVal["ErrorMsg"] = "Upload_Type无效";
+            RespVal["ErrorMsg"].append("Upload_Type无效");
             throw RespVal;
         }
 
@@ -163,22 +172,19 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
     }
     catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Resource::Upload::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Resource::Upload::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -231,22 +237,19 @@ void Resource::Download(const HttpRequestPtr &req, std::function<void(const Http
     }
     catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Resource::Download::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Resource::Download::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -279,17 +282,15 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Resource::Search::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Resource::Search::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

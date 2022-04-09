@@ -40,16 +40,16 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"] = "Examine::UpList::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        RespVal["ErrorMsg"].append("Examine::UpList::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
@@ -110,6 +110,13 @@ void Examine::Resolve(const HttpRequestPtr &req,std::function<void (const HttpRe
             ColMap["Upload_ID"] = MyJson::ColType::INT;
             ColMap["Examine_Result"] = MyJson::ColType::BOOL;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            
+            if(ReqVal["Examine_Result"].asBool() == false)
+            {
+                ColMap.clear();
+                ColMap["Examine_Explain"] = MyJson::ColType::STRING;
+                MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            }
             MyBasePtr->DEBUGLog("检查数据完整性完成", true);
             
             MyBasePtr->DEBUGLog("开始检查Para数据", true);
@@ -123,7 +130,7 @@ void Examine::Resolve(const HttpRequestPtr &req,std::function<void (const HttpRe
 
             if ((ParaJson["Login_Status"].asString() != "admin") && (ParaJson["Login_Status"].asString() != "root"))
             {
-                RespVal["ErrorMsg"] = "账户权限错误,请联系管理员";
+                RespVal["ErrorMsg"].append("账户权限错误,请联系管理员");
                 RespVal["Result"]   = false;
                 throw RespVal;
             }
@@ -142,6 +149,7 @@ void Examine::Resolve(const HttpRequestPtr &req,std::function<void (const HttpRe
         ExamineJson["Examine_Type"] =  MyDBSPtr->Get_Upload_Type(ReqVal["Upload_ID"].asInt());
         ExamineJson["Upload_ID"]    =   ReqVal["Upload_ID"].asInt();
         ExamineJson["Examine_Result"]   =   ReqVal["Examine_Result"].asBool();
+        ExamineJson["Examine_Explain"]  =   ReqVal["Examine_Explain"].asString();
         MyBasePtr->DEBUGLog("设置ExamineJson结束", true);
         
         MyBasePtr->DEBUGLog("开始处理申请::ExamineJson::" + ExamineJson.toStyledString(), true);
@@ -155,23 +163,22 @@ void Examine::Resolve(const HttpRequestPtr &req,std::function<void (const HttpRe
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
-        MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"] = "Examine::Resolve::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Examine::Resolve::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+      
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
