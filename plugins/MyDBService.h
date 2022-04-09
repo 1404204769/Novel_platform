@@ -39,6 +39,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Examine_Upload(Json::Value &ReqJson, Json::Value &RespJson);
 
     string Get_Upload_Type(int Upload_ID);
+    bool Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Search_Note(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
@@ -46,7 +47,6 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Upload_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Upload_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
     void Update_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
-
 
   private:
     bool Insert_Book(Json::Value &ReqJson, Json::Value &RespJson);
