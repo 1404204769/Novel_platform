@@ -25,17 +25,15 @@ void Test::ChineseStr(const HttpRequestPtr &req,std::function<void (const HttpRe
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Test::ChineseStr发生异常";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Test::ChineseStr发生异常");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     
@@ -75,17 +73,15 @@ void Test::SysOutLevel(const HttpRequestPtr &req,std::function<void (const HttpR
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Test::SysOutLevel";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Test::SysOutLevel");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     

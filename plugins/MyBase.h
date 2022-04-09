@@ -37,6 +37,8 @@ class MyBase : public drogon::Plugin<MyBase>
     void INFO_Func(const string &Func_Name,const bool &Is_Req,Json::Value &JsonVal);
     void ChangeStatus(const string &level);
     bool IsStatus(const string &level);
+    void TRACE_ERROR(Json::Value &ERROR);
+    void printLine(const string Str);
 };
 
 #endif

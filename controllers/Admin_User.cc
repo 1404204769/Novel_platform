@@ -33,19 +33,17 @@ void Admin::User::List(const HttpRequestPtr &req, std::function<void(const HttpR
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "查询所有用户失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = "查询所有用户失败";
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -83,19 +81,17 @@ void Admin::User::Search(const HttpRequestPtr &req, std::function<void(const Htt
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "查询指定用户失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = "查询指定用户失败";
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -151,16 +147,14 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "更新用户数据失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = "更新用户数据失败";
-        RespVal["ErrorMsg"] = "Admin::User::Update::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        RespVal["ErrorMsg"].append("Admin::User::Update::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

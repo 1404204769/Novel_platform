@@ -20,17 +20,15 @@ void Feedback::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<v
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Feedback";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Feedback::ERROR");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     

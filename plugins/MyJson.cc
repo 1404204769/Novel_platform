@@ -34,14 +34,14 @@ void MyJson::readFileJson(Json::Value &ConfigJson,const string &openFilePath)
  
 	if (!in.is_open())
 	{
-		ConfigJson["ErrorMsg"] = "打开配置文件失败\n";
+		ConfigJson["ErrorMsg"].append("打开配置文件失败");
     	MyBasePtr->TRACELog("MyJson::readFileJson::Error : 打开配置文件失败",true);
 		throw ConfigJson;
 	}
  
 	if (!reader.parse(in, ConfigJson))
 	{
-		ConfigJson["ErrorMsg"] = "Json解析错误\n" ;
+		ConfigJson["ErrorMsg"].append("Json解析错误");
     	MyBasePtr->TRACELog("MyJson::readFileJson::Error : Json解析错误",true);
 		throw ConfigJson;
 	}
@@ -55,9 +55,10 @@ void MyJson::SaveConfig(Json::Value &config, const string &openFilePath)
 	MyBasePtr->TRACELog("开始写入config",true);
 	try{
         writeFileJson(config, openFilePath);
-	}catch(Json::Value e)
+	}catch(Json::Value &e)
 	{
-		MyBasePtr->TRACELog("写入config失败 ErrorMsg : " + e["ErrorMsg"].asString() ,true);
+		MyBasePtr->TRACELog("写入config失败",true);
+		MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
 		return;
 	}
 	MyBasePtr->TRACELog("写入config成功",true);
@@ -85,7 +86,7 @@ void MyJson::writeFileJson(Json::Value &ConfigJson,const string &openFilePath)
 	os.open(openFilePath, std::ios::out);
 	if (!os.is_open())
 	{
-		ConfigJson["ErrorMsg"] = "无法找到或无法创建文件\"./config.json\"\n" ;
+		ConfigJson["ErrorMsg"].append("无法找到或无法创建文件\"./config.json\"\n");
 		MyBasePtr->TRACELog("MyJson::writeFileJson::Error : 无法找到或无法创建文件\"./config.json\"\n",true);
 		throw ConfigJson;
 	}
@@ -161,7 +162,7 @@ void MyJson::MapToJson(Json::Value &JsonValue, map<string,string>& map_info,cons
 		}
 	}catch(...)
 	{
-		JsonValue["ErrorMsg"] = "Map 转为 Json 失败";
+		JsonValue["ErrorMsg"].append("Map 转为 Json 失败");
     	MyBasePtr->TRACELog("MyJson::MapToJson::Error : Map 转为 Json 失败",true);
 
 		throw JsonValue;
@@ -181,7 +182,7 @@ void MyJson::UnMapToJson(Json::Value &JsonValue,const unordered_map<string,strin
 		}
 	}catch(...)
 	{
-		JsonValue["ErrorMsg"] = "unordered_map 转为 Json 失败";
+		JsonValue["ErrorMsg"].append("unordered_map 转为 Json 失败");
     	MyBasePtr->TRACELog("MyJson::UnMapToJson::Error : unordered_map 转为 Json 失败",true);
 		throw JsonValue;
 	}
@@ -197,7 +198,7 @@ void MyJson::JsonstrToJson(Json::Value &JsonValue,const string& JsonStr)
 	bool ret = reader.parse(JsonStr, JsonValue);
 	if(!ret)
 	{
-		JsonValue["ErrorMsg"] = "Json字符串解析出错";
+		JsonValue["ErrorMsg"].append("Json字符串解析出错");
     	MyBasePtr->TRACELog("MyJson::JsonstrToJson::Error : Json字符串解析出错",true);
 		throw JsonValue;
 	}
@@ -205,28 +206,45 @@ void MyJson::JsonstrToJson(Json::Value &JsonValue,const string& JsonStr)
 
 
 // 检查Json成员
+/*
+	检查Json成员是否存在
+Resp:{
+	"ErrorMsg" 	: 	[],// 错误信息
+	"Result"	:	true/false,//执行结果
+}
+*/
 void MyJson::checkMember(Json::Value &ReqVal, Json::Value &RespVal, string colName)
 {
     auto MyBasePtr = drogon::app().getPlugin<MyBase>();
+	RespVal["Result"] = false;
 	if(!ReqVal.isMember(colName))
 	{
-		RespVal["ErrorMsg"] = "不存在"+colName+"字段";
+		RespVal["ErrorMsg"].append("不存在"+colName+"字段");
     	MyBasePtr->TRACELog("MyJson::checkMember::Error : 不存在"+colName+"字段",true);
 		throw RespVal;
 	}
+	RespVal["Result"] = true;
 }
 
 // 检查Json成员类型
+/*
+	检查Json成员类型
+Resp:{
+	"ErrorMsg" 	: 	[],// 错误信息
+	"Result"	:	true/false,//执行结果
+}
+*/
 void MyJson::checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType)
 {
     auto MyBasePtr = drogon::app().getPlugin<MyBase>();
+	RespVal["Result"] = true;
 	switch(colType)
 	{
 		case ColType::STRING:
 		{
 			if(ReqVal[colName].isString())
 				return;
-			RespVal["ErrorMsg"] = colName+"字段不是String类型";
+			RespVal["ErrorMsg"].append(colName+"字段不是String类型");
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是String类型",true);
 
 		}break;
@@ -234,35 +252,43 @@ void MyJson::checkColType(Json::Value &ReqVal, Json::Value &RespVal, string colN
 		{
 			if(ReqVal[colName].isInt())
 				return;
-			RespVal["ErrorMsg"] = colName+"字段不是Int类型";
+			RespVal["ErrorMsg"].append(colName+"字段不是Int类型");
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Int类型",true);
 		}break;
 		case ColType::BOOL:
 		{
 			if(ReqVal[colName].isBool())
 				return;
-			RespVal["ErrorMsg"] = colName+"字段不是Bool类型";
+			RespVal["ErrorMsg"].append(colName+"字段不是Bool类型");
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Bool类型",true);
 		}break;
 		case ColType::JSON:
 		{
 			if(ReqVal[colName].isObject() && !ReqVal[colName].isNull())
 				return;
-			RespVal["ErrorMsg"] = colName+"字段不是Object类型";
+			RespVal["ErrorMsg"].append(colName+"字段不是Object类型");
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Object类型",true);
 		}break;
 		case ColType::ARRAY:
 		{
 			if(ReqVal[colName].isArray())
 				return;
-			RespVal["ErrorMsg"] = colName+"字段不是Array类型";
+			RespVal["ErrorMsg"].append(colName+"字段不是Array类型");
     		MyBasePtr->TRACELog("MyJson::checkColType::Error : "+colName+"字段不是Array类型",true);
 		}break;
 	}
+	RespVal["Result"] = false;
 	throw RespVal;
 }
 
 // 检查Json成员以及类型
+/*
+	检查Json成员以及类型
+Resp:{
+	"ErrorMsg" 	: 	[],// 错误信息
+	"Result"	:	true/false,//执行结果
+}
+*/
 void MyJson::checkMemberAndType(Json::Value &ReqVal, Json::Value &RespVal, string colName, ColType colType)
 {
 	checkMember(ReqVal,RespVal,colName);
@@ -270,6 +296,13 @@ void MyJson::checkMemberAndType(Json::Value &ReqVal, Json::Value &RespVal, strin
 }
 
 // 检查Json中关于Map涉及的成员以及类型
+/*
+	检查Json中关于Map涉及的成员以及类型
+Resp:{
+	"ErrorMsg" 	: 	[],// 错误信息
+	"Result"	:	true/false,//执行结果
+}
+*/
 void MyJson::checkMemberAndTypeInMap(Json::Value &ReqVal, Json::Value &RespVal, std::map<string,ColType> &ColMap)
 {
 	for(auto one:ColMap)

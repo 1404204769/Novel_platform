@@ -130,7 +130,7 @@ bool MyJwt::verify(const string &token)
         if(new_sign != old_sign)
             return false;
     }catch(jwt::MemoryAllocationException){
-        JsonValue["ErrorMsg"] = "MemoryAllocationException";
+        JsonValue["ErrorMsg"].append("MemoryAllocationException");
     	MyBasePtr->TRACELog("MyJwt::verify::Error : MemoryAllocationException",true);
         throw JsonValue;
         return false;
@@ -160,7 +160,7 @@ bool MyJwt::CheckTokenValidity(const string &token)
     auto MyBasePtr = drogon::app().getPlugin<MyBase>();
     if(token.empty())
     {
-        JsonValue["ErrorMsg"] = "传入的token是空值";
+        JsonValue["ErrorMsg"].append("传入的token是空值");
     	MyBasePtr->TRACELog("MyJwt::CheckTokenValidity::Error : 传入的token是空值",true);
         throw JsonValue;
         return false;
@@ -168,7 +168,7 @@ bool MyJwt::CheckTokenValidity(const string &token)
     size_t fpos = token.find_first_of('.');
     if(fpos == jwt::string_view::npos)
     {
-        JsonValue["ErrorMsg"] = "传入的token格式错误";
+        JsonValue["ErrorMsg"].append("传入的token格式错误");
     	MyBasePtr->TRACELog("MyJwt::CheckTokenValidity::Error : 传入的token格式错误",true);
         MyBasePtr->TRACELog("(fpos = " + to_string(fpos) + "  jwt::string_view::npos = " + to_string(jwt::string_view::npos) + ")(token = " + token + ")",true);
         throw JsonValue;

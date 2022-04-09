@@ -37,7 +37,7 @@ void TimeFilter::doFilter(const HttpRequestPtr &req,
         }
         else
         {
-            RespVal["ErrorMsg"]="距离上次操作还没超过10s,请缓慢操作";
+            RespVal["ErrorMsg"].append("距离上次操作还没超过10s,请缓慢操作");
             RespVal["最后登入时间"]=lastDate.toFormattedString(false);
             MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

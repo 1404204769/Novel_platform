@@ -82,16 +82,14 @@ void Resource::Update(const HttpRequestPtr &req,std::function<void (const HttpRe
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "更新图书资源数据失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = "更新图书资源数据失败";
-        RespVal["ErrorMsg"] = "Admin::Resource::Update::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        RespVal["ErrorMsg"].append("Admin::Resource::Update::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -144,22 +142,20 @@ void Resource::Download(const HttpRequestPtr &req,std::function<void (const Http
     }
     catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Admin::Resource::Download::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Admin::Resource::Download::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

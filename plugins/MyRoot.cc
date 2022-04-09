@@ -21,7 +21,7 @@ void MyRoot::initAndStart(const Json::Value &config)
 			this->WorkDirectory = buffer;
 			MyBasePtr->DEBUGLog("当前工作目录为 " + WorkDirectory,true);
 		}else{
-			this->config["ErrorMsg"] = "工作目录读取失败";
+			this->config["ErrorMsg"].append("工作目录读取失败");
 			throw this->config;
 		}
 		MyBasePtr->TRACELog("开始读取config",true);
@@ -33,7 +33,8 @@ void MyRoot::initAndStart(const Json::Value &config)
 		MyJsonPtr->readFileJson(this->config, this->SystemConfigDirectory);
 	}catch(Json::Value e)
 	{
-    	MyBasePtr->TRACELog("MyRoot::initAndStart::Error : " + e["ErrorMsg"].asString(),true);
+    	MyBasePtr->TRACELog("MyRoot::initAndStart::Error:",true);
+		MyBasePtr->TRACE_ERROR( e["ErrorMsg"]);
 		return;
 	}
 	MyBasePtr->TRACELog("读取config成功",true);
@@ -60,7 +61,8 @@ void MyRoot::close()
     	MyBasePtr->TRACELog("应用停止成功",true);
 	}catch(Json::Value &e)
 	{
-    	MyBasePtr->TRACELog("MyRoot::close::Error : " + e["ErrorMsg"].asString(),true);
+    	MyBasePtr->TRACELog("MyRoot::close::Error : ",true);
+		MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
 	}
 }
 
@@ -83,7 +85,8 @@ bool MyRoot::restart()
     	MyBasePtr->TRACELog("应用启动成功",true);
 	}catch(Json::Value &e)
 	{
-    	MyBasePtr->TRACELog("MyRoot::restart::Error : " + e["ErrorMsg"].asString(),true);
+    	MyBasePtr->TRACELog("MyRoot::restart::Error : ",true);
+		MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
 		return false;
 	}
 	return true;
@@ -104,7 +107,7 @@ string MyRoot::getUserType(int UserPower)
 	}
 	catch(...){
 		Json::Value JsonValue;
-		JsonValue["ErrorMsg"] = "获取用户类型异常，请联系管理员";
+		JsonValue["ErrorMsg"].append("获取用户类型异常，请联系管理员");
     	MyBasePtr->TRACELog("MyRoot::getUserType::Error : 获取用户类型异常，请联系管理员",true);
 		throw JsonValue;
 	}

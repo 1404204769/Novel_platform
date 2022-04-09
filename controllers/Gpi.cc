@@ -43,7 +43,7 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         MyBasePtr->DEBUGLog("开始验证密码", true);
         if(user.getValueOfPassword() != UserPwd)
         {
-            RespVal["ErrorMsg"] = "用户密码错误";
+            RespVal["ErrorMsg"].append("用户密码错误");
             throw RespVal;
         }
         MyBasePtr->DEBUGLog("密码验证通过", true);
@@ -62,11 +62,10 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch(Json::Value RespVal)
+    catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "登入失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
@@ -74,13 +73,13 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 	    RespVal["Result"] = "登入失败";
         if(e.base().what() == string("0 rows found"))
         {
-            RespVal["ErrorMsg"] = "此用户不存在";
+            RespVal["ErrorMsg"].append("此用户不存在");
         }
         else if(e.base().what() == string("Found more than one row"))
         {
-            RespVal["ErrorMsg"] = "用户ID重复,请联系管理员";
+            RespVal["ErrorMsg"].append("用户ID重复,请联系管理员");
         }
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -142,11 +141,10 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch(Json::Value RespVal)
+    catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "注册失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
@@ -155,11 +153,10 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         // Duplicate entry '911222' for key 'PRIMARY'
 	    RespVal["Result"] = "注册失败";
         if(std::regex_match(e.base().what(), std::regex("Duplicate entry '.*' for key 'PRIMARY'")))
-            RespVal["ErrorMsg"] = "注册失败/此UserID已存在";
+            RespVal["ErrorMsg"].append("注册失败/此UserID已存在");
         else
-            RespVal["ErrorMsg"] = "注册失败/" + string(e.base().what());
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+            RespVal["ErrorMsg"].append("注册失败/" + string(e.base().what()));
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
 

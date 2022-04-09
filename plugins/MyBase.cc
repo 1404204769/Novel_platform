@@ -143,9 +143,7 @@ void MyBase::WARNLog(const string &str,const  bool Line_feed)
 void MyBase::INFO_Mark(const string &Func_Name)
 {
     if(!INFO)return;
-    cout << "-----------------------------------------";
-    cout << Func_Name;
-    cout << "-----------------------------------------" << endl;
+    printLine(Func_Name);
 }
 
 void MyBase::INFO_Func(const string &Func_Name,const bool &Is_Req,Json::Value &JsonVal)
@@ -160,4 +158,29 @@ void MyBase::INFO_Func(const string &Func_Name,const bool &Is_Req,Json::Value &J
     }
     INFOLog("\nRespVal::" + JsonVal.toStyledString(), true);
     INFO_Mark("退出"+Func_Name+"函数");
+}
+
+void MyBase::TRACE_ERROR(Json::Value &ERROR)
+{
+    if(!TRACE)return;
+    printLine("ERROR_ARRAY_BEGIN");
+
+    int size = ERROR.size();
+    for(int i = 0 ;i < size ;i++)
+    {
+        cout << ERROR[i].asString() << endl;
+    }
+    
+    printLine("ERROR_ARRAY_END");
+}
+void MyBase::printLine(const string Str)
+{
+    int size = Str.size();
+    int num = (100 - size)/2;
+    for(int i = 0;i < num ;i++)
+        cout << "-";
+    cout << Str;
+    for(int i = 0;i < num ;i++)
+        cout << "-";
+    cout << endl;
 }

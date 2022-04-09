@@ -23,7 +23,7 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
         return fccb();
     }
 
-    RespVal["ErrorMsg"] = "不存在Json数据";
+    RespVal["ErrorMsg"].append("不存在Json数据");
     MyBasePtr->TRACELog("MyJsonFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
