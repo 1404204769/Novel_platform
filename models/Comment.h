@@ -47,8 +47,8 @@ class Comment
         static const std::string _Note_ID;
         static const std::string _Floor_ID;
         static const std::string _User_ID;
-        static const std::string _Content;
-        static const std::string _Create;
+        static const std::string _Comment_Content;
+        static const std::string _Create_Time;
         static const std::string _Reply_Floor_ID;
     };
 
@@ -133,22 +133,22 @@ class Comment
     ///Set the value of the column User_ID
     void setUserId(const int32_t &pUserId) noexcept;
 
-    /**  For column Content  */
-    ///Get the value of the column Content, returns the default value if the column is null
-    const std::string &getValueOfContent() const noexcept;
+    /**  For column Comment_Content  */
+    ///Get the value of the column Comment_Content, returns the default value if the column is null
+    const std::string &getValueOfCommentContent() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getContent() const noexcept;
-    ///Set the value of the column Content
-    void setContent(const std::string &pContent) noexcept;
-    void setContent(std::string &&pContent) noexcept;
+    const std::shared_ptr<std::string> &getCommentContent() const noexcept;
+    ///Set the value of the column Comment_Content
+    void setCommentContent(const std::string &pCommentContent) noexcept;
+    void setCommentContent(std::string &&pCommentContent) noexcept;
 
-    /**  For column Create  */
-    ///Get the value of the column Create, returns the default value if the column is null
-    const ::trantor::Date &getValueOfCreate() const noexcept;
+    /**  For column Create_Time  */
+    ///Get the value of the column Create_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfCreateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getCreate() const noexcept;
-    ///Set the value of the column Create
-    void setCreate(const ::trantor::Date &pCreate) noexcept;
+    const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
+    ///Set the value of the column Create_Time
+    void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
 
     /**  For column Reply_Floor_ID  */
     ///Get the value of the column Reply_Floor_ID, returns the default value if the column is null
@@ -180,8 +180,8 @@ class Comment
     std::shared_ptr<int32_t> noteId_;
     std::shared_ptr<int32_t> floorId_;
     std::shared_ptr<int32_t> userId_;
-    std::shared_ptr<std::string> content_;
-    std::shared_ptr<::trantor::Date> create_;
+    std::shared_ptr<std::string> commentContent_;
+    std::shared_ptr<::trantor::Date> createTime_;
     std::shared_ptr<int32_t> replyFloorId_;
     struct MetaData
     {
@@ -219,10 +219,11 @@ class Comment
             sql += "Note_ID,";
             ++parametersCount;
         }
-        if(dirtyFlag_[2])
+        sql += "Floor_ID,";
+        ++parametersCount;
+        if(!dirtyFlag_[2])
         {
-            sql += "Floor_ID,";
-            ++parametersCount;
+            needSelection=true;
         }
         if(dirtyFlag_[3])
         {
@@ -231,19 +232,20 @@ class Comment
         }
         if(dirtyFlag_[4])
         {
-            sql += "Content,";
+            sql += "Comment_Content,";
             ++parametersCount;
         }
-        sql += "Create,";
+        sql += "Create_Time,";
         ++parametersCount;
         if(!dirtyFlag_[5])
         {
             needSelection=true;
         }
-        if(dirtyFlag_[6])
+        sql += "Reply_Floor_ID,";
+        ++parametersCount;
+        if(!dirtyFlag_[6])
         {
-            sql += "Reply_Floor_ID,";
-            ++parametersCount;
+            needSelection=true;
         }
         needSelection=true;
         if(parametersCount > 0)
@@ -265,6 +267,10 @@ class Comment
             sql.append("?,");
 
         } 
+        else
+        {
+            sql +="default,";
+        }
         if(dirtyFlag_[3])
         {
             sql.append("?,");
@@ -289,6 +295,10 @@ class Comment
             sql.append("?,");
 
         } 
+        else
+        {
+            sql +="default,";
+        }
         if(parametersCount > 0)
         {
             sql.resize(sql.length() - 1);
