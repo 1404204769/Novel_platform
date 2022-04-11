@@ -11,11 +11,13 @@
 #include <plugins/MyJson.h>
 #include <plugins/MyTools.h>
 
-#include <models/User.h>
-#include <models/Upload.h>
+#include <models/Agree.h>
 #include <models/Book.h>
 #include <models/Chapter.h>
+#include <models/Comment.h>
 #include <models/Note.h>
+#include <models/User.h>
+#include <models/Upload.h>
 
 class MyDBService : public drogon::Plugin<MyDBService>
 {
@@ -30,8 +32,12 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Admin_Update_Resource(Json::Value &ReqJson, Json::Value &RespJson);
     void Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson);
     
+    
+    void Agree(Json::Value &ReqJson, Json::Value &RespJson);
+
     void Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value &RespJson);
 
+    void Create_Comment(Json::Value &ReqJson, Json::Value &RespJson);
     void Create_Note(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Download_Resource(Json::Value &ReqJson, Json::Value &RespJson);
@@ -40,8 +46,14 @@ class MyDBService : public drogon::Plugin<MyDBService>
 
     string Get_Upload_Type(int Upload_ID);
     bool Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Is_Comment_Exist(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Is_Note_Exist(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Is_User_Exist(Json::Value &ReqJson, Json::Value &RespJson);
 
+    void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Comment(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Note(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Upload_Book(Json::Value &ReqJson, Json::Value &RespJson);
