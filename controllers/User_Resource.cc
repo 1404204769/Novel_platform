@@ -21,7 +21,6 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
 
         RespVal["简介"] = "图书上传接口";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         // 检查数据完整性
         {
@@ -107,7 +106,7 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
                     drogon_model::novel::Book book;
                     Json::Value NoteJson,NoteContentJson;
                     NoteJson["User_ID"] = atoi(ParaJson["User_ID"].asString().c_str());
-                    NoteJson["Processor_Type"] = ParaJson["Login_Status"].asString();
+                    NoteJson["Processor_Type"] = "system";
                     NoteJson["Note_Type"] = "Resource";
                     MyBasePtr->DEBUGLog("开始获取图书数据", true);
                     book.updateByJson(RespVal["Book_Data"]);
@@ -124,6 +123,27 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
                         throw RespVal;
                     }
                     MyBasePtr->DEBUGLog("建立资源贴完成", true);
+
+
+                    Json::Value CommentJson;
+                    MyJsonPtr->UnMapToJson(CommentJson, umapPara, "Para");
+                    // "Note_ID" : 0, // 帖子ID
+                    // "Comment_Content" : {
+                    //     "Content":"",//表示内容
+                    //     ["URL"]:0,//表示超链接，可以连接到别的表，用于将资源贴引用到求助帖
+                    //     // url格式为Note_ID
+                    // },
+                    CommentJson["Note_ID"] = RespVal["Note_Data"]["Note_ID"];
+                    CommentJson["Comment_Content"]["Content"] = "欢迎大家积极留言,共同努力打造一个良好的阅读环境";
+                    MyBasePtr->DEBUGLog("开始发布楼主评论", true);
+                    MyDBSPtr->Create_Comment(CommentJson,RespVal);
+                    if(!RespVal["Result"].asBool())
+                    {
+                        MyBasePtr->DEBUGLog("建立楼主评论失败", true);
+                        throw RespVal;
+                    }
+                    MyBasePtr->DEBUGLog("建立楼主评论完成", true);
+
                 }
             }
         }
@@ -265,6 +285,7 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
     
@@ -272,11 +293,12 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
     {
         // 读取Json数据
         ReqVal=*req->getJsonObject();
-        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
-
+        // "Note_KeyWord" : "",// 关键字,在标题和内容中查找
+        MyBasePtr->DEBUGLog("开始检查数据完整性", true);
+        MyJsonPtr->checkMemberAndType(ReqVal,RespVal,"Note_KeyWord",MyJson::ColType::STRING);
+        MyBasePtr->DEBUGLog("检查数据完整性完成", true);
+        MyDBS->Search_Note(ReqVal,RespVal);
         RespVal["简介"] = "图书查找接口";
-        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

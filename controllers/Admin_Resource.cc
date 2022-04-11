@@ -6,23 +6,12 @@ using namespace Admin;
 // 管理员资源查询接口
 void Resource::Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal;
-    drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
-    
-    RespVal["简介"] = "管理员资源查询接口";
-    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
-    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
-
-    Result=HttpResponse::newHttpJsonResponse(RespVal);
-    
-    Result->setStatusCode(k200OK);
-    Result->setContentTypeCode(CT_TEXT_HTML);
-    callback(Result);
+    MyBasePtr->TRACELog("原始地址为：" + req->getPath(),true);
+    MyBasePtr->TRACELog("准备开始重定向",true);
+    req->setPath("/User/Resource/Search");
+    app().forward(req,move(callback));
+    MyBasePtr->TRACELog("重定向完成",true);
 }
 
 // 管理员资源上传接口
