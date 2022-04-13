@@ -89,7 +89,6 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
                 {
                     // 创建图书成功，准备创建资源贴
                     // Para中获取用户ID，Resp中Book_Data获取图书数据
-                    ////----待完成
                     /*
                         NoteJson:{
                             "Note_Title" : "", // 帖子标题,图书资源帖标题由书名(作者名)构成

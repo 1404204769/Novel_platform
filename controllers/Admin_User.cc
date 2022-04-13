@@ -110,12 +110,6 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Admin::User::Update::body" + string(req->getBody()), true);
     
-    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
-    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
-
-    Result = HttpResponse::newHttpJsonResponse(RespVal);
-
     try
     {
         // 读取Json数据
@@ -154,6 +148,156 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
     {
         RespVal["Result"] = "更新用户数据失败";
         RespVal["ErrorMsg"].append("Admin::User::Update::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+void Admin::User::Change_User_Integral(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal, ParaVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Admin::User::Change_User_Integral::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        RespVal["简介"] = "管理员更改用户积分数据接口";
+        MyJsonPtr->UnMapToJson(ParaVal, umapPara, "Para");
+
+        // 开始检查传入参数
+        {
+            MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
+            // "Change_ID" : 0,
+            // "Change_Num" : 0,
+            // "Change_Type" : "Add/Sub",
+            // "Change_Explain" : ""
+            std::map<string, MyJson::ColType> ColMap;
+            ColMap["Change_ID"] = MyJson::ColType::INT;
+            ColMap["Change_Num"] = MyJson::ColType::INT;
+            ColMap["Change_Type"] = MyJson::ColType::STRING;
+            ColMap["Change_Explain"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("传入参数合法", true);
+
+            
+            MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+            ColMap.clear();
+            ColMap["User_ID"] = MyJson::ColType::STRING;
+            ColMap["Login_Status"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ParaVal["Para"], RespVal, ColMap);
+            MyBasePtr->DEBUGLog("Para数据合法", true);
+        }
+
+        ReqVal["User_ID"] = atoi(ParaVal["Para"]["User_ID"].asString().c_str());
+        ReqVal["Processor"] = ParaVal["Para"]["Login_Status"].asString();
+        if(!MyDBSPtr->Change_User_Integral(ReqVal,RespVal))
+        {
+            throw RespVal;
+        }
+        
+        RespVal["Result"] = "更新用户数据成功";
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = "更新用户数据失败";
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["Result"] = "更新用户数据失败";
+        RespVal["ErrorMsg"].append("Admin::User::Change_User_Integral::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+void Admin::User::Change_User_Status(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal, ParaVal;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Admin::User::Change_User_Status::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        RespVal["简介"] = "管理员更改用户状态数据接口";
+        MyJsonPtr->UnMapToJson(ParaVal, umapPara, "Para");
+
+        // 开始检查传入参数
+        {
+            MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
+            // "Change_ID" : 0,
+            // "Limit_Time" : 0,//封号的时候使用
+            // "Change_Type" : "Ban/Unseal",
+            // "Change_Explain" : ""
+
+            std::map<string, MyJson::ColType> ColMap;
+            ColMap["Change_ID"] = MyJson::ColType::INT;
+            ColMap["Change_Type"] = MyJson::ColType::STRING;
+            ColMap["Change_Explain"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("传入参数合法", true);
+
+            
+            MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+            ColMap.clear();
+            ColMap["User_ID"] = MyJson::ColType::STRING;
+            ColMap["Login_Status"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ParaVal["Para"], RespVal, ColMap);
+            MyBasePtr->DEBUGLog("Para数据合法", true);
+        }
+
+        ReqVal["User_ID"] = atoi(ParaVal["Para"]["User_ID"].asString().c_str());
+        ReqVal["Processor"] = ParaVal["Para"]["Login_Status"].asString();
+        if(!MyDBSPtr->Change_User_Status(ReqVal,RespVal))
+        {
+            throw RespVal;
+        }
+        
+        RespVal["Result"] = "更新用户数据成功";
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = "更新用户数据失败";
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["Result"] = "更新用户数据失败";
+        RespVal["ErrorMsg"].append("Admin::User::Change_User_Status::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }

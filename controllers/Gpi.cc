@@ -9,6 +9,7 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyRootPtr = app().getPlugin<MyRoot>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Gpi::Login::body" + string(req->getBody()), true);
     
@@ -47,6 +48,53 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
             throw RespVal;
         }
         MyBasePtr->DEBUGLog("密码验证通过", true);
+
+
+
+        // 开始验证状态,如果被封号了
+        if(user.getValueOfStatus() == "Ban")
+        {
+            Json::Value TempReq,TempResp;
+            TempReq["User_ID"] = user.getValueOfUserId();
+            MyBasePtr->DEBUGLog("开始查询用户封号截止时间", true);
+            MyDBSPtr->Search_User_Ban_Time(TempReq,TempResp);
+            if(!TempResp["Result"].asBool())
+            {
+                RespVal["ErrorMsg"] = TempResp["ErrorMsg"];
+                RespVal["ErrorMsg"].append("查询用户封号截止时间发生错误");
+                throw RespVal;
+            }
+            MyBasePtr->DEBUGLog("用户封号截止时间("+TempResp["Ban_Time"].asString()+")查询完毕", true);
+            trantor::Date BanTime = trantor::Date::fromDbStringLocal(TempResp["Ban_Time"].asString());
+            if(BanTime > trantor::Date::now())
+            {
+                RespVal["ErrorMsg"].append("封号截止时间("+TempResp["Ban_Time"].asString()+")还没到");
+                RespVal["Ban_Time"] = TempResp["Ban_Time"].asString();
+                throw RespVal;
+            }
+            else
+            {
+                /*
+                    "User_ID" : 0,
+                    "Processor" : "",
+                    "Change_ID" : 0,
+                    "Change_Type" : "Ban/Unseal",
+                    ["Limit_Time"] : 0,// Type为Ban时代表封多少天
+                    "Change_Explain" : ""
+                */
+                TempReq["Change_ID"] = user.getValueOfUserId();
+                TempReq["Processor"] = "system";
+                TempReq["User_ID"] = 0;
+                TempReq["Change_Type"] = "Unseal";
+                TempReq["Change_Explain"] = "封号时间到了";
+                if(!MyDBSPtr->Change_User_Status(TempReq,TempResp))
+                {
+                    throw TempResp;
+                }
+            }
+
+        }
+
 
         // 创建Token
         MyBasePtr->DEBUGLog("开始创建Token", true);
@@ -133,7 +181,7 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         newUser.setIntegral(0);
         newUser.setTotalIntegral(0);
         newUser.setPower(1);
-        newUser.setStatus("正常");
+        newUser.setStatus("normal");
 		UserMgr.insert(newUser);
         RespVal["Result"] = "注册成功";
         MyBasePtr->DEBUGLog("注册新用户完成", true);
