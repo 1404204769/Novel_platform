@@ -681,6 +681,14 @@ void MyDBService::Admin_Update_Resource(Json::Value &ReqJson, Json::Value &RespJ
 }
 
 // 管理员修改用户数据
+/*
+
+Req:{
+    "Change_Target"  :   [{},{}],被执行者们
+    "Para"           :   {"User_ID":"","Login_Status":""} 执行者
+}
+
+*/
 void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
 {
     Json::Value ParaJson, ChangeTargetArray;
@@ -695,6 +703,8 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
     Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
     drogon_model::novel::User user;
 
+    int UserID;
+    string Processor;
     int ChangeSize, ChangeColSize, ChangeCount, ChangeIntegralNum;
     // 检查ReqJson数据是否合法
     {
@@ -722,6 +732,8 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
             RespJson["ErrorMsg"].append("权限不足，请联系管理员");
             throw RespJson;
         }
+        UserID = atoi(ParaJson["User_ID"].asString().c_str());
+        Processor = ParaJson["Login_Status"].asString();
         MyBasePtr->DEBUGLog("操作权限检测通过", true);
 
         MyBasePtr->DEBUGLog("开始检查被修改者们的数据是否合法", true);
@@ -735,16 +747,12 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
         // "Change_Name"            :   "",
         // "Change_Password"        :   "",
         // "Change_Sex"             :   "",
-        // "Change_Integral_Type"   :   "Add/Sub",
-        // "Change_Integral_Num"    :   0
         // "Change_Col"             :   ["Change_Name","Change_Password","Change_Sex","Change_Integral"]
         ColMap["Change_ID"] = MyJson::ColType::INT;
         ColMap["Change_Col"] = MyJson::ColType::ARRAY;
         ColMap["Change_Sex"] = MyJson::ColType::STRING;
         ColMap["Change_Name"] = MyJson::ColType::STRING;
         ColMap["Change_Password"] = MyJson::ColType::STRING;
-        ColMap["Change_Integral_Num"] = MyJson::ColType::INT;
-        ColMap["Change_Integral_Type"] = MyJson::ColType::STRING;
 
         for (int i = 0; i < ChangeSize; i++)
         {
@@ -768,135 +776,60 @@ void MyDBService::Admin_Update_User(Json::Value &ReqJson, Json::Value &RespJson)
         }
     }
 
+    Json::Value UpdateJson,TempJson;
     for (int i = 0; i < ChangeSize; i++)
     {
-        try
+        /* code */
+        TempJson.clear();
+        if (ChangeTargetArray[i].isMember("Result"))
         {
-            /* code */
-
-            if (ChangeTargetArray[i].isMember("Result"))
-            {
-                MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据不合法,跳过", true);
-                continue;
-            }
-            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据合法,开始准备修改", true);
-
-            MyBasePtr->DEBUGLog("开始查询用户 : " + to_string(ChangeTargetArray[i]["Change_ID"].asInt()), true);
-            user = UserMgr.findByPrimaryKey(ChangeTargetArray[i]["Change_ID"].asInt());
-            MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
-
-            ChangeCount = 0;
-            ChangeColSize = ChangeTargetArray[i]["Change_Col"].size();
-            string ChangeColName, ChangeIntegralType;
-            for (int j = 0; j < ChangeColSize; j++)
-            {
-                ChangeColName = ChangeTargetArray[i]["Change_Col"][j].asString();
-                MyBasePtr->DEBUGLog("开始修改用户数据(" + ChangeColName + ")", true);
-                if (ChangeColName == "Change_Name")
-                {
-                    if (user.getValueOfName() == ChangeTargetArray[i]["Change_Name"].asString())
-                    {
-                        MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
-                        continue;
-                    }
-                    user.setName(ChangeTargetArray[i]["Change_Name"].asString());
-                    ChangeCount++;
-                }
-                else if (ChangeColName == "Change_Password")
-                {
-                    if (user.getValueOfPassword() == ChangeTargetArray[i]["Change_Password"].asString())
-                    {
-                        MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
-                        continue;
-                    }
-                    user.setPassword(ChangeTargetArray[i]["Change_Password"].asString());
-                    ChangeCount++;
-                }
-                else if (ChangeColName == "Change_Sex")
-                {
-                    if (user.getValueOfSex() == ChangeTargetArray[i]["Change_Sex"].asString())
-                    {
-                        MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
-                        continue;
-                    }
-                    user.setSex(ChangeTargetArray[i]["Change_Sex"].asString());
-                    ChangeCount++;
-                }
-                else if (ChangeColName == "Change_Integral")
-                {
-                    ChangeIntegralType = ChangeTargetArray[i]["Change_Integral_Type"].asString();
-                    ChangeIntegralNum = ChangeTargetArray[i]["Change_Integral_Num"].asInt();
-                    if (ChangeIntegralNum <= 0)
-                    {
-                        MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
-                        continue;
-                    }
-
-                    if (ChangeIntegralType == "Sub")
-                    {
-                        ChangeIntegralNum = (-1) * ChangeIntegralNum;
-                    }
-                    else if (ChangeIntegralType != "Add")
-                    {
-                        MyBasePtr->DEBUGLog("字段Change_Integral(" + ChangeIntegralType + ")无效", true);
-                        continue;
-                    }
-                    user.setIntegral(user.getValueOfIntegral() + ChangeIntegralNum);
-                    user.setTotalIntegral(user.getValueOfTotalIntegral() + ChangeIntegralNum);
-                    ChangeCount++;
-                }
-                else
-                {
-                    MyBasePtr->DEBUGLog("Change_Col包含错误字段(" + ChangeColName + ")", true);
-                }
-            }
-            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据修改完成", true);
-
-            // 统计更新的字段数
-            MyBasePtr->DEBUGLog("统计第" + to_string(i) + "位修改者更新的字段数为" + to_string(ChangeCount), true);
-
-            if (ChangeCount == 0)
-            {
-                MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据无需更新", true);
-                ChangeTargetArray[i]["ErrorMsg"].append("用户数据无需更新");
-                ChangeTargetArray[i]["Result"] = false;
-                continue;
-            }
-
-            MyBasePtr->DEBUGLog("开始更新第" + to_string(i) + "位修改者的数据", true);
-            int row = UserMgr.update(user);
-            if (row != 1)
-            {
-                ChangeTargetArray[i]["ErrorMsg"].append("用户资料更新失败");
-                ChangeTargetArray[i]["Result"] = false;
-                continue;
-            }
-            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据更新完成: " + user.toJson().toStyledString(), true);
-
-            ChangeTargetArray[i]["Result"] = true;
+            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据不合法,跳过", true);
+            TempJson["Changed_User_ID"] = ChangeTargetArray[i]["Change_ID"];
+            TempJson["Result"] = false;
+            TempJson["ErrorMsg"] = ChangeTargetArray[i]["ErrorMsg"];
+            RespJson["Change_Target"].append(TempJson);
+            continue;
         }
-        catch (const drogon::orm::DrogonDbException &e)
+        MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据合法,开始准备修改", true);
+        UpdateJson.clear();
+        TempJson.clear();
+        UpdateJson;
+        // Req:{
+        //     "User_ID" : 0,
+        //     "Processor" : "",
+        //     "Change_ID" : 0 ,
+        //     "Change_Name" : "",
+        //     "Change_Password" : "",
+        //     "Change_Sex" : "",
+        //     "Change_Col" : ["Change_Name","Change_Password","Change_Sex"]
+        // }
+        UpdateJson["User_ID"] = UserID;
+        UpdateJson["Processor"] = Processor;
+        UpdateJson["Change_ID"] = ChangeTargetArray[i]["Change_ID"].asInt();
+        UpdateJson["Change_Name"] = ChangeTargetArray[i]["Change_Name"].asString();
+        UpdateJson["Change_Password"] = ChangeTargetArray[i]["Change_Password"].asString();
+        UpdateJson["Change_Sex"] = ChangeTargetArray[i]["Change_Sex"].asString();
+        UpdateJson["Change_Col"] = ChangeTargetArray[i]["Change_Col"];
+        if(!Update_User(UpdateJson,TempJson))
         {
-            if (e.base().what() == string("0 rows found"))
-            {
-                ChangeTargetArray[i]["ErrorMsg"].append("要更改的用户不存在");
-            }
-            else if (e.base().what() == string("Found more than one row"))
-            {
-                ChangeTargetArray[i]["ErrorMsg"].append("要更改的用户ID重复,请联系管理员");
-            }
-            else
-            {
-                ChangeTargetArray[i]["ErrorMsg"].append(e.base().what());
-            }
-
-            MyBasePtr->TRACE_ERROR(ChangeTargetArray[i]["ErrorMsg"]);
-            ChangeTargetArray[i]["Result"] = false;
+            UpdateJson.clear();
+            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据更新失败", true);
+            UpdateJson["Changed_User_ID"] = ChangeTargetArray[i]["Change_ID"];
+            UpdateJson["Result"] = false;
+            UpdateJson["ErrorMsg"] = TempJson["ErrorMsg"];
+            RespJson["Change_Target"].append(UpdateJson);
+            continue;
+        }
+        else
+        {
+            UpdateJson.clear();
+            MyBasePtr->DEBUGLog("第" + to_string(i) + "位修改者的数据更新成功", true);
+            UpdateJson["Changed_User_ID"] = ChangeTargetArray[i]["Change_ID"];
+            UpdateJson["Result"] = true;
+            RespJson["Change_Target"].append(UpdateJson);
             continue;
         }
     }
-
-    RespJson["Change_Target"] = ChangeTargetArray;
     MyBasePtr->INFO_Func("Admin_Update_User", false, RespJson);
 }
 
@@ -926,7 +859,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
     Mapper<drogon_model::novel::Agree> AgreeMgr(dbclientPrt);
     drogon_model::novel::Agree Agree;
 
-    Json::Value AgreeJson,NoteJson,UserJson,CommentJson;
+    Json::Value AgreeJson, NoteJson, UserJson, CommentJson;
     // 检查点赞数据是否合法
     try
     {
@@ -953,7 +886,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
     }
 
     MyBasePtr->DEBUGLog("开始检查用户是否存在", true);
-    if(!Is_User_Exist(ReqJson,UserJson))
+    if (!Is_User_Exist(ReqJson, UserJson))
     {
         RespJson["ErrorMsg"] = UserJson["ErrorMsg"];
         RespJson["ErrorMsg"].append("点赞失败(用户数据异常)");
@@ -962,8 +895,8 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
         return;
     }
     MyBasePtr->DEBUGLog("开始检查帖子是否存在", true);
-    Search_Note_By_NoteID(ReqJson,NoteJson);
-    if(!NoteJson["Result"].asBool())
+    Search_Note_By_NoteID(ReqJson, NoteJson);
+    if (!NoteJson["Result"].asBool())
     {
         RespJson["ErrorMsg"] = NoteJson["ErrorMsg"];
         RespJson["ErrorMsg"].append("点赞失败(帖子数据异常)");
@@ -973,7 +906,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
     }
 
     MyBasePtr->DEBUGLog("开始检查评论是否存在", true);
-    if(!Is_Comment_Exist(ReqJson,CommentJson))
+    if (!Is_Comment_Exist(ReqJson, CommentJson))
     {
         RespJson["ErrorMsg"] = CommentJson["ErrorMsg"];
         RespJson["ErrorMsg"].append("点赞失败(评论数据异常)");
@@ -982,11 +915,9 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
         return;
     }
 
-
-
     MyBasePtr->DEBUGLog("开始检查点赞信息是否存在", true);
-    Search_Agree(ReqJson,AgreeJson);
-    if(!AgreeJson.isMember("Result") || !AgreeJson.isMember("Agree"))
+    Search_Agree(ReqJson, AgreeJson);
+    if (!AgreeJson.isMember("Result") || !AgreeJson.isMember("Agree"))
     {
         MyBasePtr->DEBUGLog("数据异常", true);
         RespJson["ErrorMsg"] = AgreeJson["ErrorMsg"];
@@ -995,7 +926,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->INFO_Func("Agree", false, RespJson);
         return;
     }
-    if(!AgreeJson["Result"].isBool() || !AgreeJson["Agree"].isBool())
+    if (!AgreeJson["Result"].isBool() || !AgreeJson["Agree"].isBool())
     {
         MyBasePtr->DEBUGLog("数据异常", true);
         RespJson["ErrorMsg"] = AgreeJson["ErrorMsg"];
@@ -1007,7 +938,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
     // 如果Result假Agree假则表示程序错误
     // 如果Result假Agree真则表示没有此数据，需要插入
     // 如果Result真Agree假/真 表示用户点赞状态
-    if(!AgreeJson["Result"].asBool() && !AgreeJson["Agree"].asBool())
+    if (!AgreeJson["Result"].asBool() && !AgreeJson["Agree"].asBool())
     {
         MyBasePtr->DEBUGLog("数据异常", true);
         RespJson["ErrorMsg"] = AgreeJson["ErrorMsg"];
@@ -1015,7 +946,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->INFO_Func("Agree", false, RespJson);
         return;
     }
-    else if(!AgreeJson["Result"].asBool() && AgreeJson["Agree"].asBool())
+    else if (!AgreeJson["Result"].asBool() && AgreeJson["Agree"].asBool())
     {
         MyBasePtr->DEBUGLog("点赞信息不存在", true);
         MyBasePtr->DEBUGLog("开始新增点赞信息", true);
@@ -1060,7 +991,7 @@ void MyDBService::Agree(Json::Value &ReqJson, Json::Value &RespJson)
             RespJson["Result"] = false;
             MyBasePtr->INFO_Func("Agree", false, RespJson);
             return;
-        }  
+        }
         MyBasePtr->DEBUGLog("点赞信息更新成功", true);
     }
     RespJson["Result"] = true;
@@ -1222,7 +1153,7 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
             MyBasePtr->DEBUGLog("图书章节不存在", true);
             // 判断类型
             // 如果是新增章节则直接同意
-            if(ReqJson["Examine_Type"].asString() == "Chapter")
+            if (ReqJson["Examine_Type"].asString() == "Chapter")
             {
                 ReqJson["Examine_Result"] = true;
                 Examine_Upload(ReqJson, RespJson);
@@ -1231,7 +1162,7 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
             }
 
             // 如果是更正章节则直接拒绝
-            if(ReqJson["Examine_Type"].asString() == "Chapter_Update")
+            if (ReqJson["Examine_Type"].asString() == "Chapter_Update")
             {
                 ReqJson["Examine_Explain"] = "要改正的图书章节不存在(BookID = " + to_string(Book_ID) + ",Part_Num = " + to_string(Part_Num) + ",Chapter_Num = " + to_string(Chapter_Num) + ",Title = " + ChapterTitle + "),请用正确的接口新增此章节";
                 ReqJson["Examine_Result"] = false;
@@ -1245,7 +1176,7 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
             MyBasePtr->DEBUGLog("图书章节已存在", true);
             // 判断类型
             // 如果是新增章节则直接拒绝
-            if(ReqJson["Examine_Type"].asString() == "Chapter")
+            if (ReqJson["Examine_Type"].asString() == "Chapter")
             {
                 ReqJson["Examine_Explain"] = "要上传的章节已存在";
                 ReqJson["Examine_Result"] = false;
@@ -1255,7 +1186,7 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
             }
 
             // 如果是更正章节则等待管理员审核
-            if(ReqJson["Examine_Type"].asString() == "Chapter_Update")
+            if (ReqJson["Examine_Type"].asString() == "Chapter_Update")
             {
                 ReqJson["Examine_Explain"] = "等待管理员审核";
                 ReqJson["Target_ID"] = vecChapter[0].getValueOfChapterId();
@@ -1270,6 +1201,418 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
     MyBasePtr->INFO_Func("Auto_Examine_Chapter_Update", false, RespJson);
 }
 
+
+// 修改用户积分数据
+/*
+    修改用户数据
+Req:{
+    "User_ID"           :   0,
+    "Processor"         :   "",
+    "Change_ID"         :   0,
+    "Change_Num"        :   0,
+    "Change_Type"       :   "Add/Sub",
+    "Change_Explain"    :   ""
+}
+
+Resp:{
+    "ErrorMsg" : []
+}
+*/
+bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->INFO_Func("Change_User_Integral", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+    drogon_model::novel::User user;
+
+    // 检查ReqJson数据是否合法
+    
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "User_ID"           :   0,
+        // "Processor"         :   "",
+        // "Change_ID"         :   0,
+        // "Change_Num"        :   0,
+        // "Change_Type"       :   "Add/Sub",
+        // "Change_Explain"    :   ""
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Processor"] = MyJson::ColType::STRING;
+        ColMap["Change_ID"] = MyJson::ColType::INT;
+        ColMap["Change_Num"] = MyJson::ColType::INT;
+        ColMap["Change_Type"] = MyJson::ColType::STRING;
+        ColMap["Change_Explain"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        if(ReqJson["Change_Type"].asString() != "Sub" && ReqJson["Change_Type"].asString() != "Add")
+        {
+            RespJson["ErrorMsg"].append("Change_Type字段类型错误");
+            throw RespJson;
+        }
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+        return false;
+    }
+
+    int UserID,ChangeID,ChangeNum;
+    string ChangeType, Processor, ChangeExplain;
+    UserID = ReqJson["User_ID"].asInt();
+    ChangeID = ReqJson["Change_ID"].asInt();
+    ChangeNum = ReqJson["Change_Num"].asInt();
+    Processor = ReqJson["Processor"].asString();
+    ChangeType = ReqJson["Change_Type"].asString();
+    ChangeExplain = ReqJson["Change_Explain"].asString();
+
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询用户 : " + to_string(ChangeID), true);
+        user = UserMgr.findByPrimaryKey(ChangeID);
+        MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
+
+        
+        
+        Json::Value ActionJson;
+        ActionJson["Action_Memo"]["Old_Data"]["Integral"] = user.getValueOfIntegral();
+        ActionJson["Action_Memo"]["Old_Data"]["TotalIntegral"] = user.getValueOfTotalIntegral();
+        if(ChangeType == "Sub")
+        {
+            user.setIntegral(user.getValueOfIntegral() - ChangeNum);
+            user.setTotalIntegral(user.getValueOfTotalIntegral() - ChangeNum);
+        }
+        else if(ChangeType == "Add")
+        {
+            user.setIntegral(user.getValueOfIntegral() + ChangeNum);
+            user.setTotalIntegral(user.getValueOfTotalIntegral() + ChangeNum);
+        }
+
+        MyBasePtr->DEBUGLog("开始更新用户(ID=" + to_string(ChangeID) + ")积分数据", true);
+        int row = UserMgr.update(user);
+        if (row != 1)
+        {
+            RespJson["ErrorMsg"].append("用户积分数据更新失败");
+            MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+            return false;
+        }
+        MyBasePtr->DEBUGLog("用户积分数据更新完成: " + user.toJson().toStyledString(), true);
+
+        MyBasePtr->DEBUGLog("开始记录行为数据", true);
+        // Memo:{
+        //     Explain:"",
+        //     Num:0,
+        //     Processor:“system/admin:xxx”,
+        //     Type:"Add/Sub",
+        //     Old_Data:0,
+        //     New_Data:0
+        // }
+        ActionJson["User_ID"] = ChangeID;
+        ActionJson["Action_Type"] = "User_Integral";
+        ActionJson["Action_Memo"]["Explain"] = ChangeExplain;
+        ActionJson["Action_Memo"]["Processor"] = Processor + "("+ ReqJson["User_ID"].asString() +")";
+        ActionJson["Action_Memo"]["Type"] = ChangeType;
+        ActionJson["Action_Memo"]["Num"] = ChangeNum;
+        ActionJson["Action_Memo"]["New_Data"]["Integral"] = user.getValueOfIntegral();
+        ActionJson["Action_Memo"]["New_Data"]["TotalIntegral"] = user.getValueOfTotalIntegral();
+        if (!Insert_Action(ActionJson, RespJson))
+        {
+            LOG_DEBUG << "行为数据记录失败";
+            MyBasePtr->DEBUGLog("行为数据记录失败", true);
+            MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+        }
+        MyBasePtr->DEBUGLog("行为数据记录完毕", true);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+        return false;
+    }
+
+    MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+    return true;
+}
+
+
+// 修改用户状态  封号/解封
+/*
+    修改用户状态  封号/解封
+Req:{
+    "User_ID"           :   0,
+    "Processor"         :   "",
+    "Change_ID"         :   0,
+    "Change_Type"       :   "Ban/Unseal",
+    ["Limit_Time"]      :   0,// Type为Ban时代表封多少天 
+    "Change_Explain"    :   ""
+}
+
+Resp:{
+    "ErrorMsg" : [],
+    "Ban_Time" : "",// Type为Unseal时且失败的情况下存在此字段，代表实际封号截止时间
+}
+*/
+bool MyDBService::Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->INFO_Func("Change_User_Status", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+    drogon_model::novel::User user;
+
+    // 检查ReqJson数据是否合法
+    
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "User_ID"           :   0,
+        // "Processor"         :   "",
+        // "Change_ID"         :   0,
+        // "Limit_Time"       :   0,
+        // "Change_Type"       :   "Add/Sub",
+        // "Change_Explain"    :   ""
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Processor"] = MyJson::ColType::STRING;
+        ColMap["Change_ID"] = MyJson::ColType::INT;
+        ColMap["Change_Type"] = MyJson::ColType::STRING;
+        ColMap["Change_Explain"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        
+        if(ReqJson["Change_Type"].asString() != "Ban" && ReqJson["Change_Type"].asString() != "Unseal")
+        {
+            RespJson["ErrorMsg"].append("Change_Type字段类型错误");
+            throw RespJson;
+        }
+        if(ReqJson["Change_Type"].asString() == "Ban")
+        {
+            ColMap.clear();
+            ColMap["Limit_Time"] = MyJson::ColType::INT;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        }
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+        return false;
+    }
+
+    bool NeedUpdate = true;// 是否需要更新
+    int UserID,ChangeID,LimitTime;
+    string ChangeType, Processor, ChangeExplain,Ban_Time;
+    UserID = ReqJson["User_ID"].asInt();
+    ChangeID = ReqJson["Change_ID"].asInt();
+    Processor = ReqJson["Processor"].asString();
+    ChangeType = ReqJson["Change_Type"].asString();
+    ChangeExplain = ReqJson["Change_Explain"].asString();
+
+    if(ReqJson["Change_Type"].asString() == "Ban")
+    {
+        LimitTime = ReqJson["Limit_Time"].asInt();
+    }
+    else if(ReqJson["Change_Type"].asString() == "Unseal")
+    {
+        Ban_Time = ReqJson["Ban_Time"].asString();
+    }
+
+    try
+    {
+        /*
+            {
+                string time = "";
+                trantor::Date now,after;
+                now = trantor::Date::now();
+                after = now.after(60*60*24*LimitTime);
+
+                MyBasePtr->DEBUGLog("now.secondsSinceEpoch: \t\t\t\t"+ to_string(now.secondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("now.secondsSinmicroSecondsSinceEpochceEpoch: \t"+ to_string(now.microSecondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("now.toDbStringLocal: \t\t\t\t"+now.toDbStringLocal(), true);
+                MyBasePtr->DEBUGLog("now.toFormattedString: \t\t\t\t"+now.toFormattedString(false), true);
+                MyBasePtr->DEBUGLog("now.toFormattedStringLocal: \t\t\t"+now.toFormattedStringLocal(false), true);
+                MyBasePtr->DEBUGLog("now.toCustomedFormattedString: \t\t\t"+now.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false), true);
+                MyBasePtr->DEBUGLog("now.toCustomedFormattedStringLocal: \t\t"+now.toCustomedFormattedStringLocal("%Y-%m-%d %H:%M:%S",false), true);
+
+                MyBasePtr->DEBUGLog("after.secondsSinceEpoch: \t\t\t\t"+ to_string(after.secondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("after.secondsSinmicroSecondsSinceEpochceEpoch: \t"+ to_string(after.microSecondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("after.toDbStringLocal: \t\t\t\t"+after.toDbStringLocal(), true);
+                MyBasePtr->DEBUGLog("after.toFormattedString: \t\t\t\t"+after.toFormattedString(false), true);
+                MyBasePtr->DEBUGLog("after.toFormattedStringLocal: \t\t\t"+after.toFormattedStringLocal(false), true);
+                MyBasePtr->DEBUGLog("after.toCustomedFormattedString: \t\t\t"+after.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false), true);
+                MyBasePtr->DEBUGLog("after.toCustomedFormattedStringLocal: \t\t"+after.toCustomedFormattedStringLocal("%Y-%m-%d %H:%M:%S",false), true);
+
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).secondsSinceEpoch: \t\t\t\t"+ to_string(trantor::Date::now().after(60*60*24*LimitTime).secondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).secondsSinmicroSecondsSinceEpochceEpoch: \t"+ to_string(trantor::Date::now().after(60*60*24*LimitTime).microSecondsSinceEpoch()) , true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).toDbStringLocal: \t\t\t\t"+trantor::Date::now().after(60*60*24*LimitTime).toDbStringLocal(), true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).toFormattedString: \t\t\t\t"+trantor::Date::now().after(60*60*24*LimitTime).toFormattedString(false), true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).toFormattedStringLocal: \t\t\t"+trantor::Date::now().after(60*60*24*LimitTime).toFormattedStringLocal(false), true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedString: \t\t\t"+trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false), true);
+                MyBasePtr->DEBUGLog("trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedStringLocal: \t\t"+trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedStringLocal("%Y-%m-%d %H:%M:%S",false), true);
+            
+                now.secondsSinceEpoch:                          1649816487
+                now.secondsSinmicroSecondsSinceEpochceEpoch:    1649816487028409
+                now.toDbStringLocal:                            2022-04-13 10:21:27.028409
+                now.toFormattedString:                          20220413 02:21:27
+                now.toFormattedStringLocal:                     20220413 10:21:27
+                now.toCustomedFormattedString:                  2022-04-13 02:21:27
+                now.toCustomedFormattedStringLocal:             2022-04-13 10:21:27
+
+                after.secondsSinceEpoch:                        1649902887
+                after.secondsSinmicroSecondsSinceEpochceEpoch:  1649902887028409
+                after.toDbStringLocal:                          2022-04-14 10:21:27.028409
+                after.toFormattedString:                        20220414 02:21:27
+                after.toFormattedStringLocal:                   20220414 10:21:27
+                after.toCustomedFormattedString:                2022-04-14 02:21:27
+                after.toCustomedFormattedStringLocal:           2022-04-14 10:21:27
+
+                trantor::Date::now().after(60*60*24*LimitTime).secondsSinceEpoch:                               1649902887
+                trantor::Date::now().after(60*60*24*LimitTime).secondsSinmicroSecondsSinceEpochceEpoch:         1649902887028543
+                trantor::Date::now().after(60*60*24*LimitTime).toDbStringLocal:                                 2022-04-14 10:21:27.028560
+                trantor::Date::now().after(60*60*24*LimitTime).toFormattedString:                               20220414 02:21:27
+                trantor::Date::now().after(60*60*24*LimitTime).toFormattedStringLocal:                          20220414 10:21:27
+                trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedString:                       2022-04-14 02:21:27
+                trantor::Date::now().after(60*60*24*LimitTime).toCustomedFormattedStringLocal:                  2022-04-14 10:21:27
+            
+            }
+        */
+
+        MyBasePtr->DEBUGLog("开始查询用户 : " + to_string(ChangeID), true);
+        user = UserMgr.findByPrimaryKey(ChangeID);
+        MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
+
+        Json::Value ActionJson,TempReq,TempResp;
+        // 封号
+        TempReq["User_ID"]=ChangeID;
+        if(ChangeType == "Ban")
+        {
+            trantor::Date now = trantor::Date::date();
+            MyBasePtr->DEBUGLog("开始准备封号,当前时间为:"+now.toDbStringLocal(), true);
+            
+            // 如果用户已经处于封号时间则延长其时间
+            if(user.getValueOfStatus() == "Ban")
+            {
+                NeedUpdate = false;
+                MyBasePtr->DEBUGLog("用户当前处于封号状态", true);
+                MyBasePtr->DEBUGLog("开始查询用户封号截止时间", true);
+                Search_User_Ban_Time(TempReq,TempResp);
+                if(!TempResp["Result"].asBool())
+                {
+                    RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
+                    RespJson["ErrorMsg"].append("查询用户封号截止时间发生错误");
+                    MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+                    return false;
+                }
+                now = trantor::Date::fromDbStringLocal(TempResp["Ban_Time"].asString());
+                MyBasePtr->DEBUGLog("用户封号截止时间为"+now.toDbStringLocal(), true);
+            }else
+            {
+                user.setStatus("Ban");
+            }
+            MyBasePtr->DEBUGLog("准备封号"+to_string(LimitTime)+"天", true);
+            now = now.after(60*60*24*LimitTime);
+            MyBasePtr->DEBUGLog("封号截止时间设置为:"+now.toDbStringLocal(), true);
+            ActionJson["Action_Memo"]["Ban_Time"] = now.toDbStringLocal();
+        }
+        // 解封
+        else if(ChangeType == "Unseal")
+        {
+
+            if(user.getValueOfStatus() == "Normal")
+            {
+                RespJson["ErrorMsg"].append("用户本来就是正常状态，无需解封");
+                MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+                return false;
+            }
+            user.setStatus("Normal");
+        }
+
+        MyBasePtr->DEBUGLog("开始更新用户(ID=" + to_string(ChangeID) + ")状态数据", true);
+        if(NeedUpdate)
+        {
+            int row = UserMgr.update(user);
+            if (row != 1)
+            {
+                RespJson["ErrorMsg"].append("用户状态数据更新失败");
+                MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+                return false;
+            }
+        }
+        MyBasePtr->DEBUGLog("用户状态数据更新完成: " + user.toJson().toStyledString(), true);
+
+        MyBasePtr->DEBUGLog("开始记录行为数据", true);
+        // Memo:{
+        //     Explain:"",
+        //     Processor:"system/admin:xxx",
+        //     Type:"Ban/Unseal",
+        //     Limit_Time:yyyy_mm_dd
+        //}
+        ActionJson["User_ID"] = ChangeID;
+        ActionJson["Action_Type"] = "User_Status";
+        ActionJson["Action_Memo"]["Explain"] = ChangeExplain;
+        ActionJson["Action_Memo"]["Processor"] = Processor + "("+ ReqJson["User_ID"].asString() +")";
+        ActionJson["Action_Memo"]["Type"] = ChangeType;
+        
+        if (!Insert_Action(ActionJson, RespJson))
+        {
+            LOG_DEBUG << "行为数据记录失败";
+            MyBasePtr->DEBUGLog("行为数据记录失败", true);
+            MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+        }
+        MyBasePtr->DEBUGLog("行为数据记录完毕", true);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+        return false;
+    }
+
+    MyBasePtr->INFO_Func("Change_User_Status", false, RespJson);
+    return true;
+}
+
+
+
+
 // 创建评论
 /*
     创建评论
@@ -1279,7 +1622,7 @@ Req:{
         "Content":"",//表示内容
         ["URL"]:0,//表示超链接，可以连接到别的表，用于将资源贴引用到求助帖
         // url格式为Note_ID
-    },  
+    },
     "Para"      :{},// 用户携带的Token数据
     ["Reply_Floor_ID"]  : 0,// 回复上层评论，必须是本贴下的评论
 }
@@ -1301,7 +1644,7 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
 
     int UserID;
     string LoginStatus;
-    Json::Value ParaJson,CommentContentJson,TempJson;
+    Json::Value ParaJson, CommentContentJson, TempJson;
     // 插入前检查帖子数据是否合法
     try
     {
@@ -1311,7 +1654,7 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         //     "Content":"",//表示内容
         //     ["URL"]:0,//表示超链接，可以连接到别的表，用于将资源贴引用到求助帖
         //     // url格式为Note_ID
-        // },  
+        // },
         // "Para"      :{},// 用户携带的Token数据
         std::map<string, MyJson::ColType> ColMap;
         ColMap["Note_ID"] = MyJson::ColType::INT;
@@ -1321,7 +1664,7 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("创建评论前检查评论数据显示合法", true);
 
         MyBasePtr->DEBUGLog("开始检查评论的帖子是否存在", true);
-        if(!Is_Note_Exist(ReqJson,RespJson))
+        if (!Is_Note_Exist(ReqJson, RespJson))
         {
             RespJson["ErrorMsg"].append("评论的帖子不存在");
             throw RespJson;
@@ -1350,7 +1693,7 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         //     "Content":"",//表示内容
         //     ["URL"]:0,//表示超链接，可以连接到别的表，用于将资源贴引用到求助帖
         //     // url格式为Note_ID
-        // },  
+        // },
         MyBasePtr->DEBUGLog("开始检查Comment_Content数据格式", true);
         CommentContentJson = ReqJson["Comment_Content"];
         ColMap.clear();
@@ -1358,17 +1701,17 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         MyJsonPtr->checkMemberAndTypeInMap(CommentContentJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("检查Comment_Content数据格式完成", true);
 
-        if(CommentContentJson.isMember("URL"))
+        if (CommentContentJson.isMember("URL"))
         {
             MyBasePtr->DEBUGLog("开始检查引用的帖子是否存在", true);
-            if(!CommentContentJson["URL"].isInt())
+            if (!CommentContentJson["URL"].isInt())
             {
                 RespJson["ErrorMsg"].append("引用数据错误,URL不是int类型的");
                 throw RespJson;
             }
             TempJson.clear();
             TempJson["Note_ID"] = ReqJson["URL"].asInt();
-            if(!Is_Note_Exist(TempJson,RespJson))
+            if (!Is_Note_Exist(TempJson, RespJson))
             {
                 RespJson["ErrorMsg"].append("引用的帖子不存在");
                 throw RespJson;
@@ -1376,10 +1719,10 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
             MyBasePtr->DEBUGLog("引用的帖子存在", true);
         }
 
-        if(ReqJson.isMember("Reply_Floor_ID"))
+        if (ReqJson.isMember("Reply_Floor_ID"))
         {
             MyBasePtr->DEBUGLog("开始检查回复的评论是否存在", true);
-            if(!ReqJson["Reply_Floor_ID"].isInt())
+            if (!ReqJson["Reply_Floor_ID"].isInt())
             {
                 RespJson["ErrorMsg"].append("回复评论数据错误,Reply_Floor_ID不是int类型的");
                 throw RespJson;
@@ -1387,7 +1730,7 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
             TempJson.clear();
             TempJson["Note_ID"] = ReqJson["Note_ID"].asInt();
             TempJson["Floor_ID"] = ReqJson["Reply_Floor_ID"].asInt();
-            if(!Is_Comment_Exist(TempJson,RespJson))
+            if (!Is_Comment_Exist(TempJson, RespJson))
             {
                 RespJson["ErrorMsg"].append("回复的评论不存在");
                 throw RespJson;
@@ -1406,7 +1749,6 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
 
     drogon_model::novel::Comment NewComment;
 
-
     // 准备要创建的评论的数据
     {
         MyBasePtr->DEBUGLog("开始准备新评论数据", true);
@@ -1414,11 +1756,11 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         NewComment.setUserId(UserID);
         NewComment.setNoteId(ReqJson["Note_ID"].asInt());
         NewComment.setCommentContent(CommentContentJson.toStyledString());
-        if(ReqJson.isMember("Reply_Floor_ID"))
+        if (ReqJson.isMember("Reply_Floor_ID"))
         {
             NewComment.setReplyFloorId(ReqJson["Reply_Floor_ID"].asInt());
         }
-    
+
         MyBasePtr->DEBUGLog("准备新评论数据完成", true);
     }
 
@@ -1430,7 +1772,6 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         CommentMgr.insert(NewComment);
         MyBasePtr->DEBUGLog("插入新帖子数据完毕", true);
         MyBasePtr->DEBUGLog("插入的新数据为 : " + NewComment.toJson().toStyledString(), true);
-
     }
     // 新建评论失败
     catch (const drogon::orm::DrogonDbException &e)
@@ -1513,27 +1854,27 @@ void MyDBService::Create_Note(Json::Value &ReqJson, Json::Value &RespJson)
 
         MyBasePtr->DEBUGLog("开始检查操作权限", true);
 
-        if(NoteType != "Help" && NoteType != "Resource")
+        if (NoteType != "Help" && NoteType != "Resource")
         {
             RespJson["ErrorMsg"].append("字段Note_Type错误"); //失败返回的错误信息
-            RespJson["Result"] = false;// 操作结果
+            RespJson["Result"] = false;                       // 操作结果
             throw RespJson;
         }
 
         if (ProcessorType != "user" && ProcessorType != "system" && ProcessorType != "admin" && ProcessorType != "root")
         {
             RespJson["ErrorMsg"].append("用户权限(" + ProcessorType + ")不足,请联系管理员"); //失败返回的错误信息
-            RespJson["Result"] = false;// 操作结果
+            RespJson["Result"] = false;                                                      // 操作结果
             throw RespJson;
         }
 
-        if(ProcessorType == "user" && NoteType == "Resource")
+        if (ProcessorType == "user" && NoteType == "Resource")
         {
             RespJson["ErrorMsg"].append("用户权限(" + ProcessorType + ")不足,请联系管理员"); //失败返回的错误信息
-            RespJson["Result"] = false;// 操作结果
+            RespJson["Result"] = false;                                                      // 操作结果
             throw RespJson;
         }
-        
+
         MyBasePtr->DEBUGLog("操作权限检查通过", true);
 
         // "Note_Content"  :   {
@@ -1583,7 +1924,7 @@ void MyDBService::Create_Note(Json::Value &ReqJson, Json::Value &RespJson)
                 if (!NoteContentJson["Book_ID"].isInt())
                 {
                     RespJson["ErrorMsg"].append("新增资源贴的图书ID不是数字"); //失败返回的错误信息
-                    RespJson["Result"] = false;                          // 操作结果
+                    RespJson["Result"] = false;                                // 操作结果
                     throw RespJson;
                 }
                 try
@@ -1592,14 +1933,14 @@ void MyDBService::Create_Note(Json::Value &ReqJson, Json::Value &RespJson)
                     if (book.getValueOfStatus() == "禁止")
                     {
                         RespJson["ErrorMsg"].append("新增资源贴的图书ID已被禁止"); //失败返回的错误信息
-                        RespJson["Result"] = false;                          // 操作结果
+                        RespJson["Result"] = false;                                // 操作结果
                         throw RespJson;
                     }
                 }
                 catch (...)
                 {
                     RespJson["ErrorMsg"].append("新增资源贴的图书ID无效"); //失败返回的错误信息
-                    RespJson["Result"] = false;                      // 操作结果
+                    RespJson["Result"] = false;                            // 操作结果
                     throw RespJson;
                 }
             }
@@ -1827,11 +2168,11 @@ void MyDBService::Download_Resource(Json::Value &ReqJson, Json::Value &RespJson)
     // 下载并保存章节信息
     {
         MyBasePtr->DEBUGLog("开始获取指定的图书的章节数据", true);
-        Criteria BookID_cri(drogon_model::novel::Chapter::Cols::_Book_ID,CompareOperator::EQ,Book_ID);
+        Criteria BookID_cri(drogon_model::novel::Chapter::Cols::_Book_ID, CompareOperator::EQ, Book_ID);
         Criteria ChapterNum_cri(drogon_model::novel::Chapter::Cols::_Chapter_Num, CompareOperator::In, vecChapter_Num);
         Criteria Valid_cri(drogon_model::novel::Chapter::Cols::_Valid, CompareOperator::EQ, true);
         MyBasePtr->DEBUGLog("使用的SQL语句为 " + ChapterNum_cri.criteriaString(), true);
-        vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(BookID_cri &&ChapterNum_cri && Valid_cri);
+        vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(BookID_cri && ChapterNum_cri && Valid_cri);
         int ChapterSize = vecChapter.size();
         if (ChapterSize == 0)
         {
@@ -1961,13 +2302,13 @@ void MyDBService::Examine_Upload(Json::Value &ReqJson, Json::Value &RespJson)
         {
             Processor = "system";
         }
-        else if (ReqJson["Processor_Type"] == "root")
-        {
-            Processor = "root(" + ReqJson["Processor_ID"].asString() + ")";
-        }
         else if (ReqJson["Processor_Type"] == "admin")
         {
-            Processor = "admin";
+            Processor = "admin(" + ReqJson["Processor_ID"].asString() + ")";
+        }
+        else if (ReqJson["Processor_Type"] == "root")
+        {
+            Processor = "root";
         }
         else
         {
@@ -2137,10 +2478,9 @@ string MyDBService::Get_Upload_Type(int Upload_ID)
     return "Error";
 }
 
-
 // 根据书名和作者名查询图书是否存在
 /*
-    根据书名和作者名查询图书是否存在  
+    根据书名和作者名查询图书是否存在
 Req:{
     "Book_Author"   :   "",
     "Book_Name"     :   ""
@@ -2172,7 +2512,6 @@ bool MyDBService::Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson)
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("搜索前检查显示图书数据合法", true);
 
-
         string BookName = ReqJson["Book_Name"].asString();
         string BookAuthor = ReqJson["Book_Author"].asString();
         // 检查图书是否已存在
@@ -2191,7 +2530,6 @@ bool MyDBService::Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson)
         }
         MyBasePtr->DEBUGLog("图书不存在", true);
         MyBasePtr->INFO_Func("Is_Book_Exist", false, RespJson);
-
     }
     catch (Json::Value &e)
     {
@@ -2209,10 +2547,8 @@ bool MyDBService::Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson)
         return false;
     }
 
-
     return false;
 }
-
 
 // 根据帖子ID、评论楼层查询评论是否存在
 /*
@@ -2250,17 +2586,17 @@ bool MyDBService::Is_Comment_Exist(Json::Value &ReqJson, Json::Value &RespJson)
 
         // 检查图书是否已存在
         MyBasePtr->DEBUGLog("开始检查评论是否已存在", true);
-        Criteria NoteID_cri(drogon_model::novel::Comment::Cols::_Note_ID,CompareOperator::EQ,ReqJson["Note_ID"].asInt());
-        Criteria FloorID_cri(drogon_model::novel::Comment::Cols::_Floor_ID,CompareOperator::EQ,ReqJson["Floor_ID"].asInt());
+        Criteria NoteID_cri(drogon_model::novel::Comment::Cols::_Note_ID, CompareOperator::EQ, ReqJson["Note_ID"].asInt());
+        Criteria FloorID_cri(drogon_model::novel::Comment::Cols::_Floor_ID, CompareOperator::EQ, ReqJson["Floor_ID"].asInt());
         vector<drogon_model::novel::Comment> vecComment = CommentMgr.findBy(NoteID_cri && FloorID_cri);
-        if(vecComment.size() == 0)
+        if (vecComment.size() == 0)
         {
             RespJson["ErrorMsg"].append("查询评论不存在");
             MyBasePtr->INFO_Func("Is_Comment_Exist", false, RespJson);
             return false;
         }
     }
-        catch (Json::Value &e)
+    catch (Json::Value &e)
     {
         RespJson["ErrorMsg"] = e["ErrorMsg"];
         MyBasePtr->INFO_Func("Is_Comment_Exist", false, RespJson);
@@ -2280,7 +2616,7 @@ bool MyDBService::Is_Comment_Exist(Json::Value &ReqJson, Json::Value &RespJson)
 
 // 根据帖子ID查询帖子是否存在
 /*
-    根据帖子ID查询帖子是否存在  
+    根据帖子ID查询帖子是否存在
 Req:{
     "Note_ID"   :   0
 }
@@ -2341,7 +2677,6 @@ bool MyDBService::Is_Note_Exist(Json::Value &ReqJson, Json::Value &RespJson)
     MyBasePtr->INFO_Func("Is_Book_Exist", false, RespJson);
     return true;
 }
-
 
 // 通过UserID查询是否存在
 /*
@@ -2408,6 +2743,11 @@ bool MyDBService::Is_User_Exist(Json::Value &ReqJson, Json::Value &RespJson)
     return true;
 }
 
+// 用户阅读接口
+void MyDBService::Read_Resource(Json::Value &ReqJson, Json::Value &RespJson)
+{
+}
+
 // 搜索点赞
 /*
     搜索点赞的接口
@@ -2435,7 +2775,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
     auto dbclientPrt = drogon::app().getDbClient();
     Mapper<drogon_model::novel::Agree> AgreeMgr(dbclientPrt);
 
-    int UserID,NoteID,CommentID;
+    int UserID, NoteID, CommentID;
 
     // 检查搜索点赞的条件是否合法
     try
@@ -2477,7 +2817,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
 
         MyBasePtr->DEBUGLog("开始查询指定点赞信息", true);
         std::vector<drogon_model::novel::Agree> vecAgree = AgreeMgr.findBy(UserID_cri && NoteID_cri && FloorID_cri);
-        if(vecAgree.size() == 0)
+        if (vecAgree.size() == 0)
         {
             // 不存在此数据
             RespJson["Result"] = false;
@@ -2485,7 +2825,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
             MyBasePtr->INFO_Func("Search_Agree", false, RespJson);
             return;
         }
-        else if(vecAgree.size() > 1)
+        else if (vecAgree.size() > 1)
         {
             // 程序错误
             RespJson["Result"] = false;
@@ -2497,7 +2837,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
 
         MyBasePtr->DEBUGLog("指定点赞信息查询完毕", true);
         RespJson["Result"] = true;
-        RespJson["Agree"] = vecAgree[0].getValueOfStatus() == 0 ? false:true;
+        RespJson["Agree"] = vecAgree[0].getValueOfStatus() == 0 ? false : true;
         RespJson["Agree_ID"] = vecAgree[0].getValueOfAgreeId();
         MyBasePtr->INFO_Func("Search_Note", false, RespJson);
         return;
@@ -2512,12 +2852,164 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
     }
 }
 
-void MyDBService::Search_Comment(Json::Value &ReqJson, Json::Value &RespJson)
+// 通过BookID查询图书数据
+/*
+    通过BookID查询图书数据
+Req:{
+    "Book_ID":0//图书编号
+}
+Resp:{
+    "ErrorMsg":[],
+    "Result" : true/false
+    "Book_Data":{}
+}
+*/
+void MyDBService::Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson)
 {
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Book_By_BookID", true, ReqJson);
 
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Book_ID":0,//图书编号
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Book_By_BookID", false, RespJson);
+        return;
+    }
+
+    // 查询图书
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询图书", true);
+        drogon_model::novel::Book TBook = BookMgr.findByPrimaryKey(ReqJson["Book_ID"].asInt());
+        MyBasePtr->DEBUGLog("查询图书完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Book_Data"] = TBook.toJson();
+        MyBasePtr->INFO_Func("Search_Book_By_BookID", false, RespJson);
+        return;
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("此图书不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("图书ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("图书查询失败");
+        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("图书查询失败");
+        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        return;
+    }
 }
 
+// 通过Note_ID查询帖子下的评论
+/*
+    通过Note_ID查询帖子下的评论
+Req:{
+    "Note_ID":0//帖子编号
+}
+Resp:{
+    "ErrorMsg":[],
+    "Result" : true/false
+    "Comment_List":[]
+}
+*/
+void MyDBService::Search_Comment(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Comment", true, ReqJson);
 
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Comment> CommentMgr(dbclientPrt);
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Note_ID":0,//帖子编号
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Note_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Comment", false, RespJson);
+        return;
+    }
+
+    // 查询评论
+    try
+    {
+        Search_Note_By_NoteID(ReqJson,RespJson);
+        if(!RespJson["Result"].asBool())
+        {
+            RespJson["ErrorMsg"] = "要查询评论的帖子不存在";
+        }
+        MyBasePtr->DEBUGLog("开始查询评论", true);
+        Criteria NoteID_cri(drogon_model::novel::Comment::Cols::_Note_ID,CompareOperator::EQ,ReqJson["Note_ID"].asInt());
+        vector<drogon_model::novel::Comment> vecComment = CommentMgr.findBy(NoteID_cri);
+        MyBasePtr->DEBUGLog("查询评论完毕", true);
+
+        for(int i = 0 ; i < vecComment.size() ; i++)
+        {
+            RespJson["Comment_List"].append(vecComment[i].toJson());
+        }
+        RespJson["Result"] = true;
+        MyBasePtr->INFO_Func("Search_Comment", false, RespJson);
+        return;
+    }
+    catch(Json::Value &e)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("评论查询失败");
+        MyBasePtr->INFO_Func("Search_Comment", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("评论查询失败");
+        RespJson["ErrorMsg"].append("Search_Comment::Error");
+        MyBasePtr->INFO_Func("Search_Comment", false, RespJson);
+        return;
+    }
+}
 
 // 搜索帖子
 /*
@@ -2557,27 +3049,26 @@ void MyDBService::Search_Note(Json::Value &ReqJson, Json::Value &RespJson)
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
         KeyWord = ReqJson["Note_KeyWord"].asString();
-        if(ReqJson.isMember("Limit"))
+        if (ReqJson.isMember("Limit"))
         {
-            MyJsonPtr->checkColType(ReqJson,RespJson,"Limit",MyJson::ColType::INT);
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
             limit = ReqJson["Limit"].asInt();
         }
-        if(ReqJson.isMember("Offset"))
+        if (ReqJson.isMember("Offset"))
         {
-            MyJsonPtr->checkColType(ReqJson,RespJson,"Offset",MyJson::ColType::INT);
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Offset", MyJson::ColType::INT);
             offset = ReqJson["Offset"].asInt();
         }
-        if(ReqJson.isMember("User_ID"))
+        if (ReqJson.isMember("User_ID"))
         {
-            MyJsonPtr->checkColType(ReqJson,RespJson,"User_ID",MyJson::ColType::INT);
+            MyJsonPtr->checkColType(ReqJson, RespJson, "User_ID", MyJson::ColType::INT);
             UserID = ReqJson["User_ID"].asString();
         }
-        if(ReqJson.isMember("Note_Type"))
+        if (ReqJson.isMember("Note_Type"))
         {
-            MyJsonPtr->checkColType(ReqJson,RespJson,"Note_Type",MyJson::ColType::STRING);
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Note_Type", MyJson::ColType::STRING);
             NoteType = ReqJson["Note_Type"].asString();
         }
-        
     }
     catch (Json::Value &RespJson)
     {
@@ -2636,6 +3127,7 @@ void MyDBService::Search_Note(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->INFO_Func("Search_Note", false, RespJson);
         return;
     }
+
 }
 
 // 通过NoteID查找Note数据
@@ -2722,6 +3214,105 @@ void MyDBService::Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJ
         MyBasePtr->INFO_Func("Search_Note_By_NoteID", false, RespJson);
         return;
     }
+}
+
+
+// 根据用户ID返回用户封号时间
+/*
+Req:{
+    "User_ID":0
+}
+Resp:{
+    "ErrorMsg":[],//查询失败的时候返回错误信息
+    "Ban_Time":"",//查询成功的时候返回封号时间
+    "Result"  :true/false,// 无论是用户不是封号状态还是其他没查询到的情况都是false
+}
+*/
+void MyDBService::Search_User_Ban_Time(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_User_Ban_Time", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+    ActionMgr.orderBy("Time",SortOrder::DESC);
+    ActionMgr.limit(1);
+    int UserID;
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "User_ID"   :   0,
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        UserID = ReqJson["User_ID"].asInt();
+        MyBasePtr->DEBUGLog("开始查询用户 : " + ReqJson["User_ID"].asString(), true);
+        drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
+        MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
+
+        if(user.getValueOfStatus() != "Normal" && user.getValueOfStatus() != "Ban")
+        {
+            RespJson["ErrorMsg"].append("用户状态异常");
+            throw RespJson;
+        }
+        if(user.getValueOfStatus() != "Ban")
+        {
+            RespJson["ErrorMsg"].append("用户并未处于封号状态");
+            throw RespJson;
+        }
+        MyBasePtr->DEBUGLog("开始查询用户(ID=" + ReqJson["User_ID"].asString() + ")的封号截止时间", true);
+        Criteria Type_cri(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"User_Status");
+        vector<drogon_model::novel::Action> vecaction = ActionMgr.findBy(Type_cri);
+        
+        MyBasePtr->DEBUGLog("用户封号截止时间查询完毕", true);
+        MyBasePtr->DEBUGLog("vecaction.size : "+ to_string(vecaction.size()), true);
+        if(vecaction.size() == 0)
+        {
+            RespJson["ErrorMsg"].append("并未查询到有关用户状态变更的行为");
+            throw RespJson;
+        }
+        Json::Value MemoJson;
+        MyJsonPtr->JsonstrToJson(MemoJson,vecaction[0].getValueOfMemo());
+        MyBasePtr->DEBUGLog("vecaction[0].getValueOfMemo : "+ MemoJson.toStyledString(), true);
+        
+        if(MemoJson["Type"].asString() != "Ban")
+        {
+            RespJson["ErrorMsg"].append("用户并未处于封号状态");
+            throw RespJson;
+        }
+        RespJson["Ban_Time"] = MemoJson["Ban_Time"].asString();
+        RespJson["Result"]  =  true;
+    }
+    catch(const drogon::orm::DrogonDbException &e)
+    {
+	    RespJson["ErrorMsg"].append(e.base().what());
+        RespJson["Result"]  =  false;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        return;
+    }
+    catch(Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("查询封号截止时间失败");
+        RespJson["Result"]  =  false;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        return;
+    }
+    catch(...)
+    {
+        RespJson["ErrorMsg"].append("查询封号截止时间失败");
+        RespJson["Result"]  =  false;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        return;
+    }
+    MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+    return ;
 }
 
 // 用户查询用户个人资料的接口
@@ -3246,6 +3837,84 @@ void MyDBService::Update_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     }
     MyBasePtr->DEBUGLog("用户数据更新完成: " + user.toJson().toStyledString(), true);
     MyBasePtr->INFO_Func("Update_User_PersonalData", false, RespJson);
+}
+
+// 数据库插入行为记录
+/*
+    数据库插入行为记录  return bool // 代表插入过程是否正常，数据异常时返回false
+Req:{
+    "User_ID"   :   0,// 0 代表system 其余表示用户ID
+    "Action_Type"      :   "",
+    "Action_Memo"      :   {}
+}
+Resp:{
+    "ErrorMsg"[失败]    :   [],//失败原因(数据异常)
+    "Action_Data"[成功] :   {},//新建行为的数据
+}
+*/
+bool MyDBService::Insert_Action(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->INFO_Func("Insert_Action", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+
+    // 插入前检查图书数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("插入前检查行为数据是否合法", true);
+        // "User_ID"   :   0,// 0 代表system 其余表示用户ID
+        // "Action_Type"      :   "",
+        // "Action_Memo"      :   {}
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Action_Type"] = MyJson::ColType::STRING;
+        ColMap["Action_Memo"] = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("插入前检查显示行为数据合法", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"].append("要记录的行为数据不合法");
+        MyBasePtr->INFO_Func("Insert_Action", false, RespJson);
+        return false;
+    }
+
+    drogon_model::novel::Action NewAction;
+    Json::Value ActionMemo;
+
+    // 准备要创建的行为的数据
+    {
+        MyBasePtr->DEBUGLog("开始准备行为数据", true);
+        NewAction.setMemo(ReqJson["Action_Memo"].toStyledString());
+        NewAction.setType(ReqJson["Action_Type"].asString());
+        NewAction.setUserId(ReqJson["User_ID"].asInt());
+        MyBasePtr->DEBUGLog("准备行为数据完成", true);
+    }
+
+    // 准备插入图书数据
+    try
+    {
+        MyBasePtr->DEBUGLog("准备插入的行为数据为 : " + NewAction.toJson().toStyledString(), true);
+        MyBasePtr->DEBUGLog("准备插入行为数据", true);
+        ActionMgr.insert(NewAction);
+        MyBasePtr->DEBUGLog("插入行为数据完毕", true);
+        MyBasePtr->DEBUGLog("插入的行为数据为 : " + NewAction.toJson().toStyledString(), true);
+    }
+    // 新建图书失败
+    catch (...)
+    {
+        RespJson["ErrorMsg"].append("行为记录失败(数据异常)");
+        MyBasePtr->INFO_Func("Insert_Action", false, RespJson);
+        LOG_DEBUG << NewAction.toJson().toStyledString();
+        return false;
+    }
+    RespJson["Action_Data"] = NewAction.toJson();
+    MyBasePtr->INFO_Func("Insert_Action", false, RespJson);
+    return true;
 }
 
 // 数据库插入新书
@@ -3796,3 +4465,175 @@ bool MyDBService::Update_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
     MyBasePtr->INFO_Func("Update_Chapter", false, RespJson);
     return true;
 }
+
+// 更新用户数据
+/*
+    更新用户数据
+Req:{
+    "User_ID"           :   0,
+    "Processor"         :   "",
+    "Change_ID"         :   0 ,
+    "Change_Name"       :   "",
+    "Change_Password"   :   "",
+    "Change_Sex"        :   "",
+    "Change_Col"        :   ["Change_Name","Change_Password","Change_Sex"]
+}
+
+Resp:{
+    "ErrorMsg" : []
+}
+*/
+bool MyDBService::Update_User(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->INFO_Func("Update_User", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+    drogon_model::novel::User user;
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "User_ID"           :   0,
+        // "Processor"         :   "",
+        // "Change_ID"         :   0 ,
+        // "Change_Name"       :   "",
+        // "Change_Password"   :   "",
+        // "Change_Sex"        :   "",
+        // "Change_Col"        :   ["Change_Name","Change_Password","Change_Sex"]
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Processor"] = MyJson::ColType::STRING;
+        ColMap["Change_ID"] = MyJson::ColType::INT;
+        ColMap["Change_Name"] = MyJson::ColType::STRING;
+        ColMap["Change_Password"] = MyJson::ColType::STRING;
+        ColMap["Change_Sex"] = MyJson::ColType::STRING;
+        ColMap["Change_Col"] = MyJson::ColType::ARRAY;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        MyBasePtr->INFO_Func("Update_User", false, RespJson);
+        return false;
+    }
+
+    int ChangeColSize, ChangeCount = 0;
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询用户 : " + to_string(ReqJson["Change_ID"].asInt()), true);
+        user = UserMgr.findByPrimaryKey(ReqJson["Change_ID"].asInt());
+        MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
+
+        ChangeColSize = ReqJson["Change_Col"].size();
+        string ChangeColName, ChangeIntegralType;
+        for (int j = 0; j < ChangeColSize; j++)
+        {
+            ChangeColName = ReqJson["Change_Col"][j].asString();
+            MyBasePtr->DEBUGLog("开始修改用户数据(" + ChangeColName + ")", true);
+            if (ChangeColName == "Change_Name")
+            {
+                if (user.getValueOfName() == ReqJson["Change_Name"].asString())
+                {
+                    MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                    continue;
+                }
+                user.setName(ReqJson["Change_Name"].asString());
+                ChangeCount++;
+            }
+            else if (ChangeColName == "Change_Password")
+            {
+                if (user.getValueOfPassword() == ReqJson["Change_Password"].asString())
+                {
+                    MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                    continue;
+                }
+                user.setPassword(ReqJson["Change_Password"].asString());
+                ChangeCount++;
+            }
+            else if (ChangeColName == "Change_Sex")
+            {
+                if (user.getValueOfSex() == ReqJson["Change_Sex"].asString())
+                {
+                    MyBasePtr->DEBUGLog("字段(" + ChangeColName + ")没有产生变化", true);
+                    continue;
+                }
+                user.setSex(ReqJson["Change_Sex"].asString());
+                ChangeCount++;
+            }
+            else
+            {
+                MyBasePtr->DEBUGLog("Change_Col包含错误字段(" + ChangeColName + ")", true);
+            }
+        }
+        // 统计更新的字段数
+        MyBasePtr->DEBUGLog("用户更新的字段数为" + to_string(ChangeCount), true);
+
+        if (ChangeCount == 0)
+        {
+            RespJson["ErrorMsg"].append("用户数据无需更新");
+            MyBasePtr->INFO_Func("Update_User", false, RespJson);
+            return false;
+        }
+
+        MyBasePtr->DEBUGLog("开始更新用户(ID=" + to_string(ReqJson["Change_ID"].asInt()) + ")数据", true);
+        int row = UserMgr.update(user);
+        if (row != 1)
+        {
+            RespJson["ErrorMsg"].append("用户资料更新失败");
+            MyBasePtr->INFO_Func("Update_User", false, RespJson);
+            return false;
+        }
+        MyBasePtr->DEBUGLog("用户数据更新完成: " + user.toJson().toStyledString(), true);
+
+        MyBasePtr->DEBUGLog("开始记录行为数据", true);
+        Json::Value ActionJson;
+        // Memo : {
+        //     Explain : "", 
+        //     Processor : "system/admin:xxx", 
+        //     Change_ID : 0, 
+        //     Change_Col : []
+        // } 
+        ActionJson["User_ID"] = ReqJson["Change_ID"].asInt();
+        ActionJson["Action_Type"] = "User_Update";
+        ActionJson["Action_Memo"]["Explain"] = ReqJson["Processor"].asString() + "修改用户数据";
+        ActionJson["Action_Memo"]["Processor"] = ReqJson["Processor"].asString()  + "("+ ReqJson["User_ID"].asString() +")";
+        ActionJson["Action_Memo"]["Change_Col"] = ReqJson["Change_Col"];
+        if (!Insert_Action(ActionJson, RespJson))
+        {
+            LOG_DEBUG << "行为数据记录失败";
+            MyBasePtr->DEBUGLog("行为数据记录失败", true);
+            MyBasePtr->INFO_Func("Update_User", false, RespJson);
+        }
+        MyBasePtr->DEBUGLog("行为数据记录完毕", true);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("要更改的用户ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        MyBasePtr->INFO_Func("Update_User", false, RespJson);
+        return false;
+    }
+
+    MyBasePtr->INFO_Func("Update_User", false, RespJson);
+    return true;
+}
+
