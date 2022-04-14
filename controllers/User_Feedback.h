@@ -1,6 +1,7 @@
 #pragma once
 #include <drogon/HttpSimpleController.h>
 #include <plugins/MyJson.h>
+#include <plugins/MyDBService.h>
 using namespace drogon;
 namespace User
 {

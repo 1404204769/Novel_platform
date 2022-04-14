@@ -124,7 +124,7 @@ void Resource::Download(const HttpRequestPtr &req,std::function<void (const Http
 
         // 读取UserID LoginStatus数据
 
-        MyDBSPtr->Download_Resource(ReqVal, RespVal);
+        MyDBSPtr->Download_Resource_Public(ReqVal, RespVal);
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);

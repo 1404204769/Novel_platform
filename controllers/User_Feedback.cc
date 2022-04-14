@@ -6,15 +6,17 @@ void Feedback::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<v
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Admin::User::Update::body" + string(req->getBody()), true);
     
  
     try
     {
+        ReqVal = *req->getJsonObject();
         RespVal["简介"] = "用户问题反馈接口";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
+        MyDBSPtr->Create_Suggestion(ReqVal,RespVal);
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
