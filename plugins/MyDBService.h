@@ -19,6 +19,7 @@
 #include <models/Note.h>
 #include <models/User.h>
 #include <models/Upload.h>
+#include <models/Idea.h>
 
 class MyDBService : public drogon::Plugin<MyDBService>
 {
@@ -28,6 +29,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     virtual void shutdown() override;
   public:
     
+    void Admin_Search_Idea(Json::Value &ReqJson, Json::Value &RespJson);
     void Admin_Search_Upload(Json::Value &ReqJson, Json::Value &RespJson);
     void Admin_Search_User(Json::Value &ReqJson, Json::Value &RespJson);
     void Admin_Update_Resource(Json::Value &ReqJson, Json::Value &RespJson);
@@ -40,11 +42,14 @@ class MyDBService : public drogon::Plugin<MyDBService>
 
     bool Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJson);
     bool Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Create_Comment(Json::Value &ReqJson, Json::Value &RespJson);
     void Create_Note(Json::Value &ReqJson, Json::Value &RespJson);
+    void Create_Suggestion(Json::Value &ReqJson, Json::Value &RespJson);
 
-    void Download_Resource(Json::Value &ReqJson, Json::Value &RespJson);
+    
+    void Download_Resource_Public(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Examine_Upload(Json::Value &ReqJson, Json::Value &RespJson);
 
@@ -54,7 +59,11 @@ class MyDBService : public drogon::Plugin<MyDBService>
     bool Is_Note_Exist(Json::Value &ReqJson, Json::Value &RespJson);
     bool Is_User_Exist(Json::Value &ReqJson, Json::Value &RespJson);
 
+    void Log_Resource_Upload(const int &User_ID,const int &Upload_ID,const string &Upload_Type,const string &Explain);
+
+
     void Read_Resource(Json::Value &ReqJson, Json::Value &RespJson);
+    void Recharge(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
@@ -69,9 +78,12 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Update_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
 
   private:
+    bool Download_Resource_Private(Json::Value &ReqJson, Json::Value &RespJson);
+
     bool Insert_Action(Json::Value &ReqJson, Json::Value &RespJson);
     bool Insert_Book(Json::Value &ReqJson, Json::Value &RespJson);
     bool Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
+    void Insert_Idea(Json::Value &ReqJson, Json::Value &RespJson);
     bool Update_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
     bool Update_User(Json::Value &ReqJson, Json::Value &RespJson);
 };
