@@ -48,10 +48,11 @@ class Upload
         static const std::string _Book_ID;
         static const std::string _Content;
         static const std::string _Status;
-        static const std::string _Time;
         static const std::string _Processor;
         static const std::string _IsManage;
         static const std::string _Memo;
+        static const std::string _Create_Time;
+        static const std::string _Update_Time;
     };
 
     const static int primaryKeyNumber;
@@ -145,14 +146,6 @@ class Upload
     void setStatus(const std::string &pStatus) noexcept;
     void setStatus(std::string &&pStatus) noexcept;
 
-    /**  For column Time  */
-    ///Get the value of the column Time, returns the default value if the column is null
-    const ::trantor::Date &getValueOfTime() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getTime() const noexcept;
-    ///Set the value of the column Time
-    void setTime(const ::trantor::Date &pTime) noexcept;
-
     /**  For column Processor  */
     ///Get the value of the column Processor, returns the default value if the column is null
     const std::string &getValueOfProcessor() const noexcept;
@@ -180,8 +173,24 @@ class Upload
     void setMemo(const std::string &pMemo) noexcept;
     void setMemo(std::string &&pMemo) noexcept;
 
+    /**  For column Create_Time  */
+    ///Get the value of the column Create_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfCreateTime() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
+    ///Set the value of the column Create_Time
+    void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 9;  }
+    /**  For column Update_Time  */
+    ///Get the value of the column Update_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfUpdateTime() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<::trantor::Date> &getUpdateTime() const noexcept;
+    ///Set the value of the column Update_Time
+    void setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept;
+
+
+    static size_t getColumnNumber() noexcept {  return 10;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -203,10 +212,11 @@ class Upload
     std::shared_ptr<int32_t> bookId_;
     std::shared_ptr<std::string> content_;
     std::shared_ptr<std::string> status_;
-    std::shared_ptr<::trantor::Date> time_;
     std::shared_ptr<std::string> processor_;
     std::shared_ptr<int8_t> ismanage_;
     std::shared_ptr<std::string> memo_;
+    std::shared_ptr<::trantor::Date> createTime_;
+    std::shared_ptr<::trantor::Date> updateTime_;
     struct MetaData
     {
         const std::string colName_;
@@ -218,7 +228,7 @@ class Upload
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[9]={ false };
+    bool dirtyFlag_[10]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -258,26 +268,32 @@ class Upload
             sql += "Status,";
             ++parametersCount;
         }
-        sql += "Time,";
-        ++parametersCount;
-        if(!dirtyFlag_[5])
-        {
-            needSelection=true;
-        }
-        if(dirtyFlag_[6])
+        if(dirtyFlag_[5])
         {
             sql += "Processor,";
             ++parametersCount;
         }
-        if(dirtyFlag_[7])
+        if(dirtyFlag_[6])
         {
             sql += "IsManage,";
             ++parametersCount;
         }
-        if(dirtyFlag_[8])
+        if(dirtyFlag_[7])
         {
             sql += "Memo,";
             ++parametersCount;
+        }
+        sql += "Create_Time,";
+        ++parametersCount;
+        if(!dirtyFlag_[8])
+        {
+            needSelection=true;
+        }
+        sql += "Update_Time,";
+        ++parametersCount;
+        if(!dirtyFlag_[9])
+        {
+            needSelection=true;
         }
         needSelection=true;
         if(parametersCount > 0)
@@ -314,10 +330,6 @@ class Upload
             sql.append("?,");
 
         } 
-        else
-        {
-            sql +="default,";
-        }
         if(dirtyFlag_[6])
         {
             sql.append("?,");
@@ -333,6 +345,19 @@ class Upload
             sql.append("?,");
 
         } 
+        else
+        {
+            sql +="default,";
+        }
+        if(dirtyFlag_[9])
+        {
+            sql.append("?,");
+
+        } 
+        else
+        {
+            sql +="default,";
+        }
         if(parametersCount > 0)
         {
             sql.resize(sql.length() - 1);

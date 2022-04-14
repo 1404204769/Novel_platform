@@ -15,10 +15,12 @@ using namespace drogon_model::novel;
 const std::string Idea::Cols::_Idea_ID = "Idea_ID";
 const std::string Idea::Cols::_User_ID = "User_ID";
 const std::string Idea::Cols::_Type = "Type";
-const std::string Idea::Cols::_Memo = "Memo";
 const std::string Idea::Cols::_Status = "Status";
-const std::string Idea::Cols::_Create = "Create";
-const std::string Idea::Cols::_Update = "Update";
+const std::string Idea::Cols::_Processor = "Processor";
+const std::string Idea::Cols::_IsManage = "IsManage";
+const std::string Idea::Cols::_Memo = "Memo";
+const std::string Idea::Cols::_Create_Time = "Create_Time";
+const std::string Idea::Cols::_Update_Time = "Update_Time";
 const std::string Idea::primaryKeyName = "Idea_ID";
 const bool Idea::hasPrimaryKey = true;
 const std::string Idea::tableName = "idea";
@@ -27,10 +29,12 @@ const std::vector<typename Idea::MetaData> Idea::metaData_={
 {"Idea_ID","int32_t","int(10)",4,1,1,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Type","std::string","varchar(255)",255,0,0,1},
-{"Memo","std::string","text",0,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
-{"Create","::trantor::Date","timestamp",0,0,0,1},
-{"Update","::trantor::Date","timestamp",0,0,0,1}
+{"Processor","std::string","varchar(255)",255,0,0,0},
+{"IsManage","int8_t","tinyint(1)",1,0,0,1},
+{"Memo","std::string","text",0,0,0,1},
+{"Create_Time","::trantor::Date","timestamp",0,0,0,1},
+{"Update_Time","::trantor::Date","timestamp",0,0,0,1}
 };
 const std::string &Idea::getColumnName(size_t index) noexcept(false)
 {
@@ -53,17 +57,25 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
         {
             type_=std::make_shared<std::string>(r["Type"].as<std::string>());
         }
-        if(!r["Memo"].isNull())
-        {
-            memo_=std::make_shared<std::string>(r["Memo"].as<std::string>());
-        }
         if(!r["Status"].isNull())
         {
             status_=std::make_shared<std::string>(r["Status"].as<std::string>());
         }
-        if(!r["Create"].isNull())
+        if(!r["Processor"].isNull())
         {
-            auto timeStr = r["Create"].as<std::string>();
+            processor_=std::make_shared<std::string>(r["Processor"].as<std::string>());
+        }
+        if(!r["IsManage"].isNull())
+        {
+            ismanage_=std::make_shared<int8_t>(r["IsManage"].as<int8_t>());
+        }
+        if(!r["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(r["Memo"].as<std::string>());
+        }
+        if(!r["Create_Time"].isNull())
+        {
+            auto timeStr = r["Create_Time"].as<std::string>();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -80,12 +92,12 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        if(!r["Update"].isNull())
+        if(!r["Update_Time"].isNull())
         {
-            auto timeStr = r["Update"].as<std::string>();
+            auto timeStr = r["Update_Time"].as<std::string>();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -102,14 +114,14 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 7 > r.size())
+        if(offset + 9 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -133,37 +145,24 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 3;
         if(!r[index].isNull())
         {
-            memo_=std::make_shared<std::string>(r[index].as<std::string>());
+            status_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 4;
         if(!r[index].isNull())
         {
-            status_=std::make_shared<std::string>(r[index].as<std::string>());
+            processor_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 5;
         if(!r[index].isNull())
         {
-            auto timeStr = r[index].as<std::string>();
-            struct tm stm;
-            memset(&stm,0,sizeof(stm));
-            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
-            time_t t = mktime(&stm);
-            size_t decimalNum = 0;
-            if(p)
-            {
-                if(*p=='.')
-                {
-                    std::string decimals(p+1,&timeStr[timeStr.length()]);
-                    while(decimals.length()<6)
-                    {
-                        decimals += "0";
-                    }
-                    decimalNum = (size_t)atol(decimals.c_str());
-                }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
-            }
+            ismanage_=std::make_shared<int8_t>(r[index].as<int8_t>());
         }
         index = offset + 6;
+        if(!r[index].isNull())
+        {
+            memo_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 7;
         if(!r[index].isNull())
         {
             auto timeStr = r[index].as<std::string>();
@@ -183,7 +182,30 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+        index = offset + 8;
+        if(!r[index].isNull())
+        {
+            auto timeStr = r[index].as<std::string>();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -192,7 +214,7 @@ Idea::Idea(const Row &r, const ssize_t indexOffset) noexcept
 
 Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -226,7 +248,7 @@ Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -234,7 +256,7 @@ Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -242,25 +264,7 @@ Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[5]].asString();
-            struct tm stm;
-            memset(&stm,0,sizeof(stm));
-            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
-            time_t t = mktime(&stm);
-            size_t decimalNum = 0;
-            if(p)
-            {
-                if(*p=='.')
-                {
-                    std::string decimals(p+1,&timeStr[timeStr.length()]);
-                    while(decimals.length()<6)
-                    {
-                        decimals += "0";
-                    }
-                    decimalNum = (size_t)atol(decimals.c_str());
-                }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
-            }
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -268,7 +272,15 @@ Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[7]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -285,7 +297,33 @@ Idea::Idea(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[8]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -317,28 +355,44 @@ Idea::Idea(const Json::Value &pJson) noexcept(false)
             type_=std::make_shared<std::string>(pJson["Type"].asString());
         }
     }
-    if(pJson.isMember("Memo"))
-    {
-        dirtyFlag_[3]=true;
-        if(!pJson["Memo"].isNull())
-        {
-            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
-        }
-    }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[4]=true;
+        dirtyFlag_[3]=true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
         }
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Processor"))
+    {
+        dirtyFlag_[4]=true;
+        if(!pJson["Processor"].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson["Processor"].asString());
+        }
+    }
+    if(pJson.isMember("IsManage"))
     {
         dirtyFlag_[5]=true;
-        if(!pJson["Create"].isNull())
+        if(!pJson["IsManage"].isNull())
         {
-            auto timeStr = pJson["Create"].asString();
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
+        }
+    }
+    if(pJson.isMember("Memo"))
+    {
+        dirtyFlag_[6]=true;
+        if(!pJson["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
+        }
+    }
+    if(pJson.isMember("Create_Time"))
+    {
+        dirtyFlag_[7]=true;
+        if(!pJson["Create_Time"].isNull())
+        {
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -355,16 +409,16 @@ Idea::Idea(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
-    if(pJson.isMember("Update"))
+    if(pJson.isMember("Update_Time"))
     {
-        dirtyFlag_[6]=true;
-        if(!pJson["Update"].isNull())
+        dirtyFlag_[8]=true;
+        if(!pJson["Update_Time"].isNull())
         {
-            auto timeStr = pJson["Update"].asString();
+            auto timeStr = pJson["Update_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -381,7 +435,7 @@ Idea::Idea(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -390,7 +444,7 @@ Idea::Idea(const Json::Value &pJson) noexcept(false)
 void Idea::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -423,7 +477,7 @@ void Idea::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -431,7 +485,7 @@ void Idea::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
+            processor_=std::make_shared<std::string>(pJson[pMasqueradingVector[4]].asString());
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -439,25 +493,7 @@ void Idea::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[5]].asString();
-            struct tm stm;
-            memset(&stm,0,sizeof(stm));
-            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
-            time_t t = mktime(&stm);
-            size_t decimalNum = 0;
-            if(p)
-            {
-                if(*p=='.')
-                {
-                    std::string decimals(p+1,&timeStr[timeStr.length()]);
-                    while(decimals.length()<6)
-                    {
-                        decimals += "0";
-                    }
-                    decimalNum = (size_t)atol(decimals.c_str());
-                }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
-            }
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -465,7 +501,15 @@ void Idea::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            auto timeStr = pJson[pMasqueradingVector[6]].asString();
+            memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+        }
+    }
+    if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson[pMasqueradingVector[7]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[7]].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -482,7 +526,33 @@ void Idea::updateByMasqueradedJson(const Json::Value &pJson,
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[8]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -513,28 +583,44 @@ void Idea::updateByJson(const Json::Value &pJson) noexcept(false)
             type_=std::make_shared<std::string>(pJson["Type"].asString());
         }
     }
-    if(pJson.isMember("Memo"))
-    {
-        dirtyFlag_[3] = true;
-        if(!pJson["Memo"].isNull())
-        {
-            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
-        }
-    }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[4] = true;
+        dirtyFlag_[3] = true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
         }
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Processor"))
+    {
+        dirtyFlag_[4] = true;
+        if(!pJson["Processor"].isNull())
+        {
+            processor_=std::make_shared<std::string>(pJson["Processor"].asString());
+        }
+    }
+    if(pJson.isMember("IsManage"))
     {
         dirtyFlag_[5] = true;
-        if(!pJson["Create"].isNull())
+        if(!pJson["IsManage"].isNull())
         {
-            auto timeStr = pJson["Create"].asString();
+            ismanage_=std::make_shared<int8_t>((int8_t)pJson["IsManage"].asInt64());
+        }
+    }
+    if(pJson.isMember("Memo"))
+    {
+        dirtyFlag_[6] = true;
+        if(!pJson["Memo"].isNull())
+        {
+            memo_=std::make_shared<std::string>(pJson["Memo"].asString());
+        }
+    }
+    if(pJson.isMember("Create_Time"))
+    {
+        dirtyFlag_[7] = true;
+        if(!pJson["Create_Time"].isNull())
+        {
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -551,16 +637,16 @@ void Idea::updateByJson(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
-    if(pJson.isMember("Update"))
+    if(pJson.isMember("Update_Time"))
     {
-        dirtyFlag_[6] = true;
-        if(!pJson["Update"].isNull())
+        dirtyFlag_[8] = true;
+        if(!pJson["Update_Time"].isNull())
         {
-            auto timeStr = pJson["Update"].asString();
+            auto timeStr = pJson["Update_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -577,7 +663,7 @@ void Idea::updateByJson(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                update_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -644,28 +730,6 @@ void Idea::setType(std::string &&pType) noexcept
     dirtyFlag_[2] = true;
 }
 
-const std::string &Idea::getValueOfMemo() const noexcept
-{
-    const static std::string defaultValue = std::string();
-    if(memo_)
-        return *memo_;
-    return defaultValue;
-}
-const std::shared_ptr<std::string> &Idea::getMemo() const noexcept
-{
-    return memo_;
-}
-void Idea::setMemo(const std::string &pMemo) noexcept
-{
-    memo_ = std::make_shared<std::string>(pMemo);
-    dirtyFlag_[3] = true;
-}
-void Idea::setMemo(std::string &&pMemo) noexcept
-{
-    memo_ = std::make_shared<std::string>(std::move(pMemo));
-    dirtyFlag_[3] = true;
-}
-
 const std::string &Idea::getValueOfStatus() const noexcept
 {
     const static std::string defaultValue = std::string();
@@ -680,46 +744,112 @@ const std::shared_ptr<std::string> &Idea::getStatus() const noexcept
 void Idea::setStatus(const std::string &pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(pStatus);
-    dirtyFlag_[4] = true;
+    dirtyFlag_[3] = true;
 }
 void Idea::setStatus(std::string &&pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(std::move(pStatus));
+    dirtyFlag_[3] = true;
+}
+
+const std::string &Idea::getValueOfProcessor() const noexcept
+{
+    const static std::string defaultValue = std::string();
+    if(processor_)
+        return *processor_;
+    return defaultValue;
+}
+const std::shared_ptr<std::string> &Idea::getProcessor() const noexcept
+{
+    return processor_;
+}
+void Idea::setProcessor(const std::string &pProcessor) noexcept
+{
+    processor_ = std::make_shared<std::string>(pProcessor);
+    dirtyFlag_[4] = true;
+}
+void Idea::setProcessor(std::string &&pProcessor) noexcept
+{
+    processor_ = std::make_shared<std::string>(std::move(pProcessor));
+    dirtyFlag_[4] = true;
+}
+void Idea::setProcessorToNull() noexcept
+{
+    processor_.reset();
     dirtyFlag_[4] = true;
 }
 
-const ::trantor::Date &Idea::getValueOfCreate() const noexcept
+const int8_t &Idea::getValueOfIsmanage() const noexcept
 {
-    const static ::trantor::Date defaultValue = ::trantor::Date();
-    if(create_)
-        return *create_;
+    const static int8_t defaultValue = int8_t();
+    if(ismanage_)
+        return *ismanage_;
     return defaultValue;
 }
-const std::shared_ptr<::trantor::Date> &Idea::getCreate() const noexcept
+const std::shared_ptr<int8_t> &Idea::getIsmanage() const noexcept
 {
-    return create_;
+    return ismanage_;
 }
-void Idea::setCreate(const ::trantor::Date &pCreate) noexcept
+void Idea::setIsmanage(const int8_t &pIsmanage) noexcept
 {
-    create_ = std::make_shared<::trantor::Date>(pCreate);
+    ismanage_ = std::make_shared<int8_t>(pIsmanage);
     dirtyFlag_[5] = true;
 }
 
-const ::trantor::Date &Idea::getValueOfUpdate() const noexcept
+const std::string &Idea::getValueOfMemo() const noexcept
 {
-    const static ::trantor::Date defaultValue = ::trantor::Date();
-    if(update_)
-        return *update_;
+    const static std::string defaultValue = std::string();
+    if(memo_)
+        return *memo_;
     return defaultValue;
 }
-const std::shared_ptr<::trantor::Date> &Idea::getUpdate() const noexcept
+const std::shared_ptr<std::string> &Idea::getMemo() const noexcept
 {
-    return update_;
+    return memo_;
 }
-void Idea::setUpdate(const ::trantor::Date &pUpdate) noexcept
+void Idea::setMemo(const std::string &pMemo) noexcept
 {
-    update_ = std::make_shared<::trantor::Date>(pUpdate);
+    memo_ = std::make_shared<std::string>(pMemo);
     dirtyFlag_[6] = true;
+}
+void Idea::setMemo(std::string &&pMemo) noexcept
+{
+    memo_ = std::make_shared<std::string>(std::move(pMemo));
+    dirtyFlag_[6] = true;
+}
+
+const ::trantor::Date &Idea::getValueOfCreateTime() const noexcept
+{
+    const static ::trantor::Date defaultValue = ::trantor::Date();
+    if(createTime_)
+        return *createTime_;
+    return defaultValue;
+}
+const std::shared_ptr<::trantor::Date> &Idea::getCreateTime() const noexcept
+{
+    return createTime_;
+}
+void Idea::setCreateTime(const ::trantor::Date &pCreateTime) noexcept
+{
+    createTime_ = std::make_shared<::trantor::Date>(pCreateTime);
+    dirtyFlag_[7] = true;
+}
+
+const ::trantor::Date &Idea::getValueOfUpdateTime() const noexcept
+{
+    const static ::trantor::Date defaultValue = ::trantor::Date();
+    if(updateTime_)
+        return *updateTime_;
+    return defaultValue;
+}
+const std::shared_ptr<::trantor::Date> &Idea::getUpdateTime() const noexcept
+{
+    return updateTime_;
+}
+void Idea::setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept
+{
+    updateTime_ = std::make_shared<::trantor::Date>(pUpdateTime);
+    dirtyFlag_[8] = true;
 }
 
 void Idea::updateId(const uint64_t id)
@@ -732,10 +862,12 @@ const std::vector<std::string> &Idea::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "User_ID",
         "Type",
-        "Memo",
         "Status",
-        "Create",
-        "Update"
+        "Processor",
+        "IsManage",
+        "Memo",
+        "Create_Time",
+        "Update_Time"
     };
     return inCols;
 }
@@ -766,17 +898,6 @@ void Idea::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getMemo())
-        {
-            binder << getValueOfMemo();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[4])
-    {
         if(getStatus())
         {
             binder << getValueOfStatus();
@@ -786,11 +907,22 @@ void Idea::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[4])
+    {
+        if(getProcessor())
+        {
+            binder << getValueOfProcessor();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
     if(dirtyFlag_[5])
     {
-        if(getCreate())
+        if(getIsmanage())
         {
-            binder << getValueOfCreate();
+            binder << getValueOfIsmanage();
         }
         else
         {
@@ -799,9 +931,31 @@ void Idea::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[6])
     {
-        if(getUpdate())
+        if(getMemo())
         {
-            binder << getValueOfUpdate();
+            binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getCreateTime())
+        {
+            binder << getValueOfCreateTime();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getUpdateTime())
+        {
+            binder << getValueOfUpdateTime();
         }
         else
         {
@@ -837,6 +991,14 @@ const std::vector<std::string> Idea::updateColumns() const
     {
         ret.push_back(getColumnName(6));
     }
+    if(dirtyFlag_[7])
+    {
+        ret.push_back(getColumnName(7));
+    }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
     return ret;
 }
 
@@ -866,17 +1028,6 @@ void Idea::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getMemo())
-        {
-            binder << getValueOfMemo();
-        }
-        else
-        {
-            binder << nullptr;
-        }
-    }
-    if(dirtyFlag_[4])
-    {
         if(getStatus())
         {
             binder << getValueOfStatus();
@@ -886,11 +1037,22 @@ void Idea::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[4])
+    {
+        if(getProcessor())
+        {
+            binder << getValueOfProcessor();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
     if(dirtyFlag_[5])
     {
-        if(getCreate())
+        if(getIsmanage())
         {
-            binder << getValueOfCreate();
+            binder << getValueOfIsmanage();
         }
         else
         {
@@ -899,9 +1061,31 @@ void Idea::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[6])
     {
-        if(getUpdate())
+        if(getMemo())
         {
-            binder << getValueOfUpdate();
+            binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[7])
+    {
+        if(getCreateTime())
+        {
+            binder << getValueOfCreateTime();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[8])
+    {
+        if(getUpdateTime())
+        {
+            binder << getValueOfUpdateTime();
         }
         else
         {
@@ -936,14 +1120,6 @@ Json::Value Idea::toJson() const
     {
         ret["Type"]=Json::Value();
     }
-    if(getMemo())
-    {
-        ret["Memo"]=getValueOfMemo();
-    }
-    else
-    {
-        ret["Memo"]=Json::Value();
-    }
     if(getStatus())
     {
         ret["Status"]=getValueOfStatus();
@@ -952,21 +1128,45 @@ Json::Value Idea::toJson() const
     {
         ret["Status"]=Json::Value();
     }
-    if(getCreate())
+    if(getProcessor())
     {
-        ret["Create"]=getCreate()->toDbStringLocal();
+        ret["Processor"]=getValueOfProcessor();
     }
     else
     {
-        ret["Create"]=Json::Value();
+        ret["Processor"]=Json::Value();
     }
-    if(getUpdate())
+    if(getIsmanage())
     {
-        ret["Update"]=getUpdate()->toDbStringLocal();
+        ret["IsManage"]=getValueOfIsmanage();
     }
     else
     {
-        ret["Update"]=Json::Value();
+        ret["IsManage"]=Json::Value();
+    }
+    if(getMemo())
+    {
+        ret["Memo"]=getValueOfMemo();
+    }
+    else
+    {
+        ret["Memo"]=Json::Value();
+    }
+    if(getCreateTime())
+    {
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Create_Time"]=Json::Value();
+    }
+    if(getUpdateTime())
+    {
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Update_Time"]=Json::Value();
     }
     return ret;
 }
@@ -975,7 +1175,7 @@ Json::Value Idea::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 7)
+    if(pMasqueradingVector.size() == 9)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1012,9 +1212,9 @@ Json::Value Idea::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getMemo())
+            if(getStatus())
             {
-                ret[pMasqueradingVector[3]]=getValueOfMemo();
+                ret[pMasqueradingVector[3]]=getValueOfStatus();
             }
             else
             {
@@ -1023,9 +1223,9 @@ Json::Value Idea::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getStatus())
+            if(getProcessor())
             {
-                ret[pMasqueradingVector[4]]=getValueOfStatus();
+                ret[pMasqueradingVector[4]]=getValueOfProcessor();
             }
             else
             {
@@ -1034,9 +1234,9 @@ Json::Value Idea::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getCreate())
+            if(getIsmanage())
             {
-                ret[pMasqueradingVector[5]]=getCreate()->toDbStringLocal();
+                ret[pMasqueradingVector[5]]=getValueOfIsmanage();
             }
             else
             {
@@ -1045,13 +1245,35 @@ Json::Value Idea::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getUpdate())
+            if(getMemo())
             {
-                ret[pMasqueradingVector[6]]=getUpdate()->toDbStringLocal();
+                ret[pMasqueradingVector[6]]=getValueOfMemo();
             }
             else
             {
                 ret[pMasqueradingVector[6]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[7].empty())
+        {
+            if(getCreateTime())
+            {
+                ret[pMasqueradingVector[7]]=getCreateTime()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getUpdateTime())
+            {
+                ret[pMasqueradingVector[8]]=getUpdateTime()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
             }
         }
         return ret;
@@ -1081,14 +1303,6 @@ Json::Value Idea::toMasqueradedJson(
     {
         ret["Type"]=Json::Value();
     }
-    if(getMemo())
-    {
-        ret["Memo"]=getValueOfMemo();
-    }
-    else
-    {
-        ret["Memo"]=Json::Value();
-    }
     if(getStatus())
     {
         ret["Status"]=getValueOfStatus();
@@ -1097,21 +1311,45 @@ Json::Value Idea::toMasqueradedJson(
     {
         ret["Status"]=Json::Value();
     }
-    if(getCreate())
+    if(getProcessor())
     {
-        ret["Create"]=getCreate()->toDbStringLocal();
+        ret["Processor"]=getValueOfProcessor();
     }
     else
     {
-        ret["Create"]=Json::Value();
+        ret["Processor"]=Json::Value();
     }
-    if(getUpdate())
+    if(getIsmanage())
     {
-        ret["Update"]=getUpdate()->toDbStringLocal();
+        ret["IsManage"]=getValueOfIsmanage();
     }
     else
     {
-        ret["Update"]=Json::Value();
+        ret["IsManage"]=Json::Value();
+    }
+    if(getMemo())
+    {
+        ret["Memo"]=getValueOfMemo();
+    }
+    else
+    {
+        ret["Memo"]=Json::Value();
+    }
+    if(getCreateTime())
+    {
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Create_Time"]=Json::Value();
+    }
+    if(getUpdateTime())
+    {
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Update_Time"]=Json::Value();
     }
     return ret;
 }
@@ -1143,19 +1381,9 @@ bool Idea::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Type column cannot be null";
         return false;
     }
-    if(pJson.isMember("Memo"))
-    {
-        if(!validJsonOfField(3, "Memo", pJson["Memo"], err, true))
-            return false;
-    }
-    else
-    {
-        err="The Memo column cannot be null";
-        return false;
-    }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(4, "Status", pJson["Status"], err, true))
+        if(!validJsonOfField(3, "Status", pJson["Status"], err, true))
             return false;
     }
     else
@@ -1163,14 +1391,39 @@ bool Idea::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Status column cannot be null";
         return false;
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Processor"))
     {
-        if(!validJsonOfField(5, "Create", pJson["Create"], err, true))
+        if(!validJsonOfField(4, "Processor", pJson["Processor"], err, true))
             return false;
     }
-    if(pJson.isMember("Update"))
+    if(pJson.isMember("IsManage"))
     {
-        if(!validJsonOfField(6, "Update", pJson["Update"], err, true))
+        if(!validJsonOfField(5, "IsManage", pJson["IsManage"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The IsManage column cannot be null";
+        return false;
+    }
+    if(pJson.isMember("Memo"))
+    {
+        if(!validJsonOfField(6, "Memo", pJson["Memo"], err, true))
+            return false;
+    }
+    else
+    {
+        err="The Memo column cannot be null";
+        return false;
+    }
+    if(pJson.isMember("Create_Time"))
+    {
+        if(!validJsonOfField(7, "Create_Time", pJson["Create_Time"], err, true))
+            return false;
+    }
+    if(pJson.isMember("Update_Time"))
+    {
+        if(!validJsonOfField(8, "Update_Time", pJson["Update_Time"], err, true))
             return false;
     }
     return true;
@@ -1179,7 +1432,7 @@ bool Idea::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1239,11 +1492,6 @@ bool Idea::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(4, pMasqueradingVector[4], pJson[pMasqueradingVector[4]], err, true))
                   return false;
           }
-        else
-        {
-            err="The " + pMasqueradingVector[4] + " column cannot be null";
-            return false;
-        }
       }
       if(!pMasqueradingVector[5].empty())
       {
@@ -1252,12 +1500,38 @@ bool Idea::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(5, pMasqueradingVector[5], pJson[pMasqueradingVector[5]], err, true))
                   return false;
           }
+        else
+        {
+            err="The " + pMasqueradingVector[5] + " column cannot be null";
+            return false;
+        }
       }
       if(!pMasqueradingVector[6].empty())
       {
           if(pJson.isMember(pMasqueradingVector[6]))
           {
               if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[6] + " column cannot be null";
+            return false;
+        }
+      }
+      if(!pMasqueradingVector[7].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[7]))
+          {
+              if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, true))
+                  return false;
+          }
+      }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
                   return false;
           }
       }
@@ -1291,24 +1565,34 @@ bool Idea::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(2, "Type", pJson["Type"], err, false))
             return false;
     }
-    if(pJson.isMember("Memo"))
-    {
-        if(!validJsonOfField(3, "Memo", pJson["Memo"], err, false))
-            return false;
-    }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(4, "Status", pJson["Status"], err, false))
+        if(!validJsonOfField(3, "Status", pJson["Status"], err, false))
             return false;
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Processor"))
     {
-        if(!validJsonOfField(5, "Create", pJson["Create"], err, false))
+        if(!validJsonOfField(4, "Processor", pJson["Processor"], err, false))
             return false;
     }
-    if(pJson.isMember("Update"))
+    if(pJson.isMember("IsManage"))
     {
-        if(!validJsonOfField(6, "Update", pJson["Update"], err, false))
+        if(!validJsonOfField(5, "IsManage", pJson["IsManage"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Memo"))
+    {
+        if(!validJsonOfField(6, "Memo", pJson["Memo"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Create_Time"))
+    {
+        if(!validJsonOfField(7, "Create_Time", pJson["Create_Time"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Update_Time"))
+    {
+        if(!validJsonOfField(8, "Update_Time", pJson["Update_Time"], err, false))
             return false;
     }
     return true;
@@ -1317,7 +1601,7 @@ bool Idea::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector,
                                             std::string &err)
 {
-    if(pMasqueradingVector.size() != 7)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1361,6 +1645,16 @@ bool Idea::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
       {
           if(!validJsonOfField(6, pMasqueradingVector[6], pJson[pMasqueradingVector[6]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
+      {
+          if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
               return false;
       }
     }
@@ -1440,12 +1734,20 @@ bool Idea::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
+            // asString().length() creates a string object, is there any better way to validate the length?
+            if(pJson.isString() && pJson.asString().length() > 255)
+            {
+                err="String length exceeds limit for the " +
+                    fieldName +
+                    " field (the maximum value is 255)";
+                return false;               
+            }
+
             break;
         case 4:
             if(pJson.isNull())
             {
-                err="The " + fieldName + " column cannot be null";
-                return false;
+                return true;
             }
             if(!pJson.isString())
             {
@@ -1468,13 +1770,37 @@ bool Idea::validJsonOfField(size_t index,
                 err="The " + fieldName + " column cannot be null";
                 return false;
             }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 6:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
             if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
             break;
-        case 6:
+        case 7:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
+            }
+            break;
+        case 8:
             if(pJson.isNull())
             {
                 err="The " + fieldName + " column cannot be null";
