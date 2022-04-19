@@ -6,23 +6,12 @@ using namespace Admin;
 // 管理员资源查询接口
 void Resource::Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal;
-    drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
-    auto MyJsonPtr = app().getPlugin<MyJson>();
-    const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
-    
-    RespVal["简介"] = "管理员资源查询接口";
-    MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-    MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
-    MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
-
-    Result=HttpResponse::newHttpJsonResponse(RespVal);
-    
-    Result->setStatusCode(k200OK);
-    Result->setContentTypeCode(CT_TEXT_HTML);
-    callback(Result);
+    MyBasePtr->TRACELog("原始地址为：" + req->getPath(),true);
+    MyBasePtr->TRACELog("准备开始重定向",true);
+    req->setPath("/User/Resource/Search");
+    app().forward(req,move(callback));
+    MyBasePtr->TRACELog("重定向完成",true);
 }
 
 // 管理员资源上传接口
@@ -82,16 +71,14 @@ void Resource::Update(const HttpRequestPtr &req,std::function<void (const HttpRe
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "更新图书资源数据失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = "更新图书资源数据失败";
-        RespVal["ErrorMsg"] = "Admin::Resource::Update::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        RespVal["ErrorMsg"].append("Admin::Resource::Update::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -137,29 +124,27 @@ void Resource::Download(const HttpRequestPtr &req,std::function<void (const Http
 
         // 读取UserID LoginStatus数据
 
-        MyDBSPtr->Download_Resource(ReqVal, RespVal);
+        MyDBSPtr->Download_Resource_Public(ReqVal, RespVal);
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Admin::Resource::Download::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Admin::Resource::Download::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

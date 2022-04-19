@@ -25,17 +25,15 @@ void Test::ChineseStr(const HttpRequestPtr &req,std::function<void (const HttpRe
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Test::ChineseStr发生异常";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Test::ChineseStr发生异常");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     
@@ -75,17 +73,15 @@ void Test::SysOutLevel(const HttpRequestPtr &req,std::function<void (const HttpR
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Test::SysOutLevel";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Test::SysOutLevel");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     
@@ -93,3 +89,51 @@ void Test::SysOutLevel(const HttpRequestPtr &req,std::function<void (const HttpR
     Result->setContentTypeCode(CT_TEXT_HTML);
     callback(Result);
 }
+
+
+// 充值测试
+void Test::Recharge(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+	auto *MyJsonPtr = app().getPlugin<MyJson>();
+	auto *MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Test::Recharge::body" + string(req->getBody()), true);
+
+    try{
+        ReqVal=*req->getJsonObject();
+        ReqVal["User_ID"] = atoi(umapPara.at("User_ID").c_str());
+        MyBasePtr->DEBUGLog("开始准备充值", true);
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        MyDBSPtr->Recharge(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())
+        {
+            MyBasePtr->DEBUGLog("用户充值失败", true);
+            RespVal["ErrorMsg"].append("用户充值失败");
+            throw RespVal;
+        }
+        MyBasePtr->DEBUGLog("用户充值成功", true);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value &e)
+    {
+        RespVal["ErrorMsg"] = e["ErrorMsg"];
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Test::Recharge");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+

@@ -46,10 +46,12 @@ class Idea
         static const std::string _Idea_ID;
         static const std::string _User_ID;
         static const std::string _Type;
-        static const std::string _Memo;
         static const std::string _Status;
-        static const std::string _Create;
-        static const std::string _Update;
+        static const std::string _Processor;
+        static const std::string _IsManage;
+        static const std::string _Memo;
+        static const std::string _Create_Time;
+        static const std::string _Update_Time;
     };
 
     const static int primaryKeyNumber;
@@ -126,15 +128,6 @@ class Idea
     void setType(const std::string &pType) noexcept;
     void setType(std::string &&pType) noexcept;
 
-    /**  For column Memo  */
-    ///Get the value of the column Memo, returns the default value if the column is null
-    const std::string &getValueOfMemo() const noexcept;
-    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getMemo() const noexcept;
-    ///Set the value of the column Memo
-    void setMemo(const std::string &pMemo) noexcept;
-    void setMemo(std::string &&pMemo) noexcept;
-
     /**  For column Status  */
     ///Get the value of the column Status, returns the default value if the column is null
     const std::string &getValueOfStatus() const noexcept;
@@ -144,24 +137,51 @@ class Idea
     void setStatus(const std::string &pStatus) noexcept;
     void setStatus(std::string &&pStatus) noexcept;
 
-    /**  For column Create  */
-    ///Get the value of the column Create, returns the default value if the column is null
-    const ::trantor::Date &getValueOfCreate() const noexcept;
+    /**  For column Processor  */
+    ///Get the value of the column Processor, returns the default value if the column is null
+    const std::string &getValueOfProcessor() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getCreate() const noexcept;
-    ///Set the value of the column Create
-    void setCreate(const ::trantor::Date &pCreate) noexcept;
+    const std::shared_ptr<std::string> &getProcessor() const noexcept;
+    ///Set the value of the column Processor
+    void setProcessor(const std::string &pProcessor) noexcept;
+    void setProcessor(std::string &&pProcessor) noexcept;
+    void setProcessorToNull() noexcept;
 
-    /**  For column Update  */
-    ///Get the value of the column Update, returns the default value if the column is null
-    const ::trantor::Date &getValueOfUpdate() const noexcept;
+    /**  For column IsManage  */
+    ///Get the value of the column IsManage, returns the default value if the column is null
+    const int8_t &getValueOfIsmanage() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getUpdate() const noexcept;
-    ///Set the value of the column Update
-    void setUpdate(const ::trantor::Date &pUpdate) noexcept;
+    const std::shared_ptr<int8_t> &getIsmanage() const noexcept;
+    ///Set the value of the column IsManage
+    void setIsmanage(const int8_t &pIsmanage) noexcept;
+
+    /**  For column Memo  */
+    ///Get the value of the column Memo, returns the default value if the column is null
+    const std::string &getValueOfMemo() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<std::string> &getMemo() const noexcept;
+    ///Set the value of the column Memo
+    void setMemo(const std::string &pMemo) noexcept;
+    void setMemo(std::string &&pMemo) noexcept;
+
+    /**  For column Create_Time  */
+    ///Get the value of the column Create_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfCreateTime() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
+    ///Set the value of the column Create_Time
+    void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
+
+    /**  For column Update_Time  */
+    ///Get the value of the column Update_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfUpdateTime() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<::trantor::Date> &getUpdateTime() const noexcept;
+    ///Set the value of the column Update_Time
+    void setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 7;  }
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -181,10 +201,12 @@ class Idea
     std::shared_ptr<int32_t> ideaId_;
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<std::string> type_;
-    std::shared_ptr<std::string> memo_;
     std::shared_ptr<std::string> status_;
-    std::shared_ptr<::trantor::Date> create_;
-    std::shared_ptr<::trantor::Date> update_;
+    std::shared_ptr<std::string> processor_;
+    std::shared_ptr<int8_t> ismanage_;
+    std::shared_ptr<std::string> memo_;
+    std::shared_ptr<::trantor::Date> createTime_;
+    std::shared_ptr<::trantor::Date> updateTime_;
     struct MetaData
     {
         const std::string colName_;
@@ -196,7 +218,7 @@ class Idea
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[7]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -228,23 +250,33 @@ class Idea
         }
         if(dirtyFlag_[3])
         {
-            sql += "Memo,";
+            sql += "Status,";
             ++parametersCount;
         }
         if(dirtyFlag_[4])
         {
-            sql += "Status,";
+            sql += "Processor,";
             ++parametersCount;
         }
-        sql += "Create,";
+        if(dirtyFlag_[5])
+        {
+            sql += "IsManage,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[6])
+        {
+            sql += "Memo,";
+            ++parametersCount;
+        }
+        sql += "Create_Time,";
         ++parametersCount;
-        if(!dirtyFlag_[5])
+        if(!dirtyFlag_[7])
         {
             needSelection=true;
         }
-        sql += "Update,";
+        sql += "Update_Time,";
         ++parametersCount;
-        if(!dirtyFlag_[6])
+        if(!dirtyFlag_[8])
         {
             needSelection=true;
         }
@@ -283,11 +315,21 @@ class Idea
             sql.append("?,");
 
         } 
+        if(dirtyFlag_[6])
+        {
+            sql.append("?,");
+
+        } 
+        if(dirtyFlag_[7])
+        {
+            sql.append("?,");
+
+        } 
         else
         {
             sql +="default,";
         }
-        if(dirtyFlag_[6])
+        if(dirtyFlag_[8])
         {
             sql.append("?,");
 

@@ -25,7 +25,8 @@ void AdminFilter::doFilter(const HttpRequestPtr &req,
         return fccb();
     }
     
-    RespVal["ErrorMsg"] = "用户权限不足，请联系管理员";
+    RespVal["ErrorMsg"].append("用户权限不足，请联系管理员");
+    MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
     MyBasePtr->TRACELog("AdminFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

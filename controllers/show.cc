@@ -5,6 +5,7 @@ void show::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void 
     drogon::HttpResponsePtr Result;
 	auto *JWTPtr = app().getPlugin<MyJwt>();
     auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
 	const string token = req->getHeader("Authorization");
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("show::body" + string(req->getBody()), true);
@@ -12,7 +13,7 @@ void show::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void 
 
     try{
         ReqVal=*req->getJsonObject();
-
+        MyJsonPtr->UnMapToJson(RespVal,umapPara,"Para");
         MyBasePtr->DEBUGLog("开始解析Token", true);
         RespVal = JWTPtr->decode(token);
         MyBasePtr->DEBUGLog("解析Token成功", true);
@@ -20,17 +21,15 @@ void show::asyncHandleHttpRequest(const HttpRequestPtr& req, std::function<void 
 
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
-    catch (Json::Value RespVal)
+    catch (Json::Value &RespVal)
     {
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
-        RespVal["ErrorMsg"] = "Test::SysOutLevel";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("Test::SysOutLevel");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

@@ -15,7 +15,7 @@ using namespace drogon_model::novel;
 const std::string Agree::Cols::_Agree_ID = "Agree_ID";
 const std::string Agree::Cols::_User_ID = "User_ID";
 const std::string Agree::Cols::_Note_ID = "Note_ID";
-const std::string Agree::Cols::_Comment_ID = "Comment_ID";
+const std::string Agree::Cols::_Floor_ID = "Floor_ID";
 const std::string Agree::Cols::_Status = "Status";
 const std::string Agree::Cols::_Time = "Time";
 const std::string Agree::primaryKeyName = "Agree_ID";
@@ -26,7 +26,7 @@ const std::vector<typename Agree::MetaData> Agree::metaData_={
 {"Agree_ID","int32_t","int(10)",4,1,1,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Note_ID","int32_t","int(10)",4,0,0,1},
-{"Comment_ID","int32_t","int(10)",4,0,0,1},
+{"Floor_ID","int32_t","int(10)",4,0,0,1},
 {"Status","int8_t","tinyint(1)",1,0,0,1},
 {"Time","::trantor::Date","timestamp",0,0,0,1}
 };
@@ -51,9 +51,9 @@ Agree::Agree(const Row &r, const ssize_t indexOffset) noexcept
         {
             noteId_=std::make_shared<int32_t>(r["Note_ID"].as<int32_t>());
         }
-        if(!r["Comment_ID"].isNull())
+        if(!r["Floor_ID"].isNull())
         {
-            commentId_=std::make_shared<int32_t>(r["Comment_ID"].as<int32_t>());
+            floorId_=std::make_shared<int32_t>(r["Floor_ID"].as<int32_t>());
         }
         if(!r["Status"].isNull())
         {
@@ -109,7 +109,7 @@ Agree::Agree(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 3;
         if(!r[index].isNull())
         {
-            commentId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            floorId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 4;
         if(!r[index].isNull())
@@ -179,7 +179,7 @@ Agree::Agree(const Json::Value &pJson, const std::vector<std::string> &pMasquera
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            commentId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            floorId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -244,12 +244,12 @@ Agree::Agree(const Json::Value &pJson) noexcept(false)
             noteId_=std::make_shared<int32_t>((int32_t)pJson["Note_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Comment_ID"))
+    if(pJson.isMember("Floor_ID"))
     {
         dirtyFlag_[3]=true;
-        if(!pJson["Comment_ID"].isNull())
+        if(!pJson["Floor_ID"].isNull())
         {
-            commentId_=std::make_shared<int32_t>((int32_t)pJson["Comment_ID"].asInt64());
+            floorId_=std::make_shared<int32_t>((int32_t)pJson["Floor_ID"].asInt64());
         }
     }
     if(pJson.isMember("Status"))
@@ -324,7 +324,7 @@ void Agree::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[3] = true;
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
-            commentId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
+            floorId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[3]].asInt64());
         }
     }
     if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
@@ -388,12 +388,12 @@ void Agree::updateByJson(const Json::Value &pJson) noexcept(false)
             noteId_=std::make_shared<int32_t>((int32_t)pJson["Note_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Comment_ID"))
+    if(pJson.isMember("Floor_ID"))
     {
         dirtyFlag_[3] = true;
-        if(!pJson["Comment_ID"].isNull())
+        if(!pJson["Floor_ID"].isNull())
         {
-            commentId_=std::make_shared<int32_t>((int32_t)pJson["Comment_ID"].asInt64());
+            floorId_=std::make_shared<int32_t>((int32_t)pJson["Floor_ID"].asInt64());
         }
     }
     if(pJson.isMember("Status"))
@@ -488,20 +488,20 @@ void Agree::setNoteId(const int32_t &pNoteId) noexcept
     dirtyFlag_[2] = true;
 }
 
-const int32_t &Agree::getValueOfCommentId() const noexcept
+const int32_t &Agree::getValueOfFloorId() const noexcept
 {
     const static int32_t defaultValue = int32_t();
-    if(commentId_)
-        return *commentId_;
+    if(floorId_)
+        return *floorId_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Agree::getCommentId() const noexcept
+const std::shared_ptr<int32_t> &Agree::getFloorId() const noexcept
 {
-    return commentId_;
+    return floorId_;
 }
-void Agree::setCommentId(const int32_t &pCommentId) noexcept
+void Agree::setFloorId(const int32_t &pFloorId) noexcept
 {
-    commentId_ = std::make_shared<int32_t>(pCommentId);
+    floorId_ = std::make_shared<int32_t>(pFloorId);
     dirtyFlag_[3] = true;
 }
 
@@ -549,7 +549,7 @@ const std::vector<std::string> &Agree::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "User_ID",
         "Note_ID",
-        "Comment_ID",
+        "Floor_ID",
         "Status",
         "Time"
     };
@@ -582,9 +582,9 @@ void Agree::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getCommentId())
+        if(getFloorId())
         {
-            binder << getValueOfCommentId();
+            binder << getValueOfFloorId();
         }
         else
         {
@@ -667,9 +667,9 @@ void Agree::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getCommentId())
+        if(getFloorId())
         {
-            binder << getValueOfCommentId();
+            binder << getValueOfFloorId();
         }
         else
         {
@@ -726,13 +726,13 @@ Json::Value Agree::toJson() const
     {
         ret["Note_ID"]=Json::Value();
     }
-    if(getCommentId())
+    if(getFloorId())
     {
-        ret["Comment_ID"]=getValueOfCommentId();
+        ret["Floor_ID"]=getValueOfFloorId();
     }
     else
     {
-        ret["Comment_ID"]=Json::Value();
+        ret["Floor_ID"]=Json::Value();
     }
     if(getStatus())
     {
@@ -794,9 +794,9 @@ Json::Value Agree::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getCommentId())
+            if(getFloorId())
             {
-                ret[pMasqueradingVector[3]]=getValueOfCommentId();
+                ret[pMasqueradingVector[3]]=getValueOfFloorId();
             }
             else
             {
@@ -852,13 +852,13 @@ Json::Value Agree::toMasqueradedJson(
     {
         ret["Note_ID"]=Json::Value();
     }
-    if(getCommentId())
+    if(getFloorId())
     {
-        ret["Comment_ID"]=getValueOfCommentId();
+        ret["Floor_ID"]=getValueOfFloorId();
     }
     else
     {
-        ret["Comment_ID"]=Json::Value();
+        ret["Floor_ID"]=Json::Value();
     }
     if(getStatus())
     {
@@ -906,14 +906,14 @@ bool Agree::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Note_ID column cannot be null";
         return false;
     }
-    if(pJson.isMember("Comment_ID"))
+    if(pJson.isMember("Floor_ID"))
     {
-        if(!validJsonOfField(3, "Comment_ID", pJson["Comment_ID"], err, true))
+        if(!validJsonOfField(3, "Floor_ID", pJson["Floor_ID"], err, true))
             return false;
     }
     else
     {
-        err="The Comment_ID column cannot be null";
+        err="The Floor_ID column cannot be null";
         return false;
     }
     if(pJson.isMember("Status"))
@@ -1041,9 +1041,9 @@ bool Agree::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(2, "Note_ID", pJson["Note_ID"], err, false))
             return false;
     }
-    if(pJson.isMember("Comment_ID"))
+    if(pJson.isMember("Floor_ID"))
     {
-        if(!validJsonOfField(3, "Comment_ID", pJson["Comment_ID"], err, false))
+        if(!validJsonOfField(3, "Floor_ID", pJson["Floor_ID"], err, false))
             return false;
     }
     if(pJson.isMember("Status"))

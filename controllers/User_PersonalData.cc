@@ -34,7 +34,7 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "获取失败";
-        MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
@@ -43,27 +43,25 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
 
         if (e.base().what() == string("0 rows found"))
         {
-            RespVal["ErrorMsg"] = "此用户不存在";
+            RespVal["ErrorMsg"].append("此用户不存在");
         }
         else if (e.base().what() == string("Found more than one row"))
         {
-            RespVal["ErrorMsg"] = "用户ID重复,请联系管理员";
+            RespVal["ErrorMsg"].append("用户ID重复,请联系管理员");
         }
         else
         {
-            RespVal["ErrorMsg"] = e.base().what();
+            RespVal["ErrorMsg"].append(e.base().what());
         }
         RespVal["Result"] = "获取失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = "获取失败";
-        RespVal["ErrorMsg"] = "PersonalData::Search::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append("PersonalData::Search::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 
@@ -120,8 +118,7 @@ void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const Ht
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "更新失败";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (const drogon::orm::DrogonDbException &e)
@@ -129,28 +126,25 @@ void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const Ht
 
         if (e.base().what() == string("0 rows found"))
         {
-            RespVal["ErrorMsg"] = "要更改的用户不存在";
+            RespVal["ErrorMsg"].append("要更改的用户不存在");
         }
         else if (e.base().what() == string("Found more than one row"))
         {
-            RespVal["ErrorMsg"] = "要更改的用户ID重复,请联系管理员";
+            RespVal["ErrorMsg"].append("要更改的用户ID重复,请联系管理员");
         }
         else
         {
-            RespVal["ErrorMsg"] = e.base().what();
+            RespVal["ErrorMsg"].append(e.base().what());
         }
         RespVal["Result"] = "更新失败";
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (...)
     {
         RespVal["Result"] = "更新失败";
-        RespVal["ErrorMsg"] = "PersonalData::Search::Error";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-        
+        RespVal["ErrorMsg"].append("PersonalData::Search::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
 

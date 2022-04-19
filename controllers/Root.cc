@@ -35,16 +35,14 @@ void Root::Instructions(const HttpRequestPtr &req,std::function<void (const Http
     catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "指令错误";
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
 	    RespVal["Result"] = "指令错误";
-        RespVal["ErrorMsg"] = e.base().what();
-        MyBasePtr->TRACELog("ErrorMsg::" + RespVal["ErrorMsg"].asString(), true);
-
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
 

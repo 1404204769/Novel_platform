@@ -16,6 +16,7 @@ const std::string Action::Cols::_Action_ID = "Action_ID";
 const std::string Action::Cols::_User_ID = "User_ID";
 const std::string Action::Cols::_Type = "Type";
 const std::string Action::Cols::_Memo = "Memo";
+const std::string Action::Cols::_Time = "Time";
 const std::string Action::primaryKeyName = "Action_ID";
 const bool Action::hasPrimaryKey = true;
 const std::string Action::tableName = "action";
@@ -24,7 +25,8 @@ const std::vector<typename Action::MetaData> Action::metaData_={
 {"Action_ID","int32_t","int(10)",4,1,1,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Type","std::string","varchar(255)",255,0,0,1},
-{"Memo","std::string","text",0,0,0,1}
+{"Memo","std::string","text",0,0,0,1},
+{"Time","::trantor::Date","timestamp",0,0,0,1}
 };
 const std::string &Action::getColumnName(size_t index) noexcept(false)
 {
@@ -51,11 +53,33 @@ Action::Action(const Row &r, const ssize_t indexOffset) noexcept
         {
             memo_=std::make_shared<std::string>(r["Memo"].as<std::string>());
         }
+        if(!r["Time"].isNull())
+        {
+            auto timeStr = r["Time"].as<std::string>();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
     }
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 4 > r.size())
+        if(offset + 5 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -81,13 +105,36 @@ Action::Action(const Row &r, const ssize_t indexOffset) noexcept
         {
             memo_=std::make_shared<std::string>(r[index].as<std::string>());
         }
+        index = offset + 4;
+        if(!r[index].isNull())
+        {
+            auto timeStr = r[index].as<std::string>();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
     }
 
 }
 
 Action::Action(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 4)
+    if(pMasqueradingVector.size() != 5)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -122,6 +169,32 @@ Action::Action(const Json::Value &pJson, const std::vector<std::string> &pMasque
         if(!pJson[pMasqueradingVector[3]].isNull())
         {
             memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
+        }
+    }
+    if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
+    {
+        dirtyFlag_[4] = true;
+        if(!pJson[pMasqueradingVector[4]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[4]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
         }
     }
 }
@@ -160,12 +233,38 @@ Action::Action(const Json::Value &pJson) noexcept(false)
             memo_=std::make_shared<std::string>(pJson["Memo"].asString());
         }
     }
+    if(pJson.isMember("Time"))
+    {
+        dirtyFlag_[4]=true;
+        if(!pJson["Time"].isNull())
+        {
+            auto timeStr = pJson["Time"].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
 }
 
 void Action::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 4)
+    if(pMasqueradingVector.size() != 5)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -201,6 +300,32 @@ void Action::updateByMasqueradedJson(const Json::Value &pJson,
             memo_=std::make_shared<std::string>(pJson[pMasqueradingVector[3]].asString());
         }
     }
+    if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
+    {
+        dirtyFlag_[4] = true;
+        if(!pJson[pMasqueradingVector[4]].isNull())
+        {
+            auto timeStr = pJson[pMasqueradingVector[4]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
 }
                                                                     
 void Action::updateByJson(const Json::Value &pJson) noexcept(false)
@@ -234,6 +359,32 @@ void Action::updateByJson(const Json::Value &pJson) noexcept(false)
         if(!pJson["Memo"].isNull())
         {
             memo_=std::make_shared<std::string>(pJson["Memo"].asString());
+        }
+    }
+    if(pJson.isMember("Time"))
+    {
+        dirtyFlag_[4] = true;
+        if(!pJson["Time"].isNull())
+        {
+            auto timeStr = pJson["Time"].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                time_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
         }
     }
 }
@@ -321,6 +472,23 @@ void Action::setMemo(std::string &&pMemo) noexcept
     dirtyFlag_[3] = true;
 }
 
+const ::trantor::Date &Action::getValueOfTime() const noexcept
+{
+    const static ::trantor::Date defaultValue = ::trantor::Date();
+    if(time_)
+        return *time_;
+    return defaultValue;
+}
+const std::shared_ptr<::trantor::Date> &Action::getTime() const noexcept
+{
+    return time_;
+}
+void Action::setTime(const ::trantor::Date &pTime) noexcept
+{
+    time_ = std::make_shared<::trantor::Date>(pTime);
+    dirtyFlag_[4] = true;
+}
+
 void Action::updateId(const uint64_t id)
 {
     actionId_ = std::make_shared<int32_t>(static_cast<int32_t>(id));
@@ -331,7 +499,8 @@ const std::vector<std::string> &Action::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "User_ID",
         "Type",
-        "Memo"
+        "Memo",
+        "Time"
     };
     return inCols;
 }
@@ -371,6 +540,17 @@ void Action::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
+    if(dirtyFlag_[4])
+    {
+        if(getTime())
+        {
+            binder << getValueOfTime();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
 }
 
 const std::vector<std::string> Action::updateColumns() const
@@ -387,6 +567,10 @@ const std::vector<std::string> Action::updateColumns() const
     if(dirtyFlag_[3])
     {
         ret.push_back(getColumnName(3));
+    }
+    if(dirtyFlag_[4])
+    {
+        ret.push_back(getColumnName(4));
     }
     return ret;
 }
@@ -420,6 +604,17 @@ void Action::updateArgs(drogon::orm::internal::SqlBinder &binder) const
         if(getMemo())
         {
             binder << getValueOfMemo();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[4])
+    {
+        if(getTime())
+        {
+            binder << getValueOfTime();
         }
         else
         {
@@ -462,6 +657,14 @@ Json::Value Action::toJson() const
     {
         ret["Memo"]=Json::Value();
     }
+    if(getTime())
+    {
+        ret["Time"]=getTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Time"]=Json::Value();
+    }
     return ret;
 }
 
@@ -469,7 +672,7 @@ Json::Value Action::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 4)
+    if(pMasqueradingVector.size() == 5)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -515,6 +718,17 @@ Json::Value Action::toMasqueradedJson(
                 ret[pMasqueradingVector[3]]=Json::Value();
             }
         }
+        if(!pMasqueradingVector[4].empty())
+        {
+            if(getTime())
+            {
+                ret[pMasqueradingVector[4]]=getTime()->toDbStringLocal();
+            }
+            else
+            {
+                ret[pMasqueradingVector[4]]=Json::Value();
+            }
+        }
         return ret;
     }
     LOG_ERROR << "Masquerade failed";
@@ -549,6 +763,14 @@ Json::Value Action::toMasqueradedJson(
     else
     {
         ret["Memo"]=Json::Value();
+    }
+    if(getTime())
+    {
+        ret["Time"]=getTime()->toDbStringLocal();
+    }
+    else
+    {
+        ret["Time"]=Json::Value();
     }
     return ret;
 }
@@ -590,13 +812,18 @@ bool Action::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Memo column cannot be null";
         return false;
     }
+    if(pJson.isMember("Time"))
+    {
+        if(!validJsonOfField(4, "Time", pJson["Time"], err, true))
+            return false;
+    }
     return true;
 }
 bool Action::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                                 const std::vector<std::string> &pMasqueradingVector,
                                                 std::string &err)
 {
-    if(pMasqueradingVector.size() != 4)
+    if(pMasqueradingVector.size() != 5)
     {
         err = "Bad masquerading vector";
         return false;
@@ -649,6 +876,14 @@ bool Action::validateMasqueradedJsonForCreation(const Json::Value &pJson,
             return false;
         }
       }
+      if(!pMasqueradingVector[4].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[4]))
+          {
+              if(!validJsonOfField(4, pMasqueradingVector[4], pJson[pMasqueradingVector[4]], err, true))
+                  return false;
+          }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -684,13 +919,18 @@ bool Action::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(3, "Memo", pJson["Memo"], err, false))
             return false;
     }
+    if(pJson.isMember("Time"))
+    {
+        if(!validJsonOfField(4, "Time", pJson["Time"], err, false))
+            return false;
+    }
     return true;
 }
 bool Action::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 4)
+    if(pMasqueradingVector.size() != 5)
     {
         err = "Bad masquerading vector";
         return false;
@@ -719,6 +959,11 @@ bool Action::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[3].empty() && pJson.isMember(pMasqueradingVector[3]))
       {
           if(!validJsonOfField(3, pMasqueradingVector[3], pJson[pMasqueradingVector[3]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[4].empty() && pJson.isMember(pMasqueradingVector[4]))
+      {
+          if(!validJsonOfField(4, pMasqueradingVector[4], pJson[pMasqueradingVector[4]], err, false))
               return false;
       }
     }
@@ -788,6 +1033,18 @@ bool Action::validJsonOfField(size_t index,
 
             break;
         case 3:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
+            if(!pJson.isString())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;                
+            }
+            break;
+        case 4:
             if(pJson.isNull())
             {
                 err="The " + fieldName + " column cannot be null";

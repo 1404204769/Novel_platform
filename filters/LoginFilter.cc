@@ -26,7 +26,7 @@ void LoginFilter::doFilter(const HttpRequestPtr &req,
         return fccb();
     }
     RespVal["Login_Status"] = LoginStatus;
-    RespVal["ErrorMsg"] = "游客权限不足，请注册账号";
+    RespVal["ErrorMsg"].append("游客权限不足，请注册账号");
     MyBasePtr->TRACELog("LoginFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
