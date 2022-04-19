@@ -15,3 +15,4 @@ $ cd ../build \
 $ cmake .. \
 $ make \
 $ ./Novel_platform \
+

@@ -25,7 +25,7 @@ void RootFilter::doFilter(const HttpRequestPtr &req,
         return fccb();
     }
     
-    RespVal["ErrorMsg"] = "权限不足，请联系站长";
+    RespVal["ErrorMsg"].append("权限不足，请联系站长");
     MyBasePtr->TRACELog("RootFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 

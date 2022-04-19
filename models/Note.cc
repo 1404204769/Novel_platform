@@ -15,8 +15,9 @@ using namespace drogon_model::novel;
 const std::string Note::Cols::_Note_ID = "Note_ID";
 const std::string Note::Cols::_Title = "Title";
 const std::string Note::Cols::_Content = "Content";
-const std::string Note::Cols::_Create = "Create";
-const std::string Note::Cols::_Read_Count = "Read_Count";
+const std::string Note::Cols::_Create_Time = "Create_Time";
+const std::string Note::Cols::_Update_Time = "Update_Time";
+const std::string Note::Cols::_Comment_Count = "Comment_Count";
 const std::string Note::Cols::_User_ID = "User_ID";
 const std::string Note::Cols::_Status = "Status";
 const std::string Note::Cols::_Type = "Type";
@@ -27,9 +28,10 @@ const std::string Note::tableName = "note";
 const std::vector<typename Note::MetaData> Note::metaData_={
 {"Note_ID","int32_t","int(10)",4,1,1,1},
 {"Title","std::string","varchar(255)",255,0,0,1},
-{"Content","std::string","varchar(255)",255,0,0,1},
-{"Create","::trantor::Date","timestamp",0,0,0,1},
-{"Read_Count","int32_t","int(255)",4,0,0,1},
+{"Content","std::string","text",0,0,0,1},
+{"Create_Time","::trantor::Date","timestamp",0,0,0,1},
+{"Update_Time","::trantor::Date","timestamp",0,0,0,1},
+{"Comment_Count","int32_t","int(255)",4,0,0,1},
 {"User_ID","int32_t","int(10)",4,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
 {"Type","std::string","varchar(255)",255,0,0,1}
@@ -55,9 +57,9 @@ Note::Note(const Row &r, const ssize_t indexOffset) noexcept
         {
             content_=std::make_shared<std::string>(r["Content"].as<std::string>());
         }
-        if(!r["Create"].isNull())
+        if(!r["Create_Time"].isNull())
         {
-            auto timeStr = r["Create"].as<std::string>();
+            auto timeStr = r["Create_Time"].as<std::string>();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -74,12 +76,34 @@ Note::Note(const Row &r, const ssize_t indexOffset) noexcept
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        if(!r["Read_Count"].isNull())
+        if(!r["Update_Time"].isNull())
         {
-            readCount_=std::make_shared<int32_t>(r["Read_Count"].as<int32_t>());
+            auto timeStr = r["Update_Time"].as<std::string>();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+        if(!r["Comment_Count"].isNull())
+        {
+            commentCount_=std::make_shared<int32_t>(r["Comment_Count"].as<int32_t>());
         }
         if(!r["User_ID"].isNull())
         {
@@ -97,7 +121,7 @@ Note::Note(const Row &r, const ssize_t indexOffset) noexcept
     else
     {
         size_t offset = (size_t)indexOffset;
-        if(offset + 8 > r.size())
+        if(offset + 9 > r.size())
         {
             LOG_FATAL << "Invalid SQL result for this model";
             return;
@@ -138,25 +162,48 @@ Note::Note(const Row &r, const ssize_t indexOffset) noexcept
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
         index = offset + 4;
         if(!r[index].isNull())
         {
-            readCount_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            auto timeStr = r[index].as<std::string>();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
         }
         index = offset + 5;
         if(!r[index].isNull())
         {
-            userId_=std::make_shared<int32_t>(r[index].as<int32_t>());
+            commentCount_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 6;
         if(!r[index].isNull())
         {
-            status_=std::make_shared<std::string>(r[index].as<std::string>());
+            userId_=std::make_shared<int32_t>(r[index].as<int32_t>());
         }
         index = offset + 7;
+        if(!r[index].isNull())
+        {
+            status_=std::make_shared<std::string>(r[index].as<std::string>());
+        }
+        index = offset + 8;
         if(!r[index].isNull())
         {
             type_=std::make_shared<std::string>(r[index].as<std::string>());
@@ -167,7 +214,7 @@ Note::Note(const Row &r, const ssize_t indexOffset) noexcept
 
 Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -218,7 +265,7 @@ Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -227,7 +274,25 @@ Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            readCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[4]].asInt64());
+            auto timeStr = pJson[pMasqueradingVector[4]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -235,7 +300,7 @@ Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
+            commentCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -243,7 +308,7 @@ Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[6]].asInt64());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -251,7 +316,15 @@ Note::Note(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            type_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            type_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
@@ -282,12 +355,12 @@ Note::Note(const Json::Value &pJson) noexcept(false)
             content_=std::make_shared<std::string>(pJson["Content"].asString());
         }
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Create_Time"))
     {
         dirtyFlag_[3]=true;
-        if(!pJson["Create"].isNull())
+        if(!pJson["Create_Time"].isNull())
         {
-            auto timeStr = pJson["Create"].asString();
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -304,21 +377,47 @@ Note::Note(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
-    if(pJson.isMember("Read_Count"))
+    if(pJson.isMember("Update_Time"))
     {
         dirtyFlag_[4]=true;
-        if(!pJson["Read_Count"].isNull())
+        if(!pJson["Update_Time"].isNull())
         {
-            readCount_=std::make_shared<int32_t>((int32_t)pJson["Read_Count"].asInt64());
+            auto timeStr = pJson["Update_Time"].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
+    if(pJson.isMember("Comment_Count"))
+    {
+        dirtyFlag_[5]=true;
+        if(!pJson["Comment_Count"].isNull())
+        {
+            commentCount_=std::make_shared<int32_t>((int32_t)pJson["Comment_Count"].asInt64());
         }
     }
     if(pJson.isMember("User_ID"))
     {
-        dirtyFlag_[5]=true;
+        dirtyFlag_[6]=true;
         if(!pJson["User_ID"].isNull())
         {
             userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
@@ -326,7 +425,7 @@ Note::Note(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[6]=true;
+        dirtyFlag_[7]=true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
@@ -334,7 +433,7 @@ Note::Note(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Type"))
     {
-        dirtyFlag_[7]=true;
+        dirtyFlag_[8]=true;
         if(!pJson["Type"].isNull())
         {
             type_=std::make_shared<std::string>(pJson["Type"].asString());
@@ -345,7 +444,7 @@ Note::Note(const Json::Value &pJson) noexcept(false)
 void Note::updateByMasqueradedJson(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector) noexcept(false)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         LOG_ERROR << "Bad masquerading vector";
         return;
@@ -395,7 +494,7 @@ void Note::updateByMasqueradedJson(const Json::Value &pJson,
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
@@ -404,7 +503,25 @@ void Note::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[4] = true;
         if(!pJson[pMasqueradingVector[4]].isNull())
         {
-            readCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[4]].asInt64());
+            auto timeStr = pJson[pMasqueradingVector[4]].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
         }
     }
     if(!pMasqueradingVector[5].empty() && pJson.isMember(pMasqueradingVector[5]))
@@ -412,7 +529,7 @@ void Note::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[5] = true;
         if(!pJson[pMasqueradingVector[5]].isNull())
         {
-            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
+            commentCount_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[5]].asInt64());
         }
     }
     if(!pMasqueradingVector[6].empty() && pJson.isMember(pMasqueradingVector[6]))
@@ -420,7 +537,7 @@ void Note::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[6] = true;
         if(!pJson[pMasqueradingVector[6]].isNull())
         {
-            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[6]].asString());
+            userId_=std::make_shared<int32_t>((int32_t)pJson[pMasqueradingVector[6]].asInt64());
         }
     }
     if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
@@ -428,7 +545,15 @@ void Note::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[7] = true;
         if(!pJson[pMasqueradingVector[7]].isNull())
         {
-            type_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+            status_=std::make_shared<std::string>(pJson[pMasqueradingVector[7]].asString());
+        }
+    }
+    if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+    {
+        dirtyFlag_[8] = true;
+        if(!pJson[pMasqueradingVector[8]].isNull())
+        {
+            type_=std::make_shared<std::string>(pJson[pMasqueradingVector[8]].asString());
         }
     }
 }
@@ -458,12 +583,12 @@ void Note::updateByJson(const Json::Value &pJson) noexcept(false)
             content_=std::make_shared<std::string>(pJson["Content"].asString());
         }
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Create_Time"))
     {
         dirtyFlag_[3] = true;
-        if(!pJson["Create"].isNull())
+        if(!pJson["Create_Time"].isNull())
         {
-            auto timeStr = pJson["Create"].asString();
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -480,21 +605,47 @@ void Note::updateByJson(const Json::Value &pJson) noexcept(false)
                     }
                     decimalNum = (size_t)atol(decimals.c_str());
                 }
-                create_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+                createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
     }
-    if(pJson.isMember("Read_Count"))
+    if(pJson.isMember("Update_Time"))
     {
         dirtyFlag_[4] = true;
-        if(!pJson["Read_Count"].isNull())
+        if(!pJson["Update_Time"].isNull())
         {
-            readCount_=std::make_shared<int32_t>((int32_t)pJson["Read_Count"].asInt64());
+            auto timeStr = pJson["Update_Time"].asString();
+            struct tm stm;
+            memset(&stm,0,sizeof(stm));
+            auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
+            time_t t = mktime(&stm);
+            size_t decimalNum = 0;
+            if(p)
+            {
+                if(*p=='.')
+                {
+                    std::string decimals(p+1,&timeStr[timeStr.length()]);
+                    while(decimals.length()<6)
+                    {
+                        decimals += "0";
+                    }
+                    decimalNum = (size_t)atol(decimals.c_str());
+                }
+                updateTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
+            }
+        }
+    }
+    if(pJson.isMember("Comment_Count"))
+    {
+        dirtyFlag_[5] = true;
+        if(!pJson["Comment_Count"].isNull())
+        {
+            commentCount_=std::make_shared<int32_t>((int32_t)pJson["Comment_Count"].asInt64());
         }
     }
     if(pJson.isMember("User_ID"))
     {
-        dirtyFlag_[5] = true;
+        dirtyFlag_[6] = true;
         if(!pJson["User_ID"].isNull())
         {
             userId_=std::make_shared<int32_t>((int32_t)pJson["User_ID"].asInt64());
@@ -502,7 +653,7 @@ void Note::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Status"))
     {
-        dirtyFlag_[6] = true;
+        dirtyFlag_[7] = true;
         if(!pJson["Status"].isNull())
         {
             status_=std::make_shared<std::string>(pJson["Status"].asString());
@@ -510,7 +661,7 @@ void Note::updateByJson(const Json::Value &pJson) noexcept(false)
     }
     if(pJson.isMember("Type"))
     {
-        dirtyFlag_[7] = true;
+        dirtyFlag_[8] = true;
         if(!pJson["Type"].isNull())
         {
             type_=std::make_shared<std::string>(pJson["Type"].asString());
@@ -584,38 +735,55 @@ void Note::setContent(std::string &&pContent) noexcept
     dirtyFlag_[2] = true;
 }
 
-const ::trantor::Date &Note::getValueOfCreate() const noexcept
+const ::trantor::Date &Note::getValueOfCreateTime() const noexcept
 {
     const static ::trantor::Date defaultValue = ::trantor::Date();
-    if(create_)
-        return *create_;
+    if(createTime_)
+        return *createTime_;
     return defaultValue;
 }
-const std::shared_ptr<::trantor::Date> &Note::getCreate() const noexcept
+const std::shared_ptr<::trantor::Date> &Note::getCreateTime() const noexcept
 {
-    return create_;
+    return createTime_;
 }
-void Note::setCreate(const ::trantor::Date &pCreate) noexcept
+void Note::setCreateTime(const ::trantor::Date &pCreateTime) noexcept
 {
-    create_ = std::make_shared<::trantor::Date>(pCreate);
+    createTime_ = std::make_shared<::trantor::Date>(pCreateTime);
     dirtyFlag_[3] = true;
 }
 
-const int32_t &Note::getValueOfReadCount() const noexcept
+const ::trantor::Date &Note::getValueOfUpdateTime() const noexcept
 {
-    const static int32_t defaultValue = int32_t();
-    if(readCount_)
-        return *readCount_;
+    const static ::trantor::Date defaultValue = ::trantor::Date();
+    if(updateTime_)
+        return *updateTime_;
     return defaultValue;
 }
-const std::shared_ptr<int32_t> &Note::getReadCount() const noexcept
+const std::shared_ptr<::trantor::Date> &Note::getUpdateTime() const noexcept
 {
-    return readCount_;
+    return updateTime_;
 }
-void Note::setReadCount(const int32_t &pReadCount) noexcept
+void Note::setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept
 {
-    readCount_ = std::make_shared<int32_t>(pReadCount);
+    updateTime_ = std::make_shared<::trantor::Date>(pUpdateTime);
     dirtyFlag_[4] = true;
+}
+
+const int32_t &Note::getValueOfCommentCount() const noexcept
+{
+    const static int32_t defaultValue = int32_t();
+    if(commentCount_)
+        return *commentCount_;
+    return defaultValue;
+}
+const std::shared_ptr<int32_t> &Note::getCommentCount() const noexcept
+{
+    return commentCount_;
+}
+void Note::setCommentCount(const int32_t &pCommentCount) noexcept
+{
+    commentCount_ = std::make_shared<int32_t>(pCommentCount);
+    dirtyFlag_[5] = true;
 }
 
 const int32_t &Note::getValueOfUserId() const noexcept
@@ -632,7 +800,7 @@ const std::shared_ptr<int32_t> &Note::getUserId() const noexcept
 void Note::setUserId(const int32_t &pUserId) noexcept
 {
     userId_ = std::make_shared<int32_t>(pUserId);
-    dirtyFlag_[5] = true;
+    dirtyFlag_[6] = true;
 }
 
 const std::string &Note::getValueOfStatus() const noexcept
@@ -649,12 +817,12 @@ const std::shared_ptr<std::string> &Note::getStatus() const noexcept
 void Note::setStatus(const std::string &pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(pStatus);
-    dirtyFlag_[6] = true;
+    dirtyFlag_[7] = true;
 }
 void Note::setStatus(std::string &&pStatus) noexcept
 {
     status_ = std::make_shared<std::string>(std::move(pStatus));
-    dirtyFlag_[6] = true;
+    dirtyFlag_[7] = true;
 }
 
 const std::string &Note::getValueOfType() const noexcept
@@ -671,12 +839,12 @@ const std::shared_ptr<std::string> &Note::getType() const noexcept
 void Note::setType(const std::string &pType) noexcept
 {
     type_ = std::make_shared<std::string>(pType);
-    dirtyFlag_[7] = true;
+    dirtyFlag_[8] = true;
 }
 void Note::setType(std::string &&pType) noexcept
 {
     type_ = std::make_shared<std::string>(std::move(pType));
-    dirtyFlag_[7] = true;
+    dirtyFlag_[8] = true;
 }
 
 void Note::updateId(const uint64_t id)
@@ -689,8 +857,9 @@ const std::vector<std::string> &Note::insertColumns() noexcept
     static const std::vector<std::string> inCols={
         "Title",
         "Content",
-        "Create",
-        "Read_Count",
+        "Create_Time",
+        "Update_Time",
+        "Comment_Count",
         "User_ID",
         "Status",
         "Type"
@@ -724,9 +893,9 @@ void Note::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getCreate())
+        if(getCreateTime())
         {
-            binder << getValueOfCreate();
+            binder << getValueOfCreateTime();
         }
         else
         {
@@ -735,9 +904,9 @@ void Note::outputArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
-        if(getReadCount())
+        if(getUpdateTime())
         {
-            binder << getValueOfReadCount();
+            binder << getValueOfUpdateTime();
         }
         else
         {
@@ -745,6 +914,17 @@ void Note::outputArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
     if(dirtyFlag_[5])
+    {
+        if(getCommentCount())
+        {
+            binder << getValueOfCommentCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[6])
     {
         if(getUserId())
         {
@@ -755,7 +935,7 @@ void Note::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
     {
         if(getStatus())
         {
@@ -766,7 +946,7 @@ void Note::outputArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[8])
     {
         if(getType())
         {
@@ -810,6 +990,10 @@ const std::vector<std::string> Note::updateColumns() const
     {
         ret.push_back(getColumnName(7));
     }
+    if(dirtyFlag_[8])
+    {
+        ret.push_back(getColumnName(8));
+    }
     return ret;
 }
 
@@ -839,9 +1023,9 @@ void Note::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[3])
     {
-        if(getCreate())
+        if(getCreateTime())
         {
-            binder << getValueOfCreate();
+            binder << getValueOfCreateTime();
         }
         else
         {
@@ -850,9 +1034,9 @@ void Note::updateArgs(drogon::orm::internal::SqlBinder &binder) const
     }
     if(dirtyFlag_[4])
     {
-        if(getReadCount())
+        if(getUpdateTime())
         {
-            binder << getValueOfReadCount();
+            binder << getValueOfUpdateTime();
         }
         else
         {
@@ -860,6 +1044,17 @@ void Note::updateArgs(drogon::orm::internal::SqlBinder &binder) const
         }
     }
     if(dirtyFlag_[5])
+    {
+        if(getCommentCount())
+        {
+            binder << getValueOfCommentCount();
+        }
+        else
+        {
+            binder << nullptr;
+        }
+    }
+    if(dirtyFlag_[6])
     {
         if(getUserId())
         {
@@ -870,7 +1065,7 @@ void Note::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[6])
+    if(dirtyFlag_[7])
     {
         if(getStatus())
         {
@@ -881,7 +1076,7 @@ void Note::updateArgs(drogon::orm::internal::SqlBinder &binder) const
             binder << nullptr;
         }
     }
-    if(dirtyFlag_[7])
+    if(dirtyFlag_[8])
     {
         if(getType())
         {
@@ -920,21 +1115,29 @@ Json::Value Note::toJson() const
     {
         ret["Content"]=Json::Value();
     }
-    if(getCreate())
+    if(getCreateTime())
     {
-        ret["Create"]=getCreate()->toDbStringLocal();
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Create"]=Json::Value();
+        ret["Create_Time"]=Json::Value();
     }
-    if(getReadCount())
+    if(getUpdateTime())
     {
-        ret["Read_Count"]=getValueOfReadCount();
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Read_Count"]=Json::Value();
+        ret["Update_Time"]=Json::Value();
+    }
+    if(getCommentCount())
+    {
+        ret["Comment_Count"]=getValueOfCommentCount();
+    }
+    else
+    {
+        ret["Comment_Count"]=Json::Value();
     }
     if(getUserId())
     {
@@ -967,7 +1170,7 @@ Json::Value Note::toMasqueradedJson(
     const std::vector<std::string> &pMasqueradingVector) const
 {
     Json::Value ret;
-    if(pMasqueradingVector.size() == 8)
+    if(pMasqueradingVector.size() == 9)
     {
         if(!pMasqueradingVector[0].empty())
         {
@@ -1004,9 +1207,9 @@ Json::Value Note::toMasqueradedJson(
         }
         if(!pMasqueradingVector[3].empty())
         {
-            if(getCreate())
+            if(getCreateTime())
             {
-                ret[pMasqueradingVector[3]]=getCreate()->toDbStringLocal();
+                ret[pMasqueradingVector[3]]=getCreateTime()->toDbStringLocal();
             }
             else
             {
@@ -1015,9 +1218,9 @@ Json::Value Note::toMasqueradedJson(
         }
         if(!pMasqueradingVector[4].empty())
         {
-            if(getReadCount())
+            if(getUpdateTime())
             {
-                ret[pMasqueradingVector[4]]=getValueOfReadCount();
+                ret[pMasqueradingVector[4]]=getUpdateTime()->toDbStringLocal();
             }
             else
             {
@@ -1026,9 +1229,9 @@ Json::Value Note::toMasqueradedJson(
         }
         if(!pMasqueradingVector[5].empty())
         {
-            if(getUserId())
+            if(getCommentCount())
             {
-                ret[pMasqueradingVector[5]]=getValueOfUserId();
+                ret[pMasqueradingVector[5]]=getValueOfCommentCount();
             }
             else
             {
@@ -1037,9 +1240,9 @@ Json::Value Note::toMasqueradedJson(
         }
         if(!pMasqueradingVector[6].empty())
         {
-            if(getStatus())
+            if(getUserId())
             {
-                ret[pMasqueradingVector[6]]=getValueOfStatus();
+                ret[pMasqueradingVector[6]]=getValueOfUserId();
             }
             else
             {
@@ -1048,13 +1251,24 @@ Json::Value Note::toMasqueradedJson(
         }
         if(!pMasqueradingVector[7].empty())
         {
-            if(getType())
+            if(getStatus())
             {
-                ret[pMasqueradingVector[7]]=getValueOfType();
+                ret[pMasqueradingVector[7]]=getValueOfStatus();
             }
             else
             {
                 ret[pMasqueradingVector[7]]=Json::Value();
+            }
+        }
+        if(!pMasqueradingVector[8].empty())
+        {
+            if(getType())
+            {
+                ret[pMasqueradingVector[8]]=getValueOfType();
+            }
+            else
+            {
+                ret[pMasqueradingVector[8]]=Json::Value();
             }
         }
         return ret;
@@ -1084,21 +1298,29 @@ Json::Value Note::toMasqueradedJson(
     {
         ret["Content"]=Json::Value();
     }
-    if(getCreate())
+    if(getCreateTime())
     {
-        ret["Create"]=getCreate()->toDbStringLocal();
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Create"]=Json::Value();
+        ret["Create_Time"]=Json::Value();
     }
-    if(getReadCount())
+    if(getUpdateTime())
     {
-        ret["Read_Count"]=getValueOfReadCount();
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Read_Count"]=Json::Value();
+        ret["Update_Time"]=Json::Value();
+    }
+    if(getCommentCount())
+    {
+        ret["Comment_Count"]=getValueOfCommentCount();
+    }
+    else
+    {
+        ret["Comment_Count"]=Json::Value();
     }
     if(getUserId())
     {
@@ -1154,24 +1376,29 @@ bool Note::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Content column cannot be null";
         return false;
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Create_Time"))
     {
-        if(!validJsonOfField(3, "Create", pJson["Create"], err, true))
+        if(!validJsonOfField(3, "Create_Time", pJson["Create_Time"], err, true))
             return false;
     }
-    if(pJson.isMember("Read_Count"))
+    if(pJson.isMember("Update_Time"))
     {
-        if(!validJsonOfField(4, "Read_Count", pJson["Read_Count"], err, true))
+        if(!validJsonOfField(4, "Update_Time", pJson["Update_Time"], err, true))
+            return false;
+    }
+    if(pJson.isMember("Comment_Count"))
+    {
+        if(!validJsonOfField(5, "Comment_Count", pJson["Comment_Count"], err, true))
             return false;
     }
     else
     {
-        err="The Read_Count column cannot be null";
+        err="The Comment_Count column cannot be null";
         return false;
     }
     if(pJson.isMember("User_ID"))
     {
-        if(!validJsonOfField(5, "User_ID", pJson["User_ID"], err, true))
+        if(!validJsonOfField(6, "User_ID", pJson["User_ID"], err, true))
             return false;
     }
     else
@@ -1181,7 +1408,7 @@ bool Note::validateJsonForCreation(const Json::Value &pJson, std::string &err)
     }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(6, "Status", pJson["Status"], err, true))
+        if(!validJsonOfField(7, "Status", pJson["Status"], err, true))
             return false;
     }
     else
@@ -1191,7 +1418,7 @@ bool Note::validateJsonForCreation(const Json::Value &pJson, std::string &err)
     }
     if(pJson.isMember("Type"))
     {
-        if(!validJsonOfField(7, "Type", pJson["Type"], err, true))
+        if(!validJsonOfField(8, "Type", pJson["Type"], err, true))
             return false;
     }
     else
@@ -1205,7 +1432,7 @@ bool Note::validateMasqueradedJsonForCreation(const Json::Value &pJson,
                                               const std::vector<std::string> &pMasqueradingVector,
                                               std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1260,11 +1487,6 @@ bool Note::validateMasqueradedJsonForCreation(const Json::Value &pJson,
               if(!validJsonOfField(4, pMasqueradingVector[4], pJson[pMasqueradingVector[4]], err, true))
                   return false;
           }
-        else
-        {
-            err="The " + pMasqueradingVector[4] + " column cannot be null";
-            return false;
-        }
       }
       if(!pMasqueradingVector[5].empty())
       {
@@ -1305,6 +1527,19 @@ bool Note::validateMasqueradedJsonForCreation(const Json::Value &pJson,
             return false;
         }
       }
+      if(!pMasqueradingVector[8].empty())
+      {
+          if(pJson.isMember(pMasqueradingVector[8]))
+          {
+              if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, true))
+                  return false;
+          }
+        else
+        {
+            err="The " + pMasqueradingVector[8] + " column cannot be null";
+            return false;
+        }
+      }
     }
     catch(const Json::LogicError &e) 
     {
@@ -1335,29 +1570,34 @@ bool Note::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(2, "Content", pJson["Content"], err, false))
             return false;
     }
-    if(pJson.isMember("Create"))
+    if(pJson.isMember("Create_Time"))
     {
-        if(!validJsonOfField(3, "Create", pJson["Create"], err, false))
+        if(!validJsonOfField(3, "Create_Time", pJson["Create_Time"], err, false))
             return false;
     }
-    if(pJson.isMember("Read_Count"))
+    if(pJson.isMember("Update_Time"))
     {
-        if(!validJsonOfField(4, "Read_Count", pJson["Read_Count"], err, false))
+        if(!validJsonOfField(4, "Update_Time", pJson["Update_Time"], err, false))
+            return false;
+    }
+    if(pJson.isMember("Comment_Count"))
+    {
+        if(!validJsonOfField(5, "Comment_Count", pJson["Comment_Count"], err, false))
             return false;
     }
     if(pJson.isMember("User_ID"))
     {
-        if(!validJsonOfField(5, "User_ID", pJson["User_ID"], err, false))
+        if(!validJsonOfField(6, "User_ID", pJson["User_ID"], err, false))
             return false;
     }
     if(pJson.isMember("Status"))
     {
-        if(!validJsonOfField(6, "Status", pJson["Status"], err, false))
+        if(!validJsonOfField(7, "Status", pJson["Status"], err, false))
             return false;
     }
     if(pJson.isMember("Type"))
     {
-        if(!validJsonOfField(7, "Type", pJson["Type"], err, false))
+        if(!validJsonOfField(8, "Type", pJson["Type"], err, false))
             return false;
     }
     return true;
@@ -1366,7 +1606,7 @@ bool Note::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
                                             const std::vector<std::string> &pMasqueradingVector,
                                             std::string &err)
 {
-    if(pMasqueradingVector.size() != 8)
+    if(pMasqueradingVector.size() != 9)
     {
         err = "Bad masquerading vector";
         return false;
@@ -1415,6 +1655,11 @@ bool Note::validateMasqueradedJsonForUpdate(const Json::Value &pJson,
       if(!pMasqueradingVector[7].empty() && pJson.isMember(pMasqueradingVector[7]))
       {
           if(!validJsonOfField(7, pMasqueradingVector[7], pJson[pMasqueradingVector[7]], err, false))
+              return false;
+      }
+      if(!pMasqueradingVector[8].empty() && pJson.isMember(pMasqueradingVector[8]))
+      {
+          if(!validJsonOfField(8, pMasqueradingVector[8], pJson[pMasqueradingVector[8]], err, false))
               return false;
       }
     }
@@ -1482,15 +1727,6 @@ bool Note::validJsonOfField(size_t index,
                 err="Type error in the "+fieldName+" field";
                 return false;                
             }
-            // asString().length() creates a string object, is there any better way to validate the length?
-            if(pJson.isString() && pJson.asString().length() > 255)
-            {
-                err="String length exceeds limit for the " +
-                    fieldName +
-                    " field (the maximum value is 255)";
-                return false;               
-            }
-
             break;
         case 3:
             if(pJson.isNull())
@@ -1510,10 +1746,10 @@ bool Note::validJsonOfField(size_t index,
                 err="The " + fieldName + " column cannot be null";
                 return false;
             }
-            if(!pJson.isInt())
+            if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
-                return false;
+                return false;                
             }
             break;
         case 5:
@@ -1534,6 +1770,18 @@ bool Note::validJsonOfField(size_t index,
                 err="The " + fieldName + " column cannot be null";
                 return false;
             }
+            if(!pJson.isInt())
+            {
+                err="Type error in the "+fieldName+" field";
+                return false;
+            }
+            break;
+        case 7:
+            if(pJson.isNull())
+            {
+                err="The " + fieldName + " column cannot be null";
+                return false;
+            }
             if(!pJson.isString())
             {
                 err="Type error in the "+fieldName+" field";
@@ -1549,7 +1797,7 @@ bool Note::validJsonOfField(size_t index,
             }
 
             break;
-        case 7:
+        case 8:
             if(pJson.isNull())
             {
                 err="The " + fieldName + " column cannot be null";

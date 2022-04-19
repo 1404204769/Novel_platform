@@ -46,8 +46,9 @@ class Note
         static const std::string _Note_ID;
         static const std::string _Title;
         static const std::string _Content;
-        static const std::string _Create;
-        static const std::string _Read_Count;
+        static const std::string _Create_Time;
+        static const std::string _Update_Time;
+        static const std::string _Comment_Count;
         static const std::string _User_ID;
         static const std::string _Status;
         static const std::string _Type;
@@ -128,21 +129,29 @@ class Note
     void setContent(const std::string &pContent) noexcept;
     void setContent(std::string &&pContent) noexcept;
 
-    /**  For column Create  */
-    ///Get the value of the column Create, returns the default value if the column is null
-    const ::trantor::Date &getValueOfCreate() const noexcept;
+    /**  For column Create_Time  */
+    ///Get the value of the column Create_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfCreateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<::trantor::Date> &getCreate() const noexcept;
-    ///Set the value of the column Create
-    void setCreate(const ::trantor::Date &pCreate) noexcept;
+    const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
+    ///Set the value of the column Create_Time
+    void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
 
-    /**  For column Read_Count  */
-    ///Get the value of the column Read_Count, returns the default value if the column is null
-    const int32_t &getValueOfReadCount() const noexcept;
+    /**  For column Update_Time  */
+    ///Get the value of the column Update_Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfUpdateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getReadCount() const noexcept;
-    ///Set the value of the column Read_Count
-    void setReadCount(const int32_t &pReadCount) noexcept;
+    const std::shared_ptr<::trantor::Date> &getUpdateTime() const noexcept;
+    ///Set the value of the column Update_Time
+    void setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept;
+
+    /**  For column Comment_Count  */
+    ///Get the value of the column Comment_Count, returns the default value if the column is null
+    const int32_t &getValueOfCommentCount() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<int32_t> &getCommentCount() const noexcept;
+    ///Set the value of the column Comment_Count
+    void setCommentCount(const int32_t &pCommentCount) noexcept;
 
     /**  For column User_ID  */
     ///Get the value of the column User_ID, returns the default value if the column is null
@@ -171,7 +180,7 @@ class Note
     void setType(std::string &&pType) noexcept;
 
 
-    static size_t getColumnNumber() noexcept {  return 8;  }
+    static size_t getColumnNumber() noexcept {  return 9;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -191,8 +200,9 @@ class Note
     std::shared_ptr<int32_t> noteId_;
     std::shared_ptr<std::string> title_;
     std::shared_ptr<std::string> content_;
-    std::shared_ptr<::trantor::Date> create_;
-    std::shared_ptr<int32_t> readCount_;
+    std::shared_ptr<::trantor::Date> createTime_;
+    std::shared_ptr<::trantor::Date> updateTime_;
+    std::shared_ptr<int32_t> commentCount_;
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<std::string> status_;
     std::shared_ptr<std::string> type_;
@@ -207,7 +217,7 @@ class Note
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[8]={ false };
+    bool dirtyFlag_[9]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -237,28 +247,34 @@ class Note
             sql += "Content,";
             ++parametersCount;
         }
-        sql += "Create,";
+        sql += "Create_Time,";
         ++parametersCount;
         if(!dirtyFlag_[3])
         {
             needSelection=true;
         }
-        if(dirtyFlag_[4])
+        sql += "Update_Time,";
+        ++parametersCount;
+        if(!dirtyFlag_[4])
         {
-            sql += "Read_Count,";
-            ++parametersCount;
+            needSelection=true;
         }
         if(dirtyFlag_[5])
         {
-            sql += "User_ID,";
+            sql += "Comment_Count,";
             ++parametersCount;
         }
         if(dirtyFlag_[6])
         {
-            sql += "Status,";
+            sql += "User_ID,";
             ++parametersCount;
         }
         if(dirtyFlag_[7])
+        {
+            sql += "Status,";
+            ++parametersCount;
+        }
+        if(dirtyFlag_[8])
         {
             sql += "Type,";
             ++parametersCount;
@@ -297,6 +313,10 @@ class Note
             sql.append("?,");
 
         } 
+        else
+        {
+            sql +="default,";
+        }
         if(dirtyFlag_[5])
         {
             sql.append("?,");
@@ -308,6 +328,11 @@ class Note
 
         } 
         if(dirtyFlag_[7])
+        {
+            sql.append("?,");
+
+        } 
+        if(dirtyFlag_[8])
         {
             sql.append("?,");
 

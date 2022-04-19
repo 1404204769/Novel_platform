@@ -25,12 +25,12 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
     try{
         // If authorization header is empty
         if (token.empty()) {
-            RespVal["ErrorMsg"] = "No header authentication!";
+            RespVal["ErrorMsg"].append("No header authentication!");
             throw RespVal;
         }
         if(!JWTPtr->verify(token))
         {
-            RespVal["ErrorMsg"] = "JWTFilter 验证失败!";
+            RespVal["ErrorMsg"].append("JWTFilter 验证失败!");
             throw RespVal;
         }
 
@@ -42,7 +42,7 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
     }
     catch(const std::exception& e)
     {  
-        RespVal["ErrorMsg"] = e.what();
+        RespVal["ErrorMsg"].append(e.what());
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
         Result = HttpResponse::newHttpJsonResponse(RespVal);

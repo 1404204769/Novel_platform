@@ -2,6 +2,7 @@
 #include <drogon/HttpController.h>
 #include <plugins/MyJwt.h>
 #include <plugins/MyRoot.h>
+#include <plugins/MyDBService.h>
 #include <models/User.h>
 using namespace drogon;
 class Gpi:public drogon::HttpController<Gpi>

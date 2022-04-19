@@ -47,6 +47,7 @@ class Action
         static const std::string _User_ID;
         static const std::string _Type;
         static const std::string _Memo;
+        static const std::string _Time;
     };
 
     const static int primaryKeyNumber;
@@ -132,8 +133,16 @@ class Action
     void setMemo(const std::string &pMemo) noexcept;
     void setMemo(std::string &&pMemo) noexcept;
 
+    /**  For column Time  */
+    ///Get the value of the column Time, returns the default value if the column is null
+    const ::trantor::Date &getValueOfTime() const noexcept;
+    ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
+    const std::shared_ptr<::trantor::Date> &getTime() const noexcept;
+    ///Set the value of the column Time
+    void setTime(const ::trantor::Date &pTime) noexcept;
 
-    static size_t getColumnNumber() noexcept {  return 4;  }
+
+    static size_t getColumnNumber() noexcept {  return 5;  }
     static const std::string &getColumnName(size_t index) noexcept(false);
 
     Json::Value toJson() const;
@@ -154,6 +163,7 @@ class Action
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<std::string> type_;
     std::shared_ptr<std::string> memo_;
+    std::shared_ptr<::trantor::Date> time_;
     struct MetaData
     {
         const std::string colName_;
@@ -165,7 +175,7 @@ class Action
         const bool notNull_;
     };
     static const std::vector<MetaData> metaData_;
-    bool dirtyFlag_[4]={ false };
+    bool dirtyFlag_[5]={ false };
   public:
     static const std::string &sqlForFindingByPrimaryKey()
     {
@@ -200,6 +210,12 @@ class Action
             sql += "Memo,";
             ++parametersCount;
         }
+        sql += "Time,";
+        ++parametersCount;
+        if(!dirtyFlag_[4])
+        {
+            needSelection=true;
+        }
         needSelection=true;
         if(parametersCount > 0)
         {
@@ -225,6 +241,15 @@ class Action
             sql.append("?,");
 
         } 
+        if(dirtyFlag_[4])
+        {
+            sql.append("?,");
+
+        } 
+        else
+        {
+            sql +="default,";
+        }
         if(parametersCount > 0)
         {
             sql.resize(sql.length() - 1);

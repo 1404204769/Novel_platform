@@ -46,7 +46,7 @@ class Agree
         static const std::string _Agree_ID;
         static const std::string _User_ID;
         static const std::string _Note_ID;
-        static const std::string _Comment_ID;
+        static const std::string _Floor_ID;
         static const std::string _Status;
         static const std::string _Time;
     };
@@ -124,13 +124,13 @@ class Agree
     ///Set the value of the column Note_ID
     void setNoteId(const int32_t &pNoteId) noexcept;
 
-    /**  For column Comment_ID  */
-    ///Get the value of the column Comment_ID, returns the default value if the column is null
-    const int32_t &getValueOfCommentId() const noexcept;
+    /**  For column Floor_ID  */
+    ///Get the value of the column Floor_ID, returns the default value if the column is null
+    const int32_t &getValueOfFloorId() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<int32_t> &getCommentId() const noexcept;
-    ///Set the value of the column Comment_ID
-    void setCommentId(const int32_t &pCommentId) noexcept;
+    const std::shared_ptr<int32_t> &getFloorId() const noexcept;
+    ///Set the value of the column Floor_ID
+    void setFloorId(const int32_t &pFloorId) noexcept;
 
     /**  For column Status  */
     ///Get the value of the column Status, returns the default value if the column is null
@@ -169,7 +169,7 @@ class Agree
     std::shared_ptr<int32_t> agreeId_;
     std::shared_ptr<int32_t> userId_;
     std::shared_ptr<int32_t> noteId_;
-    std::shared_ptr<int32_t> commentId_;
+    std::shared_ptr<int32_t> floorId_;
     std::shared_ptr<int8_t> status_;
     std::shared_ptr<::trantor::Date> time_;
     struct MetaData
@@ -215,7 +215,7 @@ class Agree
         }
         if(dirtyFlag_[3])
         {
-            sql += "Comment_ID,";
+            sql += "Floor_ID,";
             ++parametersCount;
         }
         if(dirtyFlag_[4])
