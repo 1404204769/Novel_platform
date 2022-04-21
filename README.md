@@ -16,3 +16,4 @@ $ cmake .. \
 $ make \
 $ ./Novel_platform \
 
+开始最后的调试
