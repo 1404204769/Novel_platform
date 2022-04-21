@@ -4,7 +4,7 @@
 void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     drogon::HttpResponsePtr Result;
-	Json::Value ReqVal, RespVal,ParaVal;
+	Json::Value ReqVal, RespVal,ParaVal,ResultData;
     auto JWTPtr = app().getPlugin<MyJwt>();
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -108,13 +108,24 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         RespVal["User_Data"] = user.toJson();
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"]["Token"] = RespVal["Token"];
+        ResultData["Data"]["User_Data"] = RespVal["User_Data"];
+        
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "登入失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["Result"];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
@@ -128,7 +139,11 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
             RespVal["ErrorMsg"].append("用户ID重复,请联系管理员");
         }
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["Result"];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -138,7 +153,7 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
 
 void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal, ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -187,13 +202,22 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         MyBasePtr->DEBUGLog("注册新用户完成", true);
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"]["User_Data"] = newUser.toJson();
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
+
     }
     catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "注册失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["Result"];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
@@ -205,7 +229,12 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         else
             RespVal["ErrorMsg"].append("注册失败/" + string(e.base().what()));
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

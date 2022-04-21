@@ -3,7 +3,7 @@
 void Admin::User::List(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
     drogon::HttpResponsePtr Result;
-    Json::Value ReqVal, RespVal, FilterVal;
+    Json::Value ReqVal, RespVal, FilterVal,ResultData;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
@@ -31,20 +31,37 @@ void Admin::User::List(const HttpRequestPtr &req, std::function<void(const HttpR
         RespVal["Result"] = "查询所有用户成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"]["UserList"]= RespVal["UserList"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "查询所有用户失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = "查询所有用户失败";
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

@@ -12,7 +12,7 @@ void RootFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
 	auto *MyBasePtr = app().getPlugin<MyBase>();
     MyBasePtr->TRACELog("RootFilter::body" + string(req->getBody()), true);
@@ -29,7 +29,13 @@ void RootFilter::doFilter(const HttpRequestPtr &req,
     MyBasePtr->TRACELog("RootFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+
+    // 设置返回格式
+    int ErrorSize = RespVal["ErrorMsg"].size();
+    ResultData["Result"] = false;
+    ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+    Result = HttpResponse::newHttpJsonResponse(ResultData);
 
     Result->setStatusCode(k500InternalServerError);
     // Return the response and let's tell this endpoint request was cancelled

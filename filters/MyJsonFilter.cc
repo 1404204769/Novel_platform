@@ -12,7 +12,7 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value RespVal;
+    Json::Value RespVal,ResultData;
     drogon::HttpResponsePtr Result;
 	auto *MyBasePtr = app().getPlugin<MyBase>();
     MyBasePtr->TRACELog("MyJsonFilter::body" + string(req->getBody()), true);
@@ -27,7 +27,12 @@ void MyJsonFilter::doFilter(const HttpRequestPtr &req,
     MyBasePtr->TRACELog("MyJsonFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-    auto res = HttpResponse::newHttpJsonResponse(RespVal);
+
+    // 设置返回格式
+    int ErrorSize = RespVal["ErrorMsg"].size();
+    ResultData["Result"] = false;
+    ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+    auto res = HttpResponse::newHttpJsonResponse(ResultData);
 
     res->setStatusCode(k500InternalServerError);
     return fcb(res);

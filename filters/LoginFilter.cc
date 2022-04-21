@@ -12,7 +12,7 @@ void LoginFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal, ResultData;
     drogon::HttpResponsePtr Result;
 	auto *MyBasePtr = app().getPlugin<MyBase>();
 	auto *MyJsonPtr = app().getPlugin<MyJson>();
@@ -30,7 +30,13 @@ void LoginFilter::doFilter(const HttpRequestPtr &req,
     MyBasePtr->TRACELog("LoginFilter 验证失败", true);
     MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+
+    // 设置返回格式
+    int ErrorSize = RespVal["ErrorMsg"].size();
+    ResultData["Result"] = false;
+    ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+    Result = HttpResponse::newHttpJsonResponse(ResultData);
 
     Result->setStatusCode(k500InternalServerError);
     return fcb(Result);

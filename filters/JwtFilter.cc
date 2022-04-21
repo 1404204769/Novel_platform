@@ -12,7 +12,7 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
                          FilterCallback &&fcb,
                          FilterChainCallback &&fccb)
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto *JWTPtr = app().getPlugin<MyJwt>();
 	auto *MyBasePtr = app().getPlugin<MyBase>();
@@ -45,7 +45,13 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
         RespVal["ErrorMsg"].append(e.what());
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+        
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
 
         Result->setStatusCode(k500InternalServerError);
         // Return the response and let's tell this endpoint request was cancelled
@@ -55,7 +61,12 @@ void JwtFilter::doFilter(const HttpRequestPtr &req,
     {   
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+        
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
 
         Result->setStatusCode(k500InternalServerError);
         // Return the response and let's tell this endpoint request was cancelled
