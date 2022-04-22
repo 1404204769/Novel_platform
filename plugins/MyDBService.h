@@ -66,8 +66,11 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Recharge(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Comment(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Chapter_All_Version(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Chapter_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Note(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_User_Ban_Time(Json::Value &ReqJson, Json::Value &RespJson);

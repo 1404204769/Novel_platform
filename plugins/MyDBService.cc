@@ -184,7 +184,7 @@ void MyDBService::Admin_Search_Idea(Json::Value &ReqJson, Json::Value &RespJson)
             vecJsonVal.append(idea.toJson());
             // std::cout << user.toJson().toStyledString() <<std::endl;
         }
-        RespJson["UploadList"] = vecJsonVal;
+        RespJson["Idea_List"] = vecJsonVal;
         MyBasePtr->DEBUGLog("用户意见信息查询完毕", true);
     }
     catch(const drogon::orm::DrogonDbException &e)
@@ -3551,6 +3551,119 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
     }
 }
 
+
+// 搜索图书
+/*
+    搜索图书的接口
+Req:{
+    "Book_Name"  :   "",// 书名
+    "Author"  :   "",// 作者名
+    "Publisher"  :   "",// 出版方
+    ["Limit"]         :   0, //
+    ["Offset"]        :   0, //
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Book_List" :   [],         // 成功返回的图书信息
+}
+*/
+void MyDBService::Search_Book(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Book", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int limit = 0, offset = 0;
+    string BookName = "", Author = "", Publisher = "";
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Note_KeyWord"  :   "",// 关键字,在标题和内容中查找
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_Name"] = MyJson::ColType::STRING;
+        ColMap["Author"] = MyJson::ColType::STRING;
+        ColMap["Publisher"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        if (ReqJson.isMember("Limit"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
+            limit = ReqJson["Limit"].asInt();
+        }
+        if (ReqJson.isMember("Offset"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Offset", MyJson::ColType::INT);
+            offset = ReqJson["Offset"].asInt();
+        }
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Book", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Book::Error");
+        MyBasePtr->INFO_Func("Search_Book", false, RespJson);
+        return;
+    }
+
+    // 查询指定帖子
+    try
+    {   
+        // 制作筛选条件
+        Criteria BookName_cri = Criteria(drogon_model::novel::Book::Cols::_Name, CompareOperator::Like, "%" + BookName + "%");
+        Criteria Author_cri = Criteria(drogon_model::novel::Book::Cols::_Author, CompareOperator::Like, "%" + Author + "%");
+        Criteria Publisher_cri = Criteria(drogon_model::novel::Book::Cols::_Publisher, CompareOperator::Like, "%" + Publisher + "%");
+
+        if (offset > 0)
+        {
+            BookMgr.offset(offset);
+        }
+
+        if (limit > 0)
+        {
+            BookMgr.limit(limit);
+        }
+
+        MyBasePtr->DEBUGLog("开始查询指定图书", true);
+        std::vector<drogon_model::novel::Book> vecBook = BookMgr.findBy(BookName_cri && Author_cri && Publisher_cri);
+        Json::Value vecJsonVal, TempBookJson;
+        for (auto &book : vecBook)
+        {
+            TempBookJson.clear();
+            TempBookJson = book.toJson();
+            MyJsonPtr->JsonstrToJson(TempBookJson["Memo"],TempBookJson["Memo"].asString());
+            vecJsonVal.append(TempBookJson);
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+        MyBasePtr->DEBUGLog("查询指定图书完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Book_List"] = vecJsonVal;
+        MyBasePtr->INFO_Func("Search_Book", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("图书查询失败");
+        MyBasePtr->INFO_Func("Search_Book", false, RespJson);
+        return;
+    }
+
+}
+
+
+
 // 通过BookID查询图书数据
 /*
     通过BookID查询图书数据
@@ -3709,6 +3822,294 @@ void MyDBService::Search_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         return;
     }
 }
+
+
+// 搜索章节所有版本
+/*
+    搜索章节所有版本的接口
+Req:{
+    "Book_ID":0,
+    "Part_Num"0,
+    "Chapter_Num":0
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Chapter_List" :   [],         // 成功返回的章节信息
+}
+*/
+void MyDBService::Search_Chapter_All_Version(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Chapter_All_Version", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int limit = 0, offset = 0, BookID,PartNum,ChapterNum;
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        ColMap["Part_Num"] = MyJson::ColType::INT;
+        ColMap["Chapter_Num"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        BookID = atoi(ReqJson["Book_ID"].asString().c_str());
+        PartNum = atoi(ReqJson["Part_Num"].asString().c_str());
+        ChapterNum = atoi(ReqJson["Chapter_Num"].asString().c_str());
+        if (ReqJson.isMember("Limit"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
+            limit = ReqJson["Limit"].asInt();
+        }
+        if (ReqJson.isMember("Offset"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Offset", MyJson::ColType::INT);
+            offset = ReqJson["Offset"].asInt();
+        }
+
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Chapter_All_Version::Error");
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+
+
+    // 判断图书是否存在
+    try
+    {
+        // 检查图书是否已存在
+        MyBasePtr->DEBUGLog("开始检查图书是否已存在", true);
+        Criteria BookID_cri(drogon_model::novel::Book::Cols::_Book_ID, CompareOperator::EQ, BookID);
+        vector<drogon_model::novel::Book> vecBook = BookMgr.findBy(BookID_cri);
+
+        // 如果不是新书，则将Upload状态改为已处理且拒绝插入
+        if (vecBook.size() == 0)
+        {
+            RespJson["ErrorMsg"].append("图书不存在");
+            RespJson["Result"] = false;
+            MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+            return;
+        }
+        MyBasePtr->DEBUGLog("图书存在", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("图书不存在");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        RespJson["ErrorMsg"].append(e.base().what());
+        RespJson["ErrorMsg"].append("图书不存在");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+
+
+
+    // 查询指定图书章节
+    try
+    {
+        // 制作筛选条件
+        Criteria BookID_cri = Criteria(drogon_model::novel::Chapter::Cols::_Book_ID, CompareOperator::EQ, BookID);
+        Criteria PartNum_cri = Criteria(drogon_model::novel::Chapter::Cols::_Part_Num, CompareOperator::EQ, PartNum);
+        Criteria ChapterNum_cri = Criteria(drogon_model::novel::Chapter::Cols::_Chapter_Num, CompareOperator::EQ, ChapterNum);
+        if (offset > 0)
+        {
+            ChapterMgr.offset(offset);
+        }
+
+        if (limit > 0)
+        {
+            ChapterMgr.limit(limit);
+        }
+
+        MyBasePtr->DEBUGLog("开始查询指定图书的章节的所有版本", true);
+        std::vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(BookID_cri && PartNum_cri && ChapterNum_cri);
+        Json::Value vecJsonVal, TempChapterJson;
+        for (auto &chapter : vecChapter)
+        {
+            TempChapterJson.clear();
+            TempChapterJson = chapter.toJson();
+            vecJsonVal.append(TempChapterJson);
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+        MyBasePtr->DEBUGLog("查询指定图书的章节的所有版本完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Chapter_List"] = vecJsonVal;
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("指定图书的章节的所有版本查询失败");
+        MyBasePtr->INFO_Func("Search_Chapter_All_Version", false, RespJson);
+        return;
+    }
+}
+
+
+// 根据图书ID搜索章节
+/*
+    根据图书ID搜索章节的接口
+Req:{
+    "Book_ID":0
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Chapter_List" :   [],         // 成功返回的帖子信息
+}
+*/
+void MyDBService::Search_Chapter_By_BookID(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Chapter_By_BookID", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int limit = 0, offset = 0, BookID;
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        BookID = atoi(ReqJson["Book_ID"].asString().c_str());
+        if (ReqJson.isMember("Limit"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
+            limit = ReqJson["Limit"].asInt();
+        }
+        if (ReqJson.isMember("Offset"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Offset", MyJson::ColType::INT);
+            offset = ReqJson["Offset"].asInt();
+        }
+
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Chapter_By_BookID::Error");
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+
+
+    // 判断图书是否存在
+    try
+    {
+        // 检查图书是否已存在
+        MyBasePtr->DEBUGLog("开始检查图书是否已存在", true);
+        Criteria BookID_cri(drogon_model::novel::Book::Cols::_Book_ID, CompareOperator::EQ, BookID);
+        vector<drogon_model::novel::Book> vecBook = BookMgr.findBy(BookID_cri);
+
+        // 如果不是新书，则将Upload状态改为已处理且拒绝插入
+        if (vecBook.size() == 0)
+        {
+            RespJson["ErrorMsg"].append("图书不存在");
+            RespJson["Result"] = false;
+            MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+            return;
+        }
+        MyBasePtr->DEBUGLog("图书存在", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("图书不存在");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        RespJson["ErrorMsg"].append(e.base().what());
+        RespJson["ErrorMsg"].append("图书不存在");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+
+
+
+    // 查询指定图书章节
+    try
+    {
+        // 制作筛选条件
+        Criteria BookID_cri = Criteria(drogon_model::novel::Chapter::Cols::_Book_ID, CompareOperator::EQ, BookID);
+        Criteria Valid_cri = Criteria(drogon_model::novel::Chapter::Cols::_Valid, CompareOperator::EQ, true);
+        if (offset > 0)
+        {
+            ChapterMgr.offset(offset);
+        }
+
+        if (limit > 0)
+        {
+            ChapterMgr.limit(limit);
+        }
+
+        MyBasePtr->DEBUGLog("开始查询指定图书的章节", true);
+        std::vector<drogon_model::novel::Chapter> vecChapter = ChapterMgr.findBy(BookID_cri && Valid_cri);
+        Json::Value vecJsonVal, TempChapterJson;
+        for (auto &chapter : vecChapter)
+        {
+            TempChapterJson.clear();
+            TempChapterJson = chapter.toJson();
+            vecJsonVal.append(TempChapterJson);
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+        MyBasePtr->DEBUGLog("查询指定图书的章节完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Chapter_List"] = vecJsonVal;
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("指定图书的章节查询失败");
+        MyBasePtr->INFO_Func("Search_Chapter_By_BookID", false, RespJson);
+        return;
+    }
+}
+
 
 // 搜索帖子
 /*

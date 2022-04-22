@@ -6,12 +6,98 @@ using namespace Admin;
 // 管理员资源查询接口
 void Resource::Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
-    MyBasePtr->TRACELog("原始地址为：" + req->getPath(),true);
-    MyBasePtr->TRACELog("准备开始重定向",true);
-    req->setPath("/User/Resource/Search");
-    app().forward(req,move(callback));
-    MyBasePtr->TRACELog("重定向完成",true);
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        // "Note_KeyWord" : "",// 关键字,在标题和内容中查找
+            // 检查ReqJson数据是否合法
+
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["SearchType"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap( ReqVal, RespVal, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        string Type = ReqVal["SearchType"].asString();
+        if(Type == "Book")
+        {
+            MyDBS->Search_Book(ReqVal,RespVal);
+            RespVal["简介"] = "图书查找接口";
+
+            MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+            // 设置返回格式
+            ResultData["Message"] = "图书查询成功";
+            ResultData["Data"]["Book_List"]= RespVal["Book_List"];
+        }
+        else if(Type == "Chapter")
+        {
+            MyDBS->Search_Chapter_By_BookID(ReqVal,RespVal);
+            if(RespVal["Result"] == false)
+                throw RespVal;
+            RespVal["简介"] = "图书所有章节查找接口";
+
+            MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+            // 设置返回格式
+            ResultData["Message"] = "图书所有章节查询成功";
+            ResultData["Data"]["Chapter_List"]= RespVal["Chapter_List"];
+
+        }
+        else if(Type == "ChapterVersion")
+        {
+            MyDBS->Search_Chapter_All_Version(ReqVal,RespVal);
+            if(RespVal["Result"] == false)
+                throw RespVal;
+            RespVal["简介"] = "指定图书章节的所有版本查找接口";
+
+            MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+            // 设置返回格式
+            ResultData["Message"] = "指定图书章节的所有版本查询成功";
+            ResultData["Data"]["Chapter_List"]= RespVal["Chapter_List"];
+        }
+        else
+        {
+            RespVal["ErrorMsg"].append("SearchType字段内容异常");
+            throw RespVal;
+        }
+        ResultData["Result"] = true;
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Resource::Search::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
 }
 
 // 管理员资源上传接口

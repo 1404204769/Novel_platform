@@ -71,7 +71,7 @@ void Admin::User::List(const HttpRequestPtr &req, std::function<void(const HttpR
 
 void Admin::User::Search(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal, ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
@@ -86,30 +86,50 @@ void Admin::User::Search(const HttpRequestPtr &req, std::function<void(const Htt
         MyBasePtr->TRACELog("Admin::User::Search::ReqVal" + ReqVal.toStyledString(), true);
 
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
-        MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
         RespVal["简介"] = "管理员查询指定用户接口";
         ReqVal["Search_All"] = false;
-        ReqVal["Filter"] = ReqVal["UserSearch"];
+        ReqVal["Filter"]["User_ID"] = ReqVal["User_ID"];
+        ReqVal["Filter"]["User_Name"] = ReqVal["User_Name"];
+        ReqVal["Filter"]["User_Sex"] = ReqVal["User_Sex"];
 
         MyDBSPtr->Admin_Search_User(ReqVal, RespVal);
 
         RespVal["Result"] = "查询指定用户成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"]["UserList"]= RespVal["UserList"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "查询指定用户失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = "查询指定用户失败";
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

@@ -5,7 +5,7 @@ using namespace Admin;
 // 管理员查看用户上传申请接口
 void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal;
+    Json::Value ReqVal,RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -29,13 +29,24 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
         
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户申请查询成功";
+        ResultData["Data"]["ApplicationList"]= RespVal["UploadList"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
         MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
@@ -43,7 +54,12 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
@@ -51,7 +67,12 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
         RespVal["ErrorMsg"].append("Examine::UpList::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     Result->setStatusCode(k200OK);
     Result->setContentTypeCode(CT_TEXT_HTML);
@@ -61,7 +82,7 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
 // 管理员查看用户意见接口
 void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal;
+    Json::Value ReqVal,RespVal, ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -82,21 +103,38 @@ void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpR
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户意见查询成功";
+        ResultData["Data"]["FeedbackList"]= RespVal["Idea_List"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
         MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = false;
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
@@ -104,7 +142,12 @@ void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpR
         RespVal["ErrorMsg"].append("Examine::UpList::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     Result->setStatusCode(k200OK);
     Result->setContentTypeCode(CT_TEXT_HTML);
