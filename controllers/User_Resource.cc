@@ -184,6 +184,113 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
     callback(Result);
 }
 
+// 根据BookID BookName查找目录的接口
+void Resource::SearchMenu(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::SearchMenu::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        MyDBS->Search_BookMenu_By_BookIDAndName(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        RespVal["简介"] = "图书查找接口";
+
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "图书目录查询成功";
+        ResultData["Data"]["ChapterList"]= RespVal["Chapter_List"];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Resource::SearchMenu::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+// 根据BookID PartNum ChapterNum查找章节数据的接口
+void Resource::SearchContent(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::SearchContent::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        MyDBS->Search_ChapterContent(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        RespVal["简介"] = "图书查找接口";
+
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "图书目录查询成功";
+        ResultData["Data"]["ChapterContent"]= RespVal["Chapter_Content"];
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Resource::SearchContent::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}
 
 // 图书上传接口
 void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
@@ -298,7 +405,7 @@ void Resource::Upload(const HttpRequestPtr &req, std::function<void(const HttpRe
                     MyBasePtr->DEBUGLog("开始获取图书数据", true);
                     book.updateByJson(RespVal["Book_Data"]);
                     MyBasePtr->DEBUGLog("获取图书数据完成", true);
-                    NoteJson["Note_Title"] = book.getValueOfName()+"("+book.getValueOfAuthor()+")";
+                    NoteJson["Note_Title"] = book.getValueOfBookName()+"("+book.getValueOfAuthor()+")";
                     NoteContentJson["Book_ID"] = book.getValueOfBookId();
                     NoteContentJson["Content"] = book.getValueOfSynopsis();
                     NoteJson["Note_Content"] = NoteContentJson;

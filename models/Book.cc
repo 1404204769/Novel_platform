@@ -13,13 +13,13 @@ using namespace drogon;
 using namespace drogon_model::novel;
 
 const std::string Book::Cols::_Book_ID = "Book_ID";
-const std::string Book::Cols::_Name = "Name";
+const std::string Book::Cols::_Book_Name = "Book_Name";
 const std::string Book::Cols::_Status = "Status";
 const std::string Book::Cols::_Synopsis = "Synopsis";
 const std::string Book::Cols::_Publisher = "Publisher";
 const std::string Book::Cols::_Author = "Author";
-const std::string Book::Cols::_Create_time = "Create_time";
-const std::string Book::Cols::_Update_time = "Update_time";
+const std::string Book::Cols::_Create_Time = "Create_Time";
+const std::string Book::Cols::_Update_Time = "Update_Time";
 const std::string Book::Cols::_Memo = "Memo";
 const std::string Book::primaryKeyName = "Book_ID";
 const bool Book::hasPrimaryKey = true;
@@ -27,13 +27,13 @@ const std::string Book::tableName = "book";
 
 const std::vector<typename Book::MetaData> Book::metaData_={
 {"Book_ID","int32_t","int(10)",4,1,1,1},
-{"Name","std::string","varchar(255)",255,0,0,1},
+{"Book_Name","std::string","varchar(255)",255,0,0,1},
 {"Status","std::string","varchar(255)",255,0,0,1},
 {"Synopsis","std::string","varchar(512)",512,0,0,1},
 {"Publisher","std::string","varchar(255)",255,0,0,1},
 {"Author","std::string","varchar(255)",255,0,0,1},
-{"Create_time","::trantor::Date","timestamp",0,0,0,1},
-{"Update_time","::trantor::Date","timestamp",0,0,0,1},
+{"Create_Time","::trantor::Date","timestamp",0,0,0,1},
+{"Update_Time","::trantor::Date","timestamp",0,0,0,1},
 {"Memo","std::string","text",0,0,0,1}
 };
 const std::string &Book::getColumnName(size_t index) noexcept(false)
@@ -49,9 +49,9 @@ Book::Book(const Row &r, const ssize_t indexOffset) noexcept
         {
             bookId_=std::make_shared<int32_t>(r["Book_ID"].as<int32_t>());
         }
-        if(!r["Name"].isNull())
+        if(!r["Book_Name"].isNull())
         {
-            name_=std::make_shared<std::string>(r["Name"].as<std::string>());
+            bookName_=std::make_shared<std::string>(r["Book_Name"].as<std::string>());
         }
         if(!r["Status"].isNull())
         {
@@ -69,9 +69,9 @@ Book::Book(const Row &r, const ssize_t indexOffset) noexcept
         {
             author_=std::make_shared<std::string>(r["Author"].as<std::string>());
         }
-        if(!r["Create_time"].isNull())
+        if(!r["Create_Time"].isNull())
         {
-            auto timeStr = r["Create_time"].as<std::string>();
+            auto timeStr = r["Create_Time"].as<std::string>();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -91,9 +91,9 @@ Book::Book(const Row &r, const ssize_t indexOffset) noexcept
                 createTime_=std::make_shared<::trantor::Date>(t*1000000+decimalNum);
             }
         }
-        if(!r["Update_time"].isNull())
+        if(!r["Update_Time"].isNull())
         {
-            auto timeStr = r["Update_time"].as<std::string>();
+            auto timeStr = r["Update_Time"].as<std::string>();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -135,7 +135,7 @@ Book::Book(const Row &r, const ssize_t indexOffset) noexcept
         index = offset + 1;
         if(!r[index].isNull())
         {
-            name_=std::make_shared<std::string>(r[index].as<std::string>());
+            bookName_=std::make_shared<std::string>(r[index].as<std::string>());
         }
         index = offset + 2;
         if(!r[index].isNull())
@@ -232,7 +232,7 @@ Book::Book(const Json::Value &pJson, const std::vector<std::string> &pMasqueradi
         dirtyFlag_[1] = true;
         if(!pJson[pMasqueradingVector[1]].isNull())
         {
-            name_=std::make_shared<std::string>(pJson[pMasqueradingVector[1]].asString());
+            bookName_=std::make_shared<std::string>(pJson[pMasqueradingVector[1]].asString());
         }
     }
     if(!pMasqueradingVector[2].empty() && pJson.isMember(pMasqueradingVector[2]))
@@ -339,12 +339,12 @@ Book::Book(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Name"))
+    if(pJson.isMember("Book_Name"))
     {
         dirtyFlag_[1]=true;
-        if(!pJson["Name"].isNull())
+        if(!pJson["Book_Name"].isNull())
         {
-            name_=std::make_shared<std::string>(pJson["Name"].asString());
+            bookName_=std::make_shared<std::string>(pJson["Book_Name"].asString());
         }
     }
     if(pJson.isMember("Status"))
@@ -379,12 +379,12 @@ Book::Book(const Json::Value &pJson) noexcept(false)
             author_=std::make_shared<std::string>(pJson["Author"].asString());
         }
     }
-    if(pJson.isMember("Create_time"))
+    if(pJson.isMember("Create_Time"))
     {
         dirtyFlag_[6]=true;
-        if(!pJson["Create_time"].isNull())
+        if(!pJson["Create_Time"].isNull())
         {
-            auto timeStr = pJson["Create_time"].asString();
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -405,12 +405,12 @@ Book::Book(const Json::Value &pJson) noexcept(false)
             }
         }
     }
-    if(pJson.isMember("Update_time"))
+    if(pJson.isMember("Update_Time"))
     {
         dirtyFlag_[7]=true;
-        if(!pJson["Update_time"].isNull())
+        if(!pJson["Update_Time"].isNull())
         {
-            auto timeStr = pJson["Update_time"].asString();
+            auto timeStr = pJson["Update_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -461,7 +461,7 @@ void Book::updateByMasqueradedJson(const Json::Value &pJson,
         dirtyFlag_[1] = true;
         if(!pJson[pMasqueradingVector[1]].isNull())
         {
-            name_=std::make_shared<std::string>(pJson[pMasqueradingVector[1]].asString());
+            bookName_=std::make_shared<std::string>(pJson[pMasqueradingVector[1]].asString());
         }
     }
     if(!pMasqueradingVector[2].empty() && pJson.isMember(pMasqueradingVector[2]))
@@ -567,12 +567,12 @@ void Book::updateByJson(const Json::Value &pJson) noexcept(false)
             bookId_=std::make_shared<int32_t>((int32_t)pJson["Book_ID"].asInt64());
         }
     }
-    if(pJson.isMember("Name"))
+    if(pJson.isMember("Book_Name"))
     {
         dirtyFlag_[1] = true;
-        if(!pJson["Name"].isNull())
+        if(!pJson["Book_Name"].isNull())
         {
-            name_=std::make_shared<std::string>(pJson["Name"].asString());
+            bookName_=std::make_shared<std::string>(pJson["Book_Name"].asString());
         }
     }
     if(pJson.isMember("Status"))
@@ -607,12 +607,12 @@ void Book::updateByJson(const Json::Value &pJson) noexcept(false)
             author_=std::make_shared<std::string>(pJson["Author"].asString());
         }
     }
-    if(pJson.isMember("Create_time"))
+    if(pJson.isMember("Create_Time"))
     {
         dirtyFlag_[6] = true;
-        if(!pJson["Create_time"].isNull())
+        if(!pJson["Create_Time"].isNull())
         {
-            auto timeStr = pJson["Create_time"].asString();
+            auto timeStr = pJson["Create_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -633,12 +633,12 @@ void Book::updateByJson(const Json::Value &pJson) noexcept(false)
             }
         }
     }
-    if(pJson.isMember("Update_time"))
+    if(pJson.isMember("Update_Time"))
     {
         dirtyFlag_[7] = true;
-        if(!pJson["Update_time"].isNull())
+        if(!pJson["Update_Time"].isNull())
         {
-            auto timeStr = pJson["Update_time"].asString();
+            auto timeStr = pJson["Update_Time"].asString();
             struct tm stm;
             memset(&stm,0,sizeof(stm));
             auto p = strptime(timeStr.c_str(),"%Y-%m-%d %H:%M:%S",&stm);
@@ -691,25 +691,25 @@ const typename Book::PrimaryKeyType & Book::getPrimaryKey() const
     return *bookId_;
 }
 
-const std::string &Book::getValueOfName() const noexcept
+const std::string &Book::getValueOfBookName() const noexcept
 {
     const static std::string defaultValue = std::string();
-    if(name_)
-        return *name_;
+    if(bookName_)
+        return *bookName_;
     return defaultValue;
 }
-const std::shared_ptr<std::string> &Book::getName() const noexcept
+const std::shared_ptr<std::string> &Book::getBookName() const noexcept
 {
-    return name_;
+    return bookName_;
 }
-void Book::setName(const std::string &pName) noexcept
+void Book::setBookName(const std::string &pBookName) noexcept
 {
-    name_ = std::make_shared<std::string>(pName);
+    bookName_ = std::make_shared<std::string>(pBookName);
     dirtyFlag_[1] = true;
 }
-void Book::setName(std::string &&pName) noexcept
+void Book::setBookName(std::string &&pBookName) noexcept
 {
-    name_ = std::make_shared<std::string>(std::move(pName));
+    bookName_ = std::make_shared<std::string>(std::move(pBookName));
     dirtyFlag_[1] = true;
 }
 
@@ -865,13 +865,13 @@ void Book::updateId(const uint64_t id)
 const std::vector<std::string> &Book::insertColumns() noexcept
 {
     static const std::vector<std::string> inCols={
-        "Name",
+        "Book_Name",
         "Status",
         "Synopsis",
         "Publisher",
         "Author",
-        "Create_time",
-        "Update_time",
+        "Create_Time",
+        "Update_Time",
         "Memo"
     };
     return inCols;
@@ -881,9 +881,9 @@ void Book::outputArgs(drogon::orm::internal::SqlBinder &binder) const
 {
     if(dirtyFlag_[1])
     {
-        if(getName())
+        if(getBookName())
         {
-            binder << getValueOfName();
+            binder << getValueOfBookName();
         }
         else
         {
@@ -1011,9 +1011,9 @@ void Book::updateArgs(drogon::orm::internal::SqlBinder &binder) const
 {
     if(dirtyFlag_[1])
     {
-        if(getName())
+        if(getBookName())
         {
-            binder << getValueOfName();
+            binder << getValueOfBookName();
         }
         else
         {
@@ -1109,13 +1109,13 @@ Json::Value Book::toJson() const
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getName())
+    if(getBookName())
     {
-        ret["Name"]=getValueOfName();
+        ret["Book_Name"]=getValueOfBookName();
     }
     else
     {
-        ret["Name"]=Json::Value();
+        ret["Book_Name"]=Json::Value();
     }
     if(getStatus())
     {
@@ -1151,19 +1151,19 @@ Json::Value Book::toJson() const
     }
     if(getCreateTime())
     {
-        ret["Create_time"]=getCreateTime()->toDbStringLocal();
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Create_time"]=Json::Value();
+        ret["Create_Time"]=Json::Value();
     }
     if(getUpdateTime())
     {
-        ret["Update_time"]=getUpdateTime()->toDbStringLocal();
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Update_time"]=Json::Value();
+        ret["Update_Time"]=Json::Value();
     }
     if(getMemo())
     {
@@ -1195,9 +1195,9 @@ Json::Value Book::toMasqueradedJson(
         }
         if(!pMasqueradingVector[1].empty())
         {
-            if(getName())
+            if(getBookName())
             {
-                ret[pMasqueradingVector[1]]=getValueOfName();
+                ret[pMasqueradingVector[1]]=getValueOfBookName();
             }
             else
             {
@@ -1292,13 +1292,13 @@ Json::Value Book::toMasqueradedJson(
     {
         ret["Book_ID"]=Json::Value();
     }
-    if(getName())
+    if(getBookName())
     {
-        ret["Name"]=getValueOfName();
+        ret["Book_Name"]=getValueOfBookName();
     }
     else
     {
-        ret["Name"]=Json::Value();
+        ret["Book_Name"]=Json::Value();
     }
     if(getStatus())
     {
@@ -1334,19 +1334,19 @@ Json::Value Book::toMasqueradedJson(
     }
     if(getCreateTime())
     {
-        ret["Create_time"]=getCreateTime()->toDbStringLocal();
+        ret["Create_Time"]=getCreateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Create_time"]=Json::Value();
+        ret["Create_Time"]=Json::Value();
     }
     if(getUpdateTime())
     {
-        ret["Update_time"]=getUpdateTime()->toDbStringLocal();
+        ret["Update_Time"]=getUpdateTime()->toDbStringLocal();
     }
     else
     {
-        ret["Update_time"]=Json::Value();
+        ret["Update_Time"]=Json::Value();
     }
     if(getMemo())
     {
@@ -1366,14 +1366,14 @@ bool Book::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(0, "Book_ID", pJson["Book_ID"], err, true))
             return false;
     }
-    if(pJson.isMember("Name"))
+    if(pJson.isMember("Book_Name"))
     {
-        if(!validJsonOfField(1, "Name", pJson["Name"], err, true))
+        if(!validJsonOfField(1, "Book_Name", pJson["Book_Name"], err, true))
             return false;
     }
     else
     {
-        err="The Name column cannot be null";
+        err="The Book_Name column cannot be null";
         return false;
     }
     if(pJson.isMember("Status"))
@@ -1416,14 +1416,14 @@ bool Book::validateJsonForCreation(const Json::Value &pJson, std::string &err)
         err="The Author column cannot be null";
         return false;
     }
-    if(pJson.isMember("Create_time"))
+    if(pJson.isMember("Create_Time"))
     {
-        if(!validJsonOfField(6, "Create_time", pJson["Create_time"], err, true))
+        if(!validJsonOfField(6, "Create_Time", pJson["Create_Time"], err, true))
             return false;
     }
-    if(pJson.isMember("Update_time"))
+    if(pJson.isMember("Update_Time"))
     {
-        if(!validJsonOfField(7, "Update_time", pJson["Update_time"], err, true))
+        if(!validJsonOfField(7, "Update_Time", pJson["Update_Time"], err, true))
             return false;
     }
     if(pJson.isMember("Memo"))
@@ -1570,9 +1570,9 @@ bool Book::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         err = "The value of primary key must be set in the json object for update";
         return false;
     }
-    if(pJson.isMember("Name"))
+    if(pJson.isMember("Book_Name"))
     {
-        if(!validJsonOfField(1, "Name", pJson["Name"], err, false))
+        if(!validJsonOfField(1, "Book_Name", pJson["Book_Name"], err, false))
             return false;
     }
     if(pJson.isMember("Status"))
@@ -1595,14 +1595,14 @@ bool Book::validateJsonForUpdate(const Json::Value &pJson, std::string &err)
         if(!validJsonOfField(5, "Author", pJson["Author"], err, false))
             return false;
     }
-    if(pJson.isMember("Create_time"))
+    if(pJson.isMember("Create_Time"))
     {
-        if(!validJsonOfField(6, "Create_time", pJson["Create_time"], err, false))
+        if(!validJsonOfField(6, "Create_Time", pJson["Create_Time"], err, false))
             return false;
     }
-    if(pJson.isMember("Update_time"))
+    if(pJson.isMember("Update_Time"))
     {
-        if(!validJsonOfField(7, "Update_time", pJson["Update_time"], err, false))
+        if(!validJsonOfField(7, "Update_Time", pJson["Update_Time"], err, false))
             return false;
     }
     if(pJson.isMember("Memo"))

@@ -44,13 +44,13 @@ class Book
     struct Cols
     {
         static const std::string _Book_ID;
-        static const std::string _Name;
+        static const std::string _Book_Name;
         static const std::string _Status;
         static const std::string _Synopsis;
         static const std::string _Publisher;
         static const std::string _Author;
-        static const std::string _Create_time;
-        static const std::string _Update_time;
+        static const std::string _Create_Time;
+        static const std::string _Update_Time;
         static const std::string _Memo;
     };
 
@@ -111,14 +111,14 @@ class Book
     ///Set the value of the column Book_ID
     void setBookId(const int32_t &pBookId) noexcept;
 
-    /**  For column Name  */
-    ///Get the value of the column Name, returns the default value if the column is null
-    const std::string &getValueOfName() const noexcept;
+    /**  For column Book_Name  */
+    ///Get the value of the column Book_Name, returns the default value if the column is null
+    const std::string &getValueOfBookName() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
-    const std::shared_ptr<std::string> &getName() const noexcept;
-    ///Set the value of the column Name
-    void setName(const std::string &pName) noexcept;
-    void setName(std::string &&pName) noexcept;
+    const std::shared_ptr<std::string> &getBookName() const noexcept;
+    ///Set the value of the column Book_Name
+    void setBookName(const std::string &pBookName) noexcept;
+    void setBookName(std::string &&pBookName) noexcept;
 
     /**  For column Status  */
     ///Get the value of the column Status, returns the default value if the column is null
@@ -156,20 +156,20 @@ class Book
     void setAuthor(const std::string &pAuthor) noexcept;
     void setAuthor(std::string &&pAuthor) noexcept;
 
-    /**  For column Create_time  */
-    ///Get the value of the column Create_time, returns the default value if the column is null
+    /**  For column Create_Time  */
+    ///Get the value of the column Create_Time, returns the default value if the column is null
     const ::trantor::Date &getValueOfCreateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
     const std::shared_ptr<::trantor::Date> &getCreateTime() const noexcept;
-    ///Set the value of the column Create_time
+    ///Set the value of the column Create_Time
     void setCreateTime(const ::trantor::Date &pCreateTime) noexcept;
 
-    /**  For column Update_time  */
-    ///Get the value of the column Update_time, returns the default value if the column is null
+    /**  For column Update_Time  */
+    ///Get the value of the column Update_Time, returns the default value if the column is null
     const ::trantor::Date &getValueOfUpdateTime() const noexcept;
     ///Return a shared_ptr object pointing to the column const value, or an empty shared_ptr object if the column is null
     const std::shared_ptr<::trantor::Date> &getUpdateTime() const noexcept;
-    ///Set the value of the column Update_time
+    ///Set the value of the column Update_Time
     void setUpdateTime(const ::trantor::Date &pUpdateTime) noexcept;
 
     /**  For column Memo  */
@@ -200,7 +200,7 @@ class Book
     ///For mysql or sqlite3
     void updateId(const uint64_t id);
     std::shared_ptr<int32_t> bookId_;
-    std::shared_ptr<std::string> name_;
+    std::shared_ptr<std::string> bookName_;
     std::shared_ptr<std::string> status_;
     std::shared_ptr<std::string> synopsis_;
     std::shared_ptr<std::string> publisher_;
@@ -241,7 +241,7 @@ class Book
             ++parametersCount;
         if(dirtyFlag_[1])
         {
-            sql += "Name,";
+            sql += "Book_Name,";
             ++parametersCount;
         }
         if(dirtyFlag_[2])
@@ -264,13 +264,13 @@ class Book
             sql += "Author,";
             ++parametersCount;
         }
-        sql += "Create_time,";
+        sql += "Create_Time,";
         ++parametersCount;
         if(!dirtyFlag_[6])
         {
             needSelection=true;
         }
-        sql += "Update_time,";
+        sql += "Update_Time,";
         ++parametersCount;
         if(!dirtyFlag_[7])
         {
