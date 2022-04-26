@@ -3851,6 +3851,7 @@ void MyDBService::Search_Comment(Json::Value &ReqJson, Json::Value &RespJson)
 
     auto dbclientPrt = drogon::app().getDbClient();
     Mapper<drogon_model::novel::Comment> CommentMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Agree> AgreeMgr(dbclientPrt);
 
     // 检查ReqJson数据是否合法
     try
@@ -3881,12 +3882,18 @@ void MyDBService::Search_Comment(Json::Value &ReqJson, Json::Value &RespJson)
         }
         MyBasePtr->DEBUGLog("开始查询评论", true);
         Criteria NoteID_cri(drogon_model::novel::Comment::Cols::_Note_ID,CompareOperator::EQ,ReqJson["Note_ID"].asInt());
+        Criteria AgreeNoteID_cri(drogon_model::novel::Agree::Cols::_Note_ID,CompareOperator::EQ,ReqJson["Note_ID"].asInt());
+        Criteria AgreeStatus_cri(drogon_model::novel::Agree::Cols::_Status,CompareOperator::EQ,true);
         vector<drogon_model::novel::Comment> vecComment = CommentMgr.findBy(NoteID_cri);
         MyBasePtr->DEBUGLog("查询评论完毕", true);
-
+        Json::Value tempJson;
         for(int i = 0 ; i < vecComment.size() ; i++)
         {
-            RespJson["Comment_List"].append(vecComment[i].toJson());
+            tempJson.clear();
+            tempJson = vecComment[i].toJson();
+            MyJsonPtr->JsonstrToJson(tempJson["Comment_Content"],tempJson["Comment_Content"].asString());
+            tempJson["Agree_Num"] = (int)AgreeMgr.count(AgreeNoteID_cri && AgreeStatus_cri && Criteria(drogon_model::novel::Agree::Cols::_Floor_ID,CompareOperator::EQ,vecComment[i].getValueOfFloorId()));
+            RespJson["Comment_List"].append(tempJson);
         }
         RespJson["Result"] = true;
         MyBasePtr->INFO_Func("Search_Comment", false, RespJson);
@@ -4463,6 +4470,8 @@ void MyDBService::Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJ
         MyBasePtr->DEBUGLog("查询指定帖子完毕", true);
         RespJson["Result"] = true;
         RespJson["Note_Data"] = Note.toJson();
+        MyJsonPtr->JsonstrToJson(RespJson["Note_Data"]["Content"],RespJson["Note_Data"]["Content"].asString());
+            
         MyBasePtr->INFO_Func("Search_Note_By_NoteID", false, RespJson);
         return;
     }

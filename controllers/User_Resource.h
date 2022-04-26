@@ -20,6 +20,7 @@ class Resource:public drogon::HttpController<Resource>
       METHOD_ADD(Resource::Download,"/Download",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
       METHOD_ADD(Resource::Read,"/Read",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
       METHOD_ADD(Resource::Search,"/Search",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
+      METHOD_ADD(Resource::SearchComment,"/Search/Comment",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
       METHOD_ADD(Resource::SearchMenu,"/Search/Menu",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
       METHOD_ADD(Resource::SearchContent,"/Search/Content",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
       METHOD_ADD(Resource::Upload,"/Upload",Get,Post,Options,"MyJsonFilter","JwtFilter","LoginFilter");
@@ -27,6 +28,7 @@ class Resource:public drogon::HttpController<Resource>
     void Download(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Read(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
+    void SearchComment(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void SearchMenu(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void SearchContent(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Upload(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;

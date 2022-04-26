@@ -141,10 +141,10 @@ void Resource::Read(const HttpRequestPtr &req,std::function<void (const HttpResp
     callback(Result);
 }
 
-// 图书查找接口
+// 查找帖子的接口
 void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -161,22 +161,100 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
         MyJsonPtr->checkMemberAndType(ReqVal,RespVal,"Note_KeyWord",MyJson::ColType::STRING);
         MyBasePtr->DEBUGLog("检查数据完整性完成", true);
         MyDBS->Search_Note(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
         RespVal["简介"] = "图书查找接口";
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户查询帖子成功";
+        ResultData["Data"]["Note_List"]= RespVal["Note_List"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["ErrorMsg"].append("Resource::Search::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+// 帖子查找评论接口
+void Resource::SearchComment(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::SearchComment::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        // "Note_ID" : 0,
+        MyBasePtr->DEBUGLog("开始检查数据完整性", true);
+        MyJsonPtr->checkMemberAndType(ReqVal,RespVal,"Note_ID",MyJson::ColType::INT);
+        MyBasePtr->DEBUGLog("检查数据完整性完成", true);
+        MyDBS->Search_Comment(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        RespVal["简介"] = "帖子评论查找接口";
+
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户查询帖子评论成功";
+        ResultData["Data"]["Comment_List"]= RespVal["Comment_List"];
+        ResultData["Data"]["Note_Data"]= RespVal["Note_Data"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Resource::SearchComment::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
