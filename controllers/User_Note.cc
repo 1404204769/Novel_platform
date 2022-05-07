@@ -5,7 +5,7 @@ using namespace User;
 // 用户点赞接口
 void Note::Like(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,TempReq ,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -42,18 +42,33 @@ void Note::Like(const HttpRequestPtr &req,std::function<void (const HttpResponse
         RespVal["简介"] = "用户点赞接口";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户点赞操作成功";
+        ResultData["Data"]= RespVal["Agree_Data"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["ErrorMsg"].append("Note::Like::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -61,10 +76,83 @@ void Note::Like(const HttpRequestPtr &req,std::function<void (const HttpResponse
     callback(Result);
 }
 
+
+
+// 用户查询点赞状态的接口
+void Note::LikeSearch(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal,TempReq ,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS     = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Note::LikeSearch::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        // "Note_ID" : 0,// 帖子ID
+        // "Floor_ID" : 0,// 楼层ID
+        // "Agree_Result" : true/false,//用户点赞操作
+        MyBasePtr->DEBUGLog("检查数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Note_ID"] = MyJson::ColType::INT;
+        ColMap["Floor_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+        MyBasePtr->DEBUGLog("数据显示合法", true);
+        // "User_ID" : 0,// 用户ID
+        
+        ReqVal["User_ID"] = atoi(umapPara.at("User_ID").c_str());
+        
+        MyDBS->Search_Agree(ReqVal,RespVal);
+        ResultData["Data"]["Agree"] = false;
+        if(RespVal["Result"].asBool() && RespVal["Agree"].asBool())
+        {
+            ResultData["Data"]["Agree"] = true;
+        }
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户查询点赞操作成功";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Note::LikeSearch::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}
+
+
 // 用户评论接口
 void Note::Comment(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -89,31 +177,37 @@ void Note::Comment(const HttpRequestPtr &req,std::function<void (const HttpRespo
         RespVal["简介"] = "用户评论接口";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyDBS->Create_Comment(ReqVal,RespVal);
-        if(RespVal["Result"].asBool())
-        {
-            RespVal["Msg"] = "评论成功";
-            // 更新帖子评论数量
-        }
-        else
-        {
-            RespVal["Msg"] = "评论失败";
-        }
-        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户评论成功";
+        ResultData["Data"] = RespVal["Comment_Data"];
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["Result"] = false;
         RespVal["ErrorMsg"].append("Note::Reply::ERROR");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -124,7 +218,7 @@ void Note::Comment(const HttpRequestPtr &req,std::function<void (const HttpRespo
 // 用户回复接口
 void Note::Reply(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -151,28 +245,36 @@ void Note::Reply(const HttpRequestPtr &req,std::function<void (const HttpRespons
         RespVal["简介"] = "用户回复接口";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
         MyDBS->Create_Comment(ReqVal,RespVal);
-        if(RespVal["Result"].asBool())
-        {
-            RespVal["Msg"] = "回复成功";
-        }
-        else
-        {
-            RespVal["Msg"] = "回复失败";
-        }
+        if(!RespVal["Result"].asBool())throw RespVal;
 
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户评论成功";
+        ResultData["Data"] = RespVal["Comment_Data"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (Json::Value &RespVal)
     {
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["ErrorMsg"].append("Note::Reply::ERROR");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

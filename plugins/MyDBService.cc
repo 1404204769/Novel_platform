@@ -328,7 +328,9 @@ void MyDBService::Admin_Search_Upload(Json::Value &ReqJson, Json::Value &RespJso
         Json::Value vecJsonVal;
         for (auto &upload : vecUpload)
         {
-            vecJsonVal.append(upload.toJson());
+            Json::Value UpJson = upload.toJson();
+            UpJson.removeMember("Content");
+            vecJsonVal.append(UpJson);
             // std::cout << user.toJson().toStyledString() <<std::endl;
         }
         RespJson["UploadList"] = vecJsonVal;
@@ -1282,10 +1284,9 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
     }
 
     MyJsonPtr->JsonstrToJson(ContentJson, ExamineUpload.getValueOfContent());
-    pair<int, string> Title = MyToolsPtr->getTitleNumAndTitleStr(ContentJson["Chapter_Title"].asString());
-    string ChapterTitle = Title.second;                         // 章节名
-    int Part_Num;                                               // 章节卷
-    int Chapter_Num = Title.first;                              // 章节数
+    string ChapterTitle = ContentJson["Chapter_Title"].asString();// 章节名
+    int Part_Num = ContentJson["Vol_Num"].asInt();             // 章节卷
+    int Chapter_Num = ContentJson["Chapter_Num"].asInt();       // 章节数
     Json::Value Chapter_Content = ContentJson["Content_Array"]; // 章节内容
     Json::Value Chapter_Memo;                                   // 参数
     Json::Value BookMemo;
@@ -1304,11 +1305,11 @@ void MyDBService::Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value 
         MyJsonPtr->checkMemberAndTypeInMap(BookMemo, RespJson, ColMap);
         MyBasePtr->DEBUGLog("Book/Memo数据合法", true);
         ////---- 这里有可能不合法导致跳出，需要捕获然后更新Upload的值
-        ChapterJson = BookMemo["Chapter"];
+        // ChapterJson = BookMemo["Chapter"];
 
-        int vecPartSize = ChapterJson.size();
-        Part_Num = vecPartSize - 1;
-        MyBasePtr->DEBUGLog("查询Book/Memo获取章节卷成功", true);
+        // int vecPartSize = ChapterJson.size();
+        // Part_Num = vecPartSize - 1;
+        // MyBasePtr->DEBUGLog("查询Book/Memo获取章节卷成功", true);
     }
     catch (Json::Value &e)
     {
@@ -2094,6 +2095,9 @@ void MyDBService::Create_Comment(Json::Value &ReqJson, Json::Value &RespJson)
     }
     RespJson["Result"] = true;
     RespJson["Comment_Data"] = NewComment.toJson();
+    
+    MyJsonPtr->JsonstrToJson(RespJson["Comment_Data"]["Comment_Content"],RespJson["Comment_Data"]["Comment_Content"].asString());
+
     MyBasePtr->INFO_Func("Create_Comment", false, RespJson);
     return;
 }
@@ -3538,7 +3542,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
         RespJson["Result"] = true;
         RespJson["Agree"] = vecAgree[0].getValueOfStatus() == 0 ? false : true;
         RespJson["Agree_ID"] = vecAgree[0].getValueOfAgreeId();
-        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        MyBasePtr->INFO_Func("Search_Agree", false, RespJson);
         return;
     }
     catch (...)
@@ -3546,7 +3550,7 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
         RespJson["Result"] = false;
         RespJson["Agree"] = false;
         RespJson["ErrorMsg"].append("帖子查询失败");
-        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        MyBasePtr->INFO_Func("Search_Agree", false, RespJson);
         return;
     }
 }
@@ -3592,6 +3596,9 @@ void MyDBService::Search_Book(Json::Value &ReqJson, Json::Value &RespJson)
         ColMap["Publisher"] = MyJson::ColType::STRING;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        BookName = ReqJson["Book_Name"].asString();
+        Author = ReqJson["Author"].asString();
+        Publisher = ReqJson["Publisher"].asString();
         if (ReqJson.isMember("Limit"))
         {
             MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
@@ -3755,8 +3762,9 @@ Req:{
 }
 Resp:{
     "ErrorMsg":[],
-    "Result" : true/false
-    "Chapter_List":[]
+    "Result" : true/false,
+    "Chapter_List":[],
+    "Book_Data":{}
 }
 */
 void MyDBService::Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::Value &RespJson)
@@ -3813,6 +3821,8 @@ void MyDBService::Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::V
     // 开始查询章节
     Criteria Valid_cri(drogon_model::novel::Chapter::Cols::_Valid,CompareOperator::EQ,true);
     Criteria BookID_cri(drogon_model::novel::Chapter::Cols::_Book_ID,CompareOperator::EQ,ReqJson["Book_ID"].asInt());
+    ChapterMgr.orderBy(drogon_model::novel::Chapter::Cols::_Part_Num,SortOrder::ASC);
+    ChapterMgr.orderBy(drogon_model::novel::Chapter::Cols::_Chapter_Num,SortOrder::ASC);
     vector<drogon_model::novel::Chapter> verChapter = ChapterMgr.findBy(BookID_cri && Valid_cri);
 
     Json::Value ChapterList,ChapterContent;
@@ -3825,6 +3835,7 @@ void MyDBService::Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::V
         ChapterList.append(ChapterContent);
     }
     RespJson["Chapter_List"] = ChapterList;
+    RespJson["Book_Data"] = book.toJson();
     RespJson["Result"] = true;
     MyBasePtr->INFO_Func("Search_BookMenu_By_BookIDAndName", false, RespJson);
     return;
@@ -4649,6 +4660,90 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
 }
 
+
+
+// 通过Upload_ID查询上传申请的数据
+/*
+    通过Upload_ID查询上传申请的数据
+Req:{
+    "Upload_ID":0//上传编号
+}
+Resp:{
+    "ErrorMsg":[],
+    "Result" : true/false
+    "Upload_Data":{}
+}
+*/
+void MyDBService::Search_Upload_By_UploadID(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Upload_By_UploadID", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Upload_ID":0,//上传编号
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Upload_ID"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("ReqJson数据不合法");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Upload_By_UploadID", false, RespJson);
+        return;
+    }
+
+    // 查询上传
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询上传", true);
+        drogon_model::novel::Upload TUpload = UploadMgr.findByPrimaryKey(ReqJson["Upload_ID"].asInt());
+        MyBasePtr->DEBUGLog("查询上传完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Upload_Data"] = TUpload.toJson();
+        MyBasePtr->INFO_Func("Search_Upload_By_UploadID", false, RespJson);
+        return;
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("此上传数据不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("上传ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("上传数据查询失败");
+        MyBasePtr->INFO_Func("Search_Upload_By_UploadID", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("图书查询失败");
+        MyBasePtr->INFO_Func("Search_Upload_By_UploadID", false, RespJson);
+        return;
+    }
+}
+
+
 // 用户上传新书的接口
 /*
     用户上传新书的接口
@@ -4927,11 +5022,15 @@ void MyDBService::Upload_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
     try
     {
         MyBasePtr->DEBUGLog("开始检查content数据是否合法", true);
+        //   "Vol_Num":1,// 分卷数
+        //   "Chapter_Num":3,// 章节数
         // "Chapter_Title"   :   "", //  章节标题
         // "Content_Array"   :   []  //  章节内容
         // 创建检查列表 key是字段名 value 是字段类型
 
         std::map<string, MyJson::ColType> ColMap;
+        ColMap["Vol_Num"] = MyJson::ColType::INT;
+        ColMap["Chapter_Num"] = MyJson::ColType::INT;
         ColMap["Chapter_Title"] = MyJson::ColType::STRING;
         ColMap["Content_Array"] = MyJson::ColType::ARRAY;
         MyJsonPtr->checkMemberAndTypeInMap(ContentJson, RespJson, ColMap);
@@ -5398,6 +5497,7 @@ bool MyDBService::Insert_Action(Json::Value &ReqJson, Json::Value &RespJson)
         return false;
     }
     RespJson["Action_Data"] = NewAction.toJson();
+    MyJsonPtr->JsonstrToJson(RespJson["Action_Data"]["Memo"],RespJson["Action_Data"]["Memo"].asString());
     MyBasePtr->INFO_Func("Insert_Action", false, RespJson);
     return true;
 }
@@ -5547,6 +5647,8 @@ bool MyDBService::Insert_Book(Json::Value &ReqJson, Json::Value &RespJson)
 Req:{
     "User_ID"         :   0,  //  贡献者ID
     "Book_ID"         :   0,  //  目标图书的ID
+    "Vol_Num"         :   1,  //  分卷数      
+    "Chapter_Num"     :   3,  //  章节数
     "Chapter_Title"   :   "", //  章节标题
     "Content_Array"   :   []  //  章节内容
     ["Version"]       :   0,  //  可选参数，默认为1，传入时以其为准
@@ -5581,12 +5683,16 @@ bool MyDBService::Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("插入前检查章节数据是否合法", true);
         // "User_ID"         :   0,  //  贡献者ID
         // "Book_ID"         :   0,  //  目标图书的ID
+        // "Vol_Num"         :   1,  //  分卷数      
+        // "Chapter_Num"     :   3,  //  章节数
         // "Chapter_Title"   :   "", //  章节标题
         // "Content_Array"   :   []  //  章节内容
         // 创建检查列表 key是字段名 value 是字段类型
         std::map<string, MyJson::ColType> ColMap;
         ColMap["User_ID"] = MyJson::ColType::INT;
         ColMap["Book_ID"] = MyJson::ColType::INT;
+        ColMap["Vol_Num"] = MyJson::ColType::INT;
+        ColMap["Chapter_Num"] = MyJson::ColType::INT;
         ColMap["Chapter_Title"] = MyJson::ColType::STRING;
         ColMap["Content_Array"] = MyJson::ColType::ARRAY;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
@@ -5622,10 +5728,9 @@ bool MyDBService::Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
     }
 
     drogon_model::novel::Chapter NewChapter;
-    pair<int, string> Title = MyToolsPtr->getTitleNumAndTitleStr(ReqJson["Chapter_Title"].asString());
-    string ChapterTitle = Title.second;                     // 章节名
-    int Part_Num;                                           // 章节卷
-    int Chapter_Num = Title.first;                          // 章节数
+    string ChapterTitle = ReqJson["Chapter_Title"].asString(); // 章节名
+    int Part_Num = ReqJson["Vol_Num"].asInt();              // 章节卷
+    int Chapter_Num = ReqJson["Chapter_Num"].asInt();       // 章节数
     Json::Value Chapter_Content = ReqJson["Content_Array"]; // 章节内容
     Json::Value Chapter_Memo;                               // 参数
     Json::Value BookMemo;
@@ -5647,7 +5752,7 @@ bool MyDBService::Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
         ////---- 这里有可能不合法导致跳出，需要捕获然后更新Upload的值
         ChapterJson = BookMemo["Chapter"];
 
-        Part_Num = ChapterJson.size() - 1;
+        // Part_Num = ChapterJson.size() - 1;
         MyBasePtr->DEBUGLog("查询Book/Memo获取章节卷成功", true);
     }
     catch (Json::Value &e)
@@ -5733,6 +5838,10 @@ bool MyDBService::Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
         // 章节插入后需要更新Book信息
         {
             MyBasePtr->DEBUGLog("开始更新Book数据", true);
+            while(ChapterJson.size() <= Part_Num)
+            {
+                ChapterJson.append(0);
+            }
             ChapterJson[Part_Num] = ChapterJson[Part_Num].asInt() + 1;
             ChapterJson[0] = ChapterJson[0].asInt() + 1;
             BookMemo["Chapter"] = ChapterJson;
@@ -5765,6 +5874,8 @@ bool MyDBService::Insert_Chapter(Json::Value &ReqJson, Json::Value &RespJson)
     RespJson["Explain"] = "章节创建成功";
     RespJson["Upload_Status"] = "已成功";
     RespJson["Chapter_Data"] = NewChapter.toJson();
+    MyJsonPtr->JsonstrToJson(RespJson["Chapter_Data"]["Content"],RespJson["Chapter_Data"]["Content"].asString());
+    MyJsonPtr->JsonstrToJson(RespJson["Memo"]["Content"],RespJson["Chapter_Data"]["Memo"].asString());
     MyBasePtr->INFO_Func("Insert_Chapter", false, RespJson);
     return true;
 }

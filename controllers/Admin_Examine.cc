@@ -3,7 +3,7 @@ using namespace Admin;
 //add definition of your processing function here
 
 // 管理员查看用户上传申请接口
-void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+void Examine::UploadSearchList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     Json::Value ReqVal,RespVal,ResultData;
     drogon::HttpResponsePtr Result;
@@ -11,7 +11,7 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Examine::UpList::body" + string(req->getBody()), true);
+    MyBasePtr->TRACELog("Examine::UploadSearchList::body" + string(req->getBody()), true);
     
     try
     {
@@ -64,7 +64,7 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
     catch (...)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"].append("Examine::UpList::Error");
+        RespVal["ErrorMsg"].append("Examine::UploadSearchList::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
         // 设置返回格式
@@ -78,6 +78,54 @@ void Examine::UpList(const HttpRequestPtr &req,std::function<void (const HttpRes
     Result->setContentTypeCode(CT_TEXT_HTML);
     callback(Result);
 }
+
+
+// 管理员查看指定申请ID的内容
+void Examine::UploadSearchByID(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Examine::UploadSearchByID::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        RespVal["简介"] = "管理员查看指定用户申请ID接口";
+        MyDBSPtr->Search_Upload_By_UploadID(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "指定用户申请ID查询成功";
+        ResultData["Data"] = RespVal["Upload_Data"];
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACELog(RespVal["ErrorMsg"].asString(), true);
+
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
 
 // 管理员查看用户意见接口
 void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
@@ -155,15 +203,15 @@ void Examine::IdeaList(const HttpRequestPtr &req,std::function<void (const HttpR
 }
 
 // 管理员审核申请接口
-void Examine::ExamineUpload(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+void Examine::UploadExamine(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal,ParaJson;
+    Json::Value ReqVal,RespVal,ParaJson,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Examine::ExamineUpload::body" + string(req->getBody()), true);
+    MyBasePtr->TRACELog("Examine::UploadExamine::body" + string(req->getBody()), true);
     
 
     Result=HttpResponse::newHttpJsonResponse(RespVal);
@@ -229,31 +277,53 @@ void Examine::ExamineUpload(const HttpRequestPtr &req,std::function<void (const 
         MyBasePtr->DEBUGLog("开始处理申请::ExamineJson::" + ExamineJson.toStyledString(), true);
         MyDBSPtr->Examine_Upload(ExamineJson,RespVal);
         MyBasePtr->DEBUGLog("申请处理结束", true);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        RespVal.clear();
+        MyDBSPtr->Search_Upload_By_UploadID(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())throw RespVal;
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户申请审核成功";
+        ResultData["Data"] = RespVal["Upload_Data"];
 
-        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = false;
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["Result"] = false;
-        RespVal["ErrorMsg"].append("Examine::ExamineUpload::Error");
+        RespVal["ErrorMsg"].append("Examine::UploadExamine::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-      
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
 

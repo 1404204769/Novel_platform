@@ -287,6 +287,7 @@ void Resource::SearchMenu(const HttpRequestPtr &req,std::function<void (const Ht
         ResultData["Result"] = true;
         ResultData["Message"] = "图书目录查询成功";
         ResultData["Data"]["ChapterList"]= RespVal["Chapter_List"];
+        ResultData["Data"]["BookData"]= RespVal["Book_Data"];
         Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)

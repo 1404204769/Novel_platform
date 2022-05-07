@@ -77,6 +77,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_User_Ban_Time(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Upload_By_UploadID(Json::Value &ReqJson, Json::Value &RespJson);
 
     void Upload_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Upload_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
