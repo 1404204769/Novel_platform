@@ -73,7 +73,7 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
 // 用户更新个人资料
 void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
@@ -95,31 +95,33 @@ void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const Ht
         {
             MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
             // "Change_ID"      :   0 ,
-            // "Change_Name"    :   "",
-            // "Change_Password":   "",
-            // "Change_Sex"     :   "",
             // "Change_Col"     :   ["Change_Name","Change_Password","Change_Sex"]
             std::map<string, MyJson::ColType> ColMap;
             ColMap["Change_ID"] = MyJson::ColType::INT;
-            ColMap["Change_Name"] = MyJson::ColType::STRING;
-            ColMap["Change_Password"] = MyJson::ColType::STRING;
-            ColMap["Change_Sex"] = MyJson::ColType::STRING;
             ColMap["Change_Col"] = MyJson::ColType::ARRAY;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
             MyBasePtr->DEBUGLog("传入参数合法", true);
         }
         
         MyDBSPtr->Update_User_PersonalData(ReqVal, RespVal);
-        RespVal["Result"] = "更新成功";
-        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "个人资料更新成功";
+        ResultData["Data"] = RespVal["User_Data"];
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {
-        RespVal["Result"] = "更新失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
@@ -136,16 +138,25 @@ void PersonalData::Update(const HttpRequestPtr &req, std::function<void(const Ht
         {
             RespVal["ErrorMsg"].append(e.base().what());
         }
-        RespVal["Result"] = "更新失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["Result"] = "更新失败";
-        RespVal["ErrorMsg"].append("PersonalData::Search::Error");
+        RespVal["ErrorMsg"].append("PersonalData::Update::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

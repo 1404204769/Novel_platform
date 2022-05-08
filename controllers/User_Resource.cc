@@ -341,6 +341,7 @@ void Resource::SearchContent(const HttpRequestPtr &req,std::function<void (const
         ResultData["Result"] = true;
         ResultData["Message"] = "图书目录查询成功";
         ResultData["Data"]["ChapterContent"]= RespVal["Chapter_Content"];
+        ResultData["Data"]["ChapterID"]= RespVal["Chapter_ID"];
         Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)

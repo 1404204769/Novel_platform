@@ -286,7 +286,7 @@ void Note::Reply(const HttpRequestPtr &req,std::function<void (const HttpRespons
 // 用户发布求助帖接口
 void Note::Appeal(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal, ParaVal;
+    Json::Value ReqVal, RespVal, ParaVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -331,41 +331,54 @@ void Note::Appeal(const HttpRequestPtr &req,std::function<void (const HttpRespon
         
         MyDBSPtr->Create_Note(ReqVal,RespVal);
         
-        if(RespVal["Result"].asBool())
+        if(!RespVal["Result"].asBool())
         {
-            MyBasePtr->DEBUGLog("帖子发布成功::Note::" + RespVal["Note_Data"].toStyledString(), true);
-            Json::Value CommentJson;
-            MyJsonPtr->UnMapToJson(CommentJson, umapPara, "Para");
-            CommentJson["Note_ID"] = RespVal["Note_Data"]["Note_ID"];
-            CommentJson["Comment_Content"]["Content"] = "欢迎大家积极留言,共同努力打造一个良好的阅读环境";
-            MyBasePtr->DEBUGLog("开始发布楼主评论", true);
-            MyDBSPtr->Create_Comment(CommentJson,RespVal);
-            if(!RespVal["Result"].asBool())
-            {
-                MyBasePtr->DEBUGLog("建立楼主评论失败", true);
-                throw RespVal;
-            }
-            MyBasePtr->DEBUGLog("建立楼主评论完成", true);
-        }
-        else
-        {
-            RespVal["ErrorMsg"].append("帖子发布失败");
             throw RespVal;
         }
+       
+        ResultData["Data"]["Note_Data"] = RespVal["Note_Data"];
+        MyBasePtr->DEBUGLog("帖子发布成功::Note::" + RespVal["Note_Data"].toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        Json::Value CommentJson;
+        MyJsonPtr->UnMapToJson(CommentJson, umapPara, "Para");
+        CommentJson["Note_ID"] = RespVal["Note_Data"]["Note_ID"];
+        CommentJson["Comment_Content"]["Content"] = "欢迎大家积极留言,共同努力打造一个良好的阅读环境";
+        MyBasePtr->DEBUGLog("开始发布楼主评论", true);
+        MyDBSPtr->Create_Comment(CommentJson,RespVal);
+        if(!RespVal["Result"].asBool())
+        {
+            MyBasePtr->DEBUGLog("建立楼主评论失败", true);
+            throw RespVal;
+        }
+        MyBasePtr->DEBUGLog("建立楼主评论完成", true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户发布求助帖成功";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["ErrorMsg"].append("Note::Appeal::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

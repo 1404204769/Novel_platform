@@ -47,6 +47,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Create_Comment(Json::Value &ReqJson, Json::Value &RespJson);
     void Create_Note(Json::Value &ReqJson, Json::Value &RespJson);
     void Create_Suggestion(Json::Value &ReqJson, Json::Value &RespJson);
+    void Create_Report(Json::Value &ReqJson, Json::Value &RespJson);
 
     
     void Download_Resource_Public(Json::Value &ReqJson, Json::Value &RespJson);
@@ -56,6 +57,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     string Get_Upload_Type(int Upload_ID);
     bool Is_Book_Exist(Json::Value &ReqJson, Json::Value &RespJson);
     bool Is_Comment_Exist(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Is_CommentID_Exist(Json::Value &ReqJson, Json::Value &RespJson);
     bool Is_Note_Exist(Json::Value &ReqJson, Json::Value &RespJson);
     bool Is_User_Exist(Json::Value &ReqJson, Json::Value &RespJson);
 
@@ -70,8 +72,10 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Comment(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Comment_By_CommentID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Chapter_All_Version(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Chapter_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Chapter_By_ChapterID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_ChapterContent(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Note(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Note_By_NoteID(Json::Value &ReqJson, Json::Value &RespJson);

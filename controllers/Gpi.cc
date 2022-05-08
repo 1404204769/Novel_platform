@@ -119,13 +119,14 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
     }
     catch(Json::Value &RespVal)
     {
-	    RespVal["Result"] = "登入失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         
         // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
         ResultData["Result"] = false;
-        ResultData["Message"] = RespVal["Result"];
-        Result=HttpResponse::newHttpJsonResponse(ResultData);
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
@@ -141,9 +142,11 @@ void Gpi::Login(const HttpRequestPtr &req,std::function<void (const HttpResponse
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         
         // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
         ResultData["Result"] = false;
-        ResultData["Message"] = RespVal["Result"];
-        Result=HttpResponse::newHttpJsonResponse(ResultData);
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -211,13 +214,14 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
     }
     catch(Json::Value &RespVal)
     {
-	    RespVal["Result"] = "注册失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         
         // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
         ResultData["Result"] = false;
-        ResultData["Message"] = RespVal["Result"];
-        Result=HttpResponse::newHttpJsonResponse(ResultData);
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
@@ -234,7 +238,8 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         int ErrorSize = RespVal["ErrorMsg"].size();
         ResultData["Result"] = false;
         ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
-        Result=HttpResponse::newHttpJsonResponse(ResultData);
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
