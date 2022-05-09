@@ -28,7 +28,7 @@ class MyRoot : public drogon::Plugin<MyRoot>
       RESTART = 1,
     };
   public:
-    bool restart();
+    void restart();
     void close();
     string getUserType(int UserPower);
   private:

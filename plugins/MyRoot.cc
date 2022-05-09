@@ -56,7 +56,16 @@ void MyRoot::close()
     	MyBasePtr->TRACELog("准备开始保存配置文件",true);
 		MyJsonPtr->SaveConfig(this->config, this->SystemConfigDirectory);
     	MyBasePtr->TRACELog("准备开始停止应用",true);
-		app().quit();
+		//
+		pid_t thread = fork();
+		if(thread == 0)
+		{
+			cout << "系统延迟1s" << endl;
+			usleep(1000);
+			cout << "系统延迟完成" << endl;
+			system("sh ../start.sh close");
+		}
+		//app().quit();
     	MyBasePtr->TRACELog("系统是否正在运行 : " + app().isRunning(),true);
     	MyBasePtr->TRACELog("应用停止成功",true);
 	}catch(Json::Value &e)
@@ -66,7 +75,7 @@ void MyRoot::close()
 	}
 }
 
-bool MyRoot::restart()
+void MyRoot::restart()
 {
     auto MyBasePtr = drogon::app().getPlugin<MyBase>();
 	try{
@@ -78,18 +87,16 @@ bool MyRoot::restart()
     	MyBasePtr->TRACELog("应用停止成功",true);
     	MyBasePtr->TRACELog("系统是否正在运行 : " + app().isRunning(),true);
     	MyBasePtr->TRACELog("准备开始启动应用",true);
-		app().loadConfigFile("../config.json");
+		//app().loadConfigFile("../config.json");
 		//Run HTTP framework,the method will block in the internal event loop
 		//增加响应头
-		app().run();
+		//app().run();
     	MyBasePtr->TRACELog("应用启动成功",true);
 	}catch(Json::Value &e)
 	{
     	MyBasePtr->TRACELog("MyRoot::restart::Error : ",true);
 		MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
-		return false;
 	}
-	return true;
 }
 
 string MyRoot::getUserType(int UserPower)
