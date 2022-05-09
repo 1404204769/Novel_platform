@@ -1402,6 +1402,8 @@ Req:{
 }
 
 Resp:{
+    "User_Data":{},
+    "Action_Data":{},
     "ErrorMsg" : []
 }
 */
@@ -1493,7 +1495,8 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
             return false;
         }
         MyBasePtr->DEBUGLog("用户积分数据更新完成: " + user.toJson().toStyledString(), true);
-
+        RespJson["User_Data"]["Integral"] = user.getValueOfIntegral();
+        RespJson["User_Data"]["TotalIntegral"] = user.getValueOfTotalIntegral();
         MyBasePtr->DEBUGLog("开始记录行为数据", true);
         // Memo:{
         //     Explain:"",
@@ -1557,6 +1560,7 @@ Req:{
 Resp:{
     "ErrorMsg" : [],
     "Ban_Time" : "",// Type为Unseal时且失败的情况下存在此字段，代表实际封号截止时间
+    "User_Status":"",// 更新后 用户的状态
 }
 */
 bool MyDBService::Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson)
@@ -1753,7 +1757,7 @@ bool MyDBService::Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson
             }
         }
         MyBasePtr->DEBUGLog("用户状态数据更新完成: " + user.toJson().toStyledString(), true);
-
+        RespJson["User_Status"] = user.getValueOfStatus();
         MyBasePtr->DEBUGLog("开始记录行为数据", true);
         // Memo:{
         //     Explain:"",
@@ -1798,7 +1802,7 @@ bool MyDBService::Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson
 }
 
 
-// 修改用户状态  封号/解封
+// 修改意见状态
 /*
     修改用户状态  封号/解封
 Req:{
@@ -1876,6 +1880,13 @@ bool MyDBService::Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson
 
     try
     {
+        if(ReqJson.isMember("Explain"))
+        {
+            Json::Value MemoJson;
+            MyJsonPtr->JsonstrToJson(MemoJson,idea.getValueOfMemo());
+            MemoJson["Explain"] = ReqJson["Explain"].asString();
+            idea.setMemo(MemoJson.toStyledString());
+        }
         
         idea.setStatus(ReqJson["Status"].asString());
         idea.setIsmanage(ReqJson["IsManage"].asBool());
@@ -1884,8 +1895,7 @@ bool MyDBService::Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson
         int row = IdeaMgr.update(idea);
         if(row == 0)
         {
-            RespJson["ErrorMsg"].append("数据无需更新");
-            RespJson["ErrorMsg"].append("数据更新失败");
+            RespJson["ErrorMsg"].append("数据更新失败(数据无需更新)");
             MyBasePtr->INFO_Func("Change_Idea_Status", false, RespJson);
             return false;
         }
@@ -1893,15 +1903,14 @@ bool MyDBService::Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
-        RespJson["ErrorMsg"].append(e.base().what());
-        RespJson["ErrorMsg"].append("数据更新失败");
+        string error =e.base().what();
+        RespJson["ErrorMsg"].append("数据更新失败:"+error);
         MyBasePtr->INFO_Func("Change_Idea_Status", false, RespJson);
         return false;
     }
     catch (Json::Value &e)
     {
         RespJson["ErrorMsg"] = e["ErrorMsg"];
-        RespJson["ErrorMsg"].append("数据更新失败");
         MyBasePtr->INFO_Func("Change_Idea_Status", false, RespJson);
         return false;
     }
@@ -1912,6 +1921,7 @@ bool MyDBService::Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson
         return false;
     }
     RespJson["Idea_Data"] = idea.toJson();
+    MyJsonPtr->JsonstrToJson(RespJson["Idea_Data"]["Memo"],RespJson["Idea_Data"]["Memo"].asString());
     MyBasePtr->INFO_Func("Change_Idea_Status", false, RespJson);
     return true;
 }
@@ -5030,6 +5040,164 @@ void MyDBService::Search_Upload_By_UploadID(Json::Value &ReqJson, Json::Value &R
         return;
     }
 }
+
+
+// 指定章节的某一版本的有效
+/*
+    指定章节的某一版本的有效
+Req:{
+    "Book_ID":0,
+    "Part_Num"0,
+    "Chapter_Num":0
+    "Version":0
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+}
+*/
+void MyDBService::Select_Chapter_Version_Valid(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Chapter> ChapterMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int limit = 0, offset = 0, BookID,PartNum,ChapterNum,Version;
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        ColMap["Part_Num"] = MyJson::ColType::INT;
+        ColMap["Chapter_Num"] = MyJson::ColType::INT;
+        ColMap["Version"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        BookID = atoi(ReqJson["Book_ID"].asString().c_str());
+        PartNum = atoi(ReqJson["Part_Num"].asString().c_str());
+        ChapterNum = atoi(ReqJson["Chapter_Num"].asString().c_str());
+        Version = atoi(ReqJson["Version"].asString().c_str());
+
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Select_Chapter_Version_Valid::Error");
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+
+    // 查询章节所有版本
+    Json::Value TempResp;
+    
+    Search_Chapter_All_Version(ReqJson,TempResp);
+    if(!TempResp["Result"])
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+    
+    if(TempResp["Chapter_List"].isNull())
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
+        RespJson["ErrorMsg"].append("不存在目标章节");
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+    // 处理章节数据
+    bool find =false;
+    for (auto &obj : TempResp["Chapter_List"])
+    {
+        if(obj["Valid"].asBool() == false && obj["Version"].asInt() != Version)
+            continue;
+        if(obj["Version"].asInt() == Version)
+        {
+            if(obj["Valid"].asBool())
+            {
+                RespJson["Result"] = false;
+                RespJson["ErrorMsg"].append("目标章节本来就生效");
+                MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+                return;
+            }
+            find = true;
+            break;
+        }
+        // std::cout << user.toJson().toStyledString() <<std::endl;
+    }
+    
+    if(!find)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("不存在目标章节");
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+
+
+    try
+    {
+        MyBasePtr->DEBUGLog("开始指定图书的章节的版本生效完毕", true);
+        Json::Value vecJsonVal, TempChapterJson;
+        for (auto &obj : TempResp["Chapter_List"])
+        {
+            if(obj["Valid"].asBool() == false && obj["Version"].asInt() != Version)
+                continue;
+            drogon_model::novel::Chapter chapter;
+            chapter.updateByJson(obj);
+            if(chapter.getValueOfVersion() == Version)
+            {
+                chapter.setValid(true);
+            }
+            else
+                chapter.setValid(false);
+                    
+            MyBasePtr->DEBUGLog("开始更新章节数据", true);
+            int row = ChapterMgr.update(chapter);
+            if (row != 1)
+            {
+                RespJson["ErrorMsg"].append("章节数据更新失败");
+                throw RespJson;
+            }
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+
+        MyBasePtr->DEBUGLog("指定图书的章节的版本生效完毕", true);
+        RespJson["Result"] = true;
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("指定图书的章节的版本生效失败");
+        MyBasePtr->INFO_Func("Select_Chapter_Version_Valid", false, RespJson);
+        return;
+    }
+}
+
 
 
 // 用户上传新书的接口

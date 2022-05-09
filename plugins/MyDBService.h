@@ -83,6 +83,10 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Search_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Upload_By_UploadID(Json::Value &ReqJson, Json::Value &RespJson);
 
+    void Select_Chapter_Version_Valid(Json::Value &ReqJson, Json::Value &RespJson);
+
+
+
     void Upload_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Upload_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
     void Update_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);

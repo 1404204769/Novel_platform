@@ -3,7 +3,7 @@
 
 void Root::Instructions(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -15,7 +15,6 @@ void Root::Instructions(const HttpRequestPtr &req,std::function<void (const Http
     try{
         // 读取Json数据
         Json::Value ReqVal=*req->getJsonObject();
-
         MyJsonPtr->checkMember(ReqVal,RespVal,"Instruction");
         if(ReqVal["Instruction"].asString() == "restart")
         {
@@ -30,23 +29,282 @@ void Root::Instructions(const HttpRequestPtr &req,std::function<void (const Http
         
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"] = RespVal;
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(Json::Value &RespVal)
     {
 	    RespVal["Result"] = "指令错误";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch(const drogon::orm::DrogonDbException &e)
     {
 	    RespVal["Result"] = "指令错误";
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result=HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
     Result->setContentTypeCode(CT_TEXT_HTML);
     callback(Result);
 }
+
+void Root::AdminControl(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,ParaJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::AdminControl::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+        // 检查数据完整性
+        {
+            MyBasePtr->DEBUGLog("开始检查数据完整性", true);
+            std::map<string, MyJson::ColType> ColMap;
+            ColMap["User_ID"] = MyJson::ColType::INT;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("检查数据完整性完成", true);
+            
+            MyBasePtr->DEBUGLog("开始检查Para数据", true);
+            ColMap.clear();
+            ParaJson = ReqVal["Para"];
+            ColMap["User_ID"] = MyJson::ColType::STRING;
+            ColMap["Login_Status"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("检查Para数据完成", true);
+
+
+            if (ParaJson["Login_Status"].asString() != "root")
+            {
+                RespVal["ErrorMsg"].append("账户权限错误,请联系超级管理员");
+                RespVal["Result"]   = false;
+                throw RespVal;
+            }
+        }
+
+        // 开始管理用户
+        
+        auto dbclientPrt = drogon::app().getDbClient();
+        Mapper<drogon_model::novel::User> UserMgr(dbclientPrt);
+        Criteria UserID_cri = Criteria(drogon_model::novel::User::Cols::_User_ID,CompareOperator::EQ,ReqVal["User_ID"].asInt());
+        vector<drogon_model::novel::User> vecUser = UserMgr.findBy(UserID_cri);
+
+        if(vecUser.size() == 0)
+        {
+            RespVal["ErrorMsg"].append("用户不存在");
+            throw RespVal;
+        }
+
+        if(vecUser.size() > 1)
+        {
+            RespVal["ErrorMsg"].append("用户不唯一");
+            throw RespVal;
+        }
+
+        drogon_model::novel::User user = vecUser[0];
+        int Power = user.getValueOfPower();
+        if(Power >= 10000)
+        {
+            user.setPower(Power - 10000);
+            ResultData["Message"] = "用户(ID:"+to_string(user.getValueOfUserId())+")取消管理员";
+        }
+        else
+        {
+            user.setPower(Power + 10000);
+            ResultData["Message"] = "用户(ID:"+to_string(user.getValueOfUserId())+")设为管理员";
+        }
+        int row = UserMgr.update(user);
+        if(row != 1)
+        {
+            ResultData["Result"] = false;
+            ResultData["Message"] = ResultData["Message"].asString() + "失败";
+        }else
+        {
+            ResultData["Result"] = true;
+            ResultData["Message"] = ResultData["Message"].asString() + "成功";
+        }
+        // 设置返回格式
+        ResultData["Data"] = user.toJson();
+        ResultData["Data"].removeMember("Password");
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        RespVal["Result"] = false;
+        RespVal["ErrorMsg"].append(e.base().what());
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["Result"] = false;
+        RespVal["ErrorMsg"].append("Root::AdminControl::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+void Root::SysOutLevelSearch(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,TempJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::AdminControl::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        // 设置返回格式
+        TempJson["DEBUG"] = MyBasePtr->IsStatus("DEBUG");
+        TempJson["TRACE"] = MyBasePtr->IsStatus("TRACE");
+        TempJson["INFO"] = MyBasePtr->IsStatus("INFO");
+        TempJson["WARN"] = MyBasePtr->IsStatus("WARN");
+        ResultData["Data"] = TempJson;
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统正常运行中";
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = "系统运行异常";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+void Root::SysOutLevelUpdate(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,TempJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::AdminControl::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        string Level = ReqVal["Level"].asString();
+        // 检测参数
+        {
+            std::map<string,MyJson::ColType>ColMap;
+            ColMap["Level"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
+            
+            if(Level!="DEBUG" && Level!="TRACE" && Level!="INFO" && Level!="WARN")
+            {
+                RespVal["ErrorMsg"].append("要修改的日志级别格式错误");
+                throw RespVal;
+            }
+        }
+        
+
+        MyBasePtr->TRACELog("开始改变输出模式", true);
+        MyBasePtr->ChangeStatus(Level);
+        MyBasePtr->TRACELog("改变输出模式成功", true);
+
+        // 设置返回格式
+        TempJson["DEBUG"] = MyBasePtr->IsStatus("DEBUG");
+        TempJson["TRACE"] = MyBasePtr->IsStatus("TRACE");
+        TempJson["INFO"] = MyBasePtr->IsStatus("INFO");
+        TempJson["WARN"] = MyBasePtr->IsStatus("WARN");
+        ResultData["Data"] = TempJson;
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "改变日志状态成功";
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = "改变日志状态失败("+RespVal["ErrorMsg"][ErrorSize - 1].asString()+")";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}
+    

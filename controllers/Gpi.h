@@ -11,7 +11,9 @@ class Gpi:public drogon::HttpController<Gpi>
     METHOD_LIST_BEGIN
       METHOD_ADD(Gpi::Login,"/Login",Get,Post,Options,"MyJsonFilter");
       METHOD_ADD(Gpi::Register,"/Register",Get,Post,Options,"MyJsonFilter");
+      METHOD_ADD(Gpi::SearchBanTime,"/SearchBanTime",Get,Post,Options,"MyJsonFilter");
     METHOD_LIST_END
     void Login(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Register(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
+    void SearchBanTime(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
 };

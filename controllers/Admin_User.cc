@@ -139,7 +139,7 @@ void Admin::User::Search(const HttpRequestPtr &req, std::function<void(const Htt
 
 void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -166,27 +166,46 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
             ColMap["Para"] = MyJson::ColType::JSON;
             ColMap["Change_Target"] = MyJson::ColType::ARRAY;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+
+            if(ReqVal["Change_Target"].size() == 0)
+            {
+                RespVal["ErrorMsg"].append("操作对象为空,请选则操作对象");
+                throw RespVal;
+            }
+
             MyBasePtr->DEBUGLog("传入参数合法", true);
         }
         
         MyDBSPtr->Admin_Update_User(ReqVal, RespVal);
         RespVal["Result"] = "更新用户数据成功";
-        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "更改用户数据成功";
+        ResultData["Data"]["ChangeTarget"] = RespVal["Change_Target"];
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {
-        RespVal["Result"] = "更新用户数据失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
-        RespVal["Result"] = "更新用户数据失败";
         RespVal["ErrorMsg"].append("Admin::User::Update::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -197,7 +216,7 @@ void Admin::User::Update(const HttpRequestPtr &req, std::function<void(const Htt
 
 void Admin::User::Change_User_Integral(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal, ParaVal;
+    Json::Value ReqVal, RespVal, ParaVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -248,20 +267,34 @@ void Admin::User::Change_User_Integral(const HttpRequestPtr &req, std::function<
         RespVal["Result"] = "更新用户数据成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "更改用户数据成功";
+        ResultData["Data"]["Integral"] = RespVal["User_Data"]["Integral"];
+        ResultData["Data"]["Total_Integral"] = RespVal["User_Data"]["TotalIntegral"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
-        RespVal["Result"] = "更新用户数据失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
-        RespVal["Result"] = "更新用户数据失败";
         RespVal["ErrorMsg"].append("Admin::User::Change_User_Integral::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);
@@ -272,7 +305,7 @@ void Admin::User::Change_User_Integral(const HttpRequestPtr &req, std::function<
 
 void Admin::User::Change_User_Status(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal, RespVal, ParaVal;
+    Json::Value ReqVal, RespVal, ParaVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -323,20 +356,33 @@ void Admin::User::Change_User_Status(const HttpRequestPtr &req, std::function<vo
         RespVal["Result"] = "更新用户数据成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "更改用户数据成功";
+        ResultData["Data"]["Status"] = RespVal["User_Status"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
-        RespVal["Result"] = "更新用户数据失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
-        RespVal["Result"] = "更新用户数据失败";
         RespVal["ErrorMsg"].append("Admin::User::Change_User_Status::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

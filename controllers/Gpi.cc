@@ -199,7 +199,7 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         newUser.setIntegral(0);
         newUser.setTotalIntegral(0);
         newUser.setPower(1);
-        newUser.setStatus("normal");
+        newUser.setStatus("Normal");
 		UserMgr.insert(newUser);
         RespVal["Result"] = "注册成功";
         MyBasePtr->DEBUGLog("注册新用户完成", true);
@@ -246,3 +246,108 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
     Result->setContentTypeCode(CT_TEXT_HTML);
     callback(Result);
 }
+
+
+void Gpi::SearchBanTime(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    drogon::HttpResponsePtr Result;
+	Json::Value ReqVal, RespVal,ParaVal,ResultData;
+    auto JWTPtr = app().getPlugin<MyJwt>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Gpi::Login::body" + string(req->getBody()), true);
+    
+    try{
+
+        // 读取Json数据
+	    ReqVal=*req->getJsonObject();
+        MyBasePtr->TRACELog("Gpi::Login::ReqVal" + ReqVal.toStyledString(), true);
+
+        // 检查数据完整性
+        {
+            // 创建检查列表
+            // 判断是否存在User_ID 判断User_ID是否是Int
+            // 判断是否存在User_Pwd 判断User_Pwd是否是String
+            std::map<string,MyJson::ColType>ColMap;
+            ColMap["User_ID"]=MyJson::ColType::INT;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
+        }
+
+        // 读取UserID UserPwd数据
+        auto UserID=ReqVal["User_ID"].asInt();
+        
+        auto dbclientPrt=drogon::app().getDbClient();
+        Mapper<drogon_model::novel::User>UserMgr(dbclientPrt);
+        
+        MyBasePtr->DEBUGLog("开始查询用户", true);
+        drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
+        MyBasePtr->DEBUGLog("用户查询完毕", true);
+
+        // 开始验证状态,如果被封号了
+        if(user.getValueOfStatus() == "Ban")
+        {
+            Json::Value TempReq,TempResp;
+            TempReq["User_ID"] = user.getValueOfUserId();
+            MyBasePtr->DEBUGLog("开始查询用户封号截止时间", true);
+            MyDBSPtr->Search_User_Ban_Time(TempReq,TempResp);
+            if(!TempResp["Result"].asBool())
+            {
+                RespVal["ErrorMsg"] = TempResp["ErrorMsg"];
+                RespVal["ErrorMsg"].append("查询用户封号截止时间发生错误");
+                throw RespVal;
+            }
+            ResultData["Data"]["Ban_Time"] = TempResp["Ban_Time"].asString();
+            MyBasePtr->DEBUGLog("用户封号截止时间("+TempResp["Ban_Time"].asString()+")查询完毕", true);
+            trantor::Date BanTime = trantor::Date::fromDbStringLocal(TempResp["Ban_Time"].asString());
+        }else
+        {
+            ResultData["Data"]["Ban_Time"] = "用户并未被封号";
+        }
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = RespVal["Result"];
+        
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch(Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch(const drogon::orm::DrogonDbException &e)
+    {
+        if(e.base().what() == string("0 rows found"))
+        {
+            RespVal["ErrorMsg"].append("此用户不存在");
+        }
+        else if(e.base().what() == string("Found more than one row"))
+        {
+            RespVal["ErrorMsg"].append("用户ID重复,请联系管理员");
+        }
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+

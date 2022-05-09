@@ -212,11 +212,6 @@ void Examine::UploadExamine(const HttpRequestPtr &req,std::function<void (const 
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string,string>umapPara = req->getParameters();
     MyBasePtr->TRACELog("Examine::UploadExamine::body" + string(req->getBody()), true);
-    
-
-    Result=HttpResponse::newHttpJsonResponse(RespVal);
-    
-
     try
     {
         // 读取Json数据
@@ -335,7 +330,7 @@ void Examine::UploadExamine(const HttpRequestPtr &req,std::function<void (const 
 // 管理员审核意见接口
 void Examine::ExamineIdea(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
-    Json::Value ReqVal,RespVal,ParaJson;
+    Json::Value ReqVal,RespVal,ParaJson,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
@@ -360,17 +355,9 @@ void Examine::ExamineIdea(const HttpRequestPtr &req,std::function<void (const Ht
             std::map<string, MyJson::ColType> ColMap;
             ColMap["Idea_ID"] = MyJson::ColType::INT;
             ColMap["Examine_Result"] = MyJson::ColType::BOOL;
+            ColMap["Examine_Explain"] = MyJson::ColType::STRING;
             ColMap["Para"] = MyJson::ColType::JSON;
             MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
-            
-
-            if(ReqVal["Examine_Result"].asBool() == false)
-            {
-                ColMap.clear();
-                ColMap["Examine_Explain"] = MyJson::ColType::STRING;
-                MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
-            }
-
 
             MyBasePtr->DEBUGLog("检查数据完整性完成", true);
             
@@ -404,36 +391,57 @@ void Examine::ExamineIdea(const HttpRequestPtr &req,std::function<void (const Ht
         }else{
             ExamineJson["Status"] = "已完成";
         }
+        ExamineJson["Explain"] = ReqVal["Examine_Explain"];
         MyBasePtr->DEBUGLog("设置ExamineJson结束", true);
         
         MyBasePtr->DEBUGLog("开始处理意见::ExamineJson::" + ExamineJson.toStyledString(), true);
-        MyDBSPtr->Change_Idea_Status(ExamineJson,RespVal);
+        bool res = MyDBSPtr->Change_Idea_Status(ExamineJson,RespVal);
+        if(!res)throw RespVal;
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户意见处理成功";
+        ResultData["Data"] = RespVal["Idea_Data"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
         MyBasePtr->DEBUGLog("意见处理结束", true);
 
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
-
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = false;
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
         RespVal["Result"] = false;
         RespVal["ErrorMsg"].append(e.base().what());
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["Result"] = false;
         RespVal["ErrorMsg"].append("Examine::ExamineIdea::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-      
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
 

@@ -173,6 +173,87 @@ void Resource::Update(const HttpRequestPtr &req,std::function<void (const HttpRe
     callback(Result);
 }
 
+// 管理员指定章节版本的
+void Resource::UCV(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::UCV::body" + string(req->getBody()), true);
+    
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        RespVal["简介"] = "管理员资源管理接口";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+
+        // 开始检查传入参数
+        {
+            MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
+            // "Para"           :   {"User_ID":"","Login_Status":""} 执行者
+            // "Book_ID":0,
+            // "Part_Num"0,
+            // "Chapter_Num":0
+            // "Version":0
+            std::map<string, MyJson::ColType> ColMap;
+            ColMap["Para"] = MyJson::ColType::JSON;
+            ColMap["Book_ID"] = MyJson::ColType::INT;
+            ColMap["Part_Num"] = MyJson::ColType::INT;
+            ColMap["Chapter_Num"] = MyJson::ColType::INT;
+            ColMap["Version"] = MyJson::ColType::INT;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("传入参数合法", true);
+        }
+        
+        MyDBSPtr->Select_Chapter_Version_Valid(ReqVal, RespVal);
+        if(!RespVal["Result"].asBool()) throw RespVal;
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "指定章节版本生效成功";
+        ResultData["Data"] = "指定章节版本生效成功";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Admin::Resource::UCV::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
 // 管理员资源下载接口
 void Resource::Download(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
