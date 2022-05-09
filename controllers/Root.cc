@@ -205,7 +205,7 @@ void Root::SysOutLevelSearch(const HttpRequestPtr &req,std::function<void (const
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Root::AdminControl::body" + string(req->getBody()), true);
+    MyBasePtr->TRACELog("Root::SysOutLevelSearch::body" + string(req->getBody()), true);
     
     try
     {
@@ -251,7 +251,7 @@ void Root::SysOutLevelUpdate(const HttpRequestPtr &req,std::function<void (const
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string,string>umapPara = req->getParameters();
-    MyBasePtr->TRACELog("Root::AdminControl::body" + string(req->getBody()), true);
+    MyBasePtr->TRACELog("Root::SysOutLevelUpdate::body" + string(req->getBody()), true);
     
     try
     {
@@ -308,3 +308,68 @@ void Root::SysOutLevelUpdate(const HttpRequestPtr &req,std::function<void (const
 
 }
     
+
+void Root::ReportForm(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,TempJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::ReportForm::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        
+        Json::Value DataJson,TempJson;
+        
+        auto dbclientPrt = drogon::app().getDbClient();
+        Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+        Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"Money");
+        vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(Type_cri);
+        //cout << "开始处理数据" << endl;
+        for(auto& item : vecAction)
+        {
+            cout << item.toJson().toStyledString() << endl;
+            TempJson.clear();
+            TempJson["Time"] = item.getValueOfTime().toCustomedFormattedStringLocal("%Y-%m-%d %H:%M:%S",false);
+            TempJson["UserID"] = item.getValueOfUserId();
+            //"Money_Num" 
+            TempJson["Memo"] = item.getValueOfMemo();
+            //cout << "开始处理Memo数据: " << TempJson["Memo"] << endl;
+            MyJsonPtr->JsonstrToJson(TempJson["Memo"],TempJson["Memo"].asCString());
+            //cout << "处理Memo数据完成: " << TempJson["Memo"] << endl;
+            TempJson["Money_Num"] = TempJson["Memo"]["Money_Num"];
+            TempJson.removeMember("Memo");
+            TempJson.removeMember("UserID");
+            //cout << "Temp数据: " << TempJson << endl;
+            DataJson.append(TempJson);
+        }
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统报表查询成功";
+        ResultData["Data"]["Report_Array"] = DataJson;
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1].asString();
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}

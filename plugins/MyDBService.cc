@@ -3595,10 +3595,12 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     ActionJson.clear();
     ActionJson["User_ID"] = ReqJson["User_ID"].asInt();
     ActionJson["Action_Type"] = "Money";
-    ActionJson["Action_Memo"]["Explain"] = "用户充值获得积分(积分 = 金额 * 100)";
-    ActionJson["Action_Memo"]["Processor"] = "system(0)";
-    ActionJson["Action_Memo"]["Integral_Num"] = Integral_Num;
-    ActionJson["Action_Memo"]["Money_Num"] = ReqJson["Money_Num"].asInt();
+    Json::Value MemoJson ;
+    MemoJson["Explain"] = "用户充值获得积分(积分 = 金额 * 100)";
+    MemoJson["Processor"] = "system(0)";
+    MemoJson["Integral_Num"] = Integral_Num;
+    MemoJson["Money_Num"] = ReqJson["Money_Num"].asInt();
+    ActionJson["Action_Memo"] = MemoJson;
     if (!Insert_Action(ActionJson, RespJson))
     {
         RespJson["Result"] = false;
@@ -4248,6 +4250,7 @@ void MyDBService::Search_Chapter_All_Version(Json::Value &ReqJson, Json::Value &
         Criteria BookID_cri = Criteria(drogon_model::novel::Chapter::Cols::_Book_ID, CompareOperator::EQ, BookID);
         Criteria PartNum_cri = Criteria(drogon_model::novel::Chapter::Cols::_Part_Num, CompareOperator::EQ, PartNum);
         Criteria ChapterNum_cri = Criteria(drogon_model::novel::Chapter::Cols::_Chapter_Num, CompareOperator::EQ, ChapterNum);
+        ChapterMgr.orderBy(drogon_model::novel::Chapter::Cols::_Version,SortOrder::ASC);
         if (offset > 0)
         {
             ChapterMgr.offset(offset);
@@ -4364,6 +4367,8 @@ void MyDBService::Search_Chapter_By_BookID(Json::Value &ReqJson, Json::Value &Re
         // 制作筛选条件
         Criteria BookID_cri = Criteria(drogon_model::novel::Chapter::Cols::_Book_ID, CompareOperator::EQ, BookID);
         Criteria Valid_cri = Criteria(drogon_model::novel::Chapter::Cols::_Valid, CompareOperator::EQ, true);
+        ChapterMgr.orderBy(drogon_model::novel::Chapter::Cols::_Part_Num,SortOrder::ASC);
+        ChapterMgr.orderBy(drogon_model::novel::Chapter::Cols::_Chapter_Num,SortOrder::ASC);
         if (offset > 0)
         {
             ChapterMgr.offset(offset);
@@ -5944,7 +5949,7 @@ bool MyDBService::Insert_Action(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("准备行为数据完成", true);
     }
 
-    // 准备插入图书数据
+    // 准备插入行为数据
     try
     {
         MyBasePtr->DEBUGLog("准备插入的行为数据为 : " + NewAction.toJson().toStyledString(), true);
@@ -5953,7 +5958,7 @@ bool MyDBService::Insert_Action(Json::Value &ReqJson, Json::Value &RespJson)
         MyBasePtr->DEBUGLog("插入行为数据完毕", true);
         MyBasePtr->DEBUGLog("插入的行为数据为 : " + NewAction.toJson().toStyledString(), true);
     }
-    // 新建图书失败
+    // 新建行为失败
     catch (...)
     {
         RespJson["ErrorMsg"].append("行为记录失败(数据异常)");
