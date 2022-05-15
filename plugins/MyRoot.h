@@ -31,10 +31,16 @@ class MyRoot : public drogon::Plugin<MyRoot>
     void restart();
     void close();
     string getUserType(int UserPower);
+    Json::Value getUserLevelConfig();
+    Json::Value getLevelList();
+    Json::Value getInitLevelConfig();
+    Json::Value getCurrentLevelConfig(int TotalNum);
+    Json::Value getIntegralConfig();
+    void ChangeSysConfig(Json::Value json);
   private:
     Json::Value config;
+    Json::Value LevelList;
     string WorkDirectory;
     string ConfigDirectory;
     string SystemConfigDirectory;
 };
-

@@ -137,3 +137,42 @@ void Test::Recharge(const HttpRequestPtr &req,std::function<void (const HttpResp
     callback(Result);
 }
 
+
+void Test::UserLevelList(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal;
+    drogon::HttpResponsePtr Result;
+	auto *MyBasePtr = app().getPlugin<MyBase>();
+	auto *MyJsonPtr = app().getPlugin<MyJson>();
+    auto *MyRootPtr = app().getPlugin<MyRoot>();
+	auto *MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Test::UserLevelList::body" + string(req->getBody()), true);
+
+    try{
+        ReqVal=*req->getJsonObject();
+        
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        RespVal["Data"] = MyRootPtr->getLevelList();
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        Result=HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (Json::Value &e)
+    {
+        RespVal["ErrorMsg"] = e["ErrorMsg"];
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Test::UserLevelList");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        Result = HttpResponse::newHttpJsonResponse(RespVal);
+    }
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}

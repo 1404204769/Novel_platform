@@ -1397,7 +1397,7 @@ Req:{
     "Processor"         :   "",
     "Change_ID"         :   0,
     "Change_Num"        :   0,
-    "Change_Type"       :   "Add/Sub",
+    "Change_Type"       :   "Add/Sub/Deduction/Return",
     "Change_Explain"    :   ""
 }
 
@@ -1412,6 +1412,7 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyToolsPtr = app().getPlugin<MyTools>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     MyBasePtr->INFO_Func("Change_User_Integral", true, ReqJson);
 
     auto dbclientPrt = drogon::app().getDbClient();
@@ -1477,13 +1478,31 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
         ActionJson["Action_Memo"]["Old_Data"]["TotalIntegral"] = user.getValueOfTotalIntegral();
         if(ChangeType == "Sub")
         {
+            // 表示积分的正常使用
             user.setIntegral(user.getValueOfIntegral() - ChangeNum);
-            user.setTotalIntegral(user.getValueOfTotalIntegral() - ChangeNum);
         }
         else if(ChangeType == "Add")
         {
+            // 表示积分的正常获取
             user.setIntegral(user.getValueOfIntegral() + ChangeNum);
             user.setTotalIntegral(user.getValueOfTotalIntegral() + ChangeNum);
+            Json::Value data = MyRootPtr->getCurrentLevelConfig(user.getValueOfTotalIntegral());
+            if(data["Level"].asInt()>user.getValueOfLevel())
+            {
+                MyBasePtr->INFOLog("用户("+to_string(user.getValueOfUserId())+")升级了",true);
+                user.setPower(data["Power"].asInt());// 更新权限
+            }
+        }
+        else if(ChangeType == "Return")
+        {
+            // 表示积分的错误扣除后的返还
+            user.setIntegral(user.getValueOfIntegral() + ChangeNum);
+        }
+        else if(ChangeType == "Deduction")
+        {
+            // 表示积分的惩罚性扣除
+            user.setIntegral(user.getValueOfIntegral() - ChangeNum);
+            user.setTotalIntegral(user.getValueOfTotalIntegral() - ChangeNum);
         }
 
         MyBasePtr->DEBUGLog("开始更新用户(ID=" + to_string(ChangeID) + ")积分数据", true);
@@ -2552,11 +2571,12 @@ void MyDBService::Download_Resource_Public(Json::Value &ReqJson, Json::Value &Re
     Json::Value ParaJson,TempReq,TempResp;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     MyBasePtr->INFO_Func("Download_Resource_Public", true, ReqJson);
     
     int UserID, Book_ID;
     string LoginStatus;
-    
+    Json::Value data = MyRootPtr->getIntegralConfig();
     // 检查ReqJson数据
     try
     {
@@ -2635,9 +2655,10 @@ void MyDBService::Download_Resource_Public(Json::Value &ReqJson, Json::Value &Re
     TempReq["User_ID"] = 0;
     TempReq["Processor"] = "system";
     TempReq["Change_ID"] = atoi(ParaJson["User_ID"].asString().c_str());
-    TempReq["Change_Num"] = ReqJson["Chapter_Num"].size();
+    TempReq["Change_Num"] = ReqJson["Chapter_Num"].size()*data["Download"].asInt();
+    int PreNum = TempReq["Change_Num"].size();
     TempReq["Change_Type"] = "Sub";
-    TempReq["Change_Explain"] = "用户下载图书资源消耗积分(每章1积分)";
+    TempReq["Change_Explain"] = "用户下载图书资源消耗积分(每章"+to_string(data["Download"].asInt())+"积分)";
     if (!Change_User_Integral(TempReq, TempResp))
     {
         RespJson["Result"] = false;
@@ -2658,17 +2679,16 @@ void MyDBService::Download_Resource_Public(Json::Value &ReqJson, Json::Value &Re
         RespJson["Result"] = false;
         MyBasePtr->DEBUGLog("获取图书资源数据失败", true);
         RespJson["ErrorMsg"].append("获取图书资源数据失败");
-        MyBasePtr->INFO_Func("Recharge", false, RespJson);
+        MyBasePtr->INFO_Func("Download_Resource_Public", false, RespJson);
         return;
     }
     MyBasePtr->DEBUGLog("获取图书资源数据成功", true);
 
-    int PreNum = ReqJson["Chapter_Num"].size();
-    int AfterNum = RespJson["Chapter_Data"].size();
+    int AfterNum = RespJson["Chapter_Data"].size()*data["Download"].asInt();
     MyBasePtr->DEBUGLog("预计下载"+to_string(PreNum)+"章,实际下载"+to_string(AfterNum)+"章", true);
     if(PreNum > AfterNum)
     {
-        MyBasePtr->DEBUGLog("开始记录积分误扣除开始返还积分的行为数据", true);
+        MyBasePtr->DEBUGLog("开始记录积分误扣除导致的返还积分的行为数据", true);
         // Req:{
         // "User_ID" : 0,
         // "Processor" : "",
@@ -2683,7 +2703,7 @@ void MyDBService::Download_Resource_Public(Json::Value &ReqJson, Json::Value &Re
         TempReq["Processor"] = "system";
         TempReq["Change_ID"] = atoi(ParaJson["User_ID"].asString().c_str());
         TempReq["Change_Num"] = PreNum - AfterNum;
-        TempReq["Change_Type"] = "Add";
+        TempReq["Change_Type"] = "Return";
         TempReq["Change_Explain"] = "返还部分不存在章节预先扣除的积分";
         if (!Change_User_Integral(TempReq, TempResp))
         {
@@ -2724,15 +2744,16 @@ Resp:{
 */
 void MyDBService::Examine_Upload(Json::Value &ReqJson, Json::Value &RespJson)
 {
-    Json::Value UploadMemo,ActionJson;
+    Json::Value UploadMemo,ActionJson,data;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     MyBasePtr->INFO_Func("Examine_Upload", true, ReqJson);
-
+    
     auto dbclientPrt = drogon::app().getDbClient();
     Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
     drogon_model::novel::Upload ExamineUpload;
-
+    
     // 插入前检查ReqJson是否合法
     try
     {
@@ -2940,13 +2961,14 @@ void MyDBService::Examine_Upload(Json::Value &ReqJson, Json::Value &RespJson)
             if (RespResult)
             {
                 // 如果成功，则给与用户积分奖励
+                data = MyRootPtr->getIntegralConfig();
                 ActionJson.clear();
                 ActionJson["User_ID"] = atoi(ReqJson["Processor_ID"].asString().c_str());
                 ActionJson["Processor"] = Processor;
                 ActionJson["Change_ID"] = ExamineUpload.getValueOfUserId();
-                ActionJson["Change_Num"] = 50;
+                ActionJson["Change_Num"] = data["Upload"].asInt();
                 ActionJson["Change_Type"] = "Add";
-                ActionJson["Change_Explain"] = "用户上传资源成功,奖励积分50";
+                ActionJson["Change_Explain"] = "用户上传资源成功,1章奖励"+to_string(data["Upload"].asInt())+"积分";
                 if(!Change_User_Integral(ActionJson,RespJson))
                 {
                     RespJson["ErrorMsg"] = "用户上传成功,奖励积分失败";
@@ -3539,6 +3561,7 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
 {
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     MyBasePtr->INFO_Func("Recharge", true, ReqJson);
 
     // 检查ReqJson数据是否合法
@@ -3569,9 +3592,9 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
         return;
     }
 
-    int Integral_Num = ReqJson["Money_Num"].asInt() * 100;
     Json::Value TempReq,TempResp,ActionJson;
-
+    Json::Value data = MyRootPtr->getIntegralConfig();
+    int Integral_Num = ReqJson["Money_Num"].asInt() * data["Recharge"].asInt();
 
     // "User_ID"           :   0,
     // "Processor"         :   "",
@@ -3596,7 +3619,7 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     ActionJson["User_ID"] = ReqJson["User_ID"].asInt();
     ActionJson["Action_Type"] = "Money";
     Json::Value MemoJson ;
-    MemoJson["Explain"] = "用户充值获得积分(积分 = 金额 * 100)";
+    MemoJson["Explain"] = "用户充值获得积分(积分 = 金额 * "+to_string(data["Recharge"].asInt())+")";
     MemoJson["Processor"] = "system(0)";
     MemoJson["Integral_Num"] = Integral_Num;
     MemoJson["Money_Num"] = ReqJson["Money_Num"].asInt();
@@ -3626,7 +3649,7 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     TempReq["Change_ID"] = ReqJson["User_ID"].asInt();
     TempReq["Change_Num"] = Integral_Num;
     TempReq["Change_Type"] = "Add";
-    TempReq["Change_Explain"] = "用户充值获得积分(积分 = 金额 * 100)";
+    TempReq["Change_Explain"] = "用户充值获得积分(积分 = 金额 * "+to_string(data["Recharge"].asInt())+")";
     MyBasePtr->DEBUGLog("开始充值", true);
     if(!Change_User_Integral(TempReq,TempResp))
     {
@@ -3643,6 +3666,103 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     return;
 }
 
+// 根据用户账号查找相关行为
+/*
+    根据用户账号查找相关行为的接口
+Req:{
+    "User_ID"       :   0,// 用户ID
+    "Para"          :   {"User_ID":"","Login_Status":""} 执行者
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Action_List" : [], // 行为数据
+}
+*/
+void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Action_By_UserID", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+
+    int UserID, NoteID, CommentID;
+    Json::Value ParaJson;
+
+    // 检查搜索数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查数据是否合法", true);
+        // "User_ID"       :   0,// 用户ID
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Para"] = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("数据合法", true);
+        MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("Para数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查操作权限", true);
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root" && atoi(ParaJson["User_ID"].asString().c_str()) != ReqJson["User_ID"].asInt())
+        {
+            RespJson["ErrorMsg"].append("权限不足，请联系管理员");
+            throw RespJson;
+        }
+        UserID = atoi(ParaJson["User_ID"].asString().c_str());
+        MyBasePtr->DEBUGLog("操作权限检测通过", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Action_By_UserID", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Action_By_UserID::Error");
+        MyBasePtr->INFO_Func("Search_Action_By_UserID", false, RespJson);
+        return;
+    }
+
+    // 查询指定帖子
+    try
+    {
+        // 制作筛选条件
+        Criteria UserID_cri = Criteria(drogon_model::novel::Action::Cols::_User_ID, CompareOperator::EQ, UserID);
+        
+        MyBasePtr->DEBUGLog("开始查询指定用户行为信息", true);
+        std::vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(UserID_cri);
+        Json::Value ActionList,TempAction;
+        for(auto &action : vecAction)
+        {
+            TempAction= action.toJson();
+            MyJsonPtr->JsonstrToJson(TempAction["Memo"],TempAction["Memo"].asString());
+            ActionList.append(TempAction);
+        }
+        MyBasePtr->DEBUGLog("指定用户行为信息查询完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Action_List"] = ActionList;
+        MyBasePtr->INFO_Func("Search_Action_By_UserID", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("指定用户行为信息查询失败");
+        MyBasePtr->INFO_Func("Search_Action_By_UserID", false, RespJson);
+        return;
+    }
+}
 
 // 搜索点赞
 /*
