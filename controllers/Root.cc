@@ -373,3 +373,138 @@ void Root::ReportForm(const HttpRequestPtr &req,std::function<void (const HttpRe
     callback(Result);
 
 }
+
+
+void Root::SysConfigSearch(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal,RespVal,TempJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::SysConfigSearch::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        // 设置返回格式
+        TempJson["Level"] = MyRootPtr->getUserLevelConfig();
+        TempJson["Integral"] = MyRootPtr->getIntegralConfig();
+        ResultData["Data"] = TempJson;
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统正常运行中";
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        RespVal["Result"] = false;
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = "系统运行异常";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+
+}
+
+void Root::SysConfigUpdate(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+
+    Json::Value ReqVal,RespVal,TempJson,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string,string>umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Root::SysConfigUpdate::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+        // 检测参数
+        // 开始检测第一层
+        std::map<string,MyJson::ColType>ColMap;
+        ColMap["Level"] = MyJson::ColType::JSON;
+        ColMap["Integral"] = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal,RespVal,ColMap);
+        ColMap.clear();
+        // 开始检测第二层
+        ColMap["Init"] = MyJson::ColType::JSON;
+        ColMap["Incremental_Per_LevelUp"] = MyJson::ColType::JSON;
+        ColMap["Max_Level"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal["Level"],RespVal,ColMap);
+        ColMap.clear();
+        ColMap["Upload"] = MyJson::ColType::INT;
+        ColMap["Download"] = MyJson::ColType::INT;
+        ColMap["Recharge"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal["Integral"],RespVal,ColMap);
+        ColMap.clear();
+        // 开始检测第三层
+        ColMap["Level"] = MyJson::ColType::INT;
+        ColMap["Power"] = MyJson::ColType::INT;
+        ColMap["Integral"] = MyJson::ColType::INT;
+        ColMap["Totle_Book"] = MyJson::ColType::INT;
+        ColMap["Chapter_Application"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal["Level"]["Init"],RespVal,ColMap);
+        ColMap.clear();
+        ColMap["Power"] = MyJson::ColType::INT;
+        ColMap["Integral"] = MyJson::ColType::INT;
+        ColMap["Totle_Book"] = MyJson::ColType::INT;
+        ColMap["Chapter_Application"] = MyJson::ColType::INT;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqVal["Level"]["Incremental_Per_LevelUp"],RespVal,ColMap);
+        ColMap.clear();
+        
+
+        MyBasePtr->TRACELog("开始更新配置", true);
+        MyRootPtr->ChangeSysConfig(ReqVal);
+        MyBasePtr->TRACELog("更新配置成功", true);
+
+        // 设置返回格式
+        TempJson["Level"] = MyRootPtr->getUserLevelConfig();
+        TempJson["Integral"] = MyRootPtr->getIntegralConfig();
+        ResultData["Data"] = TempJson;
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "修改系统配置成功";
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+
+        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+    }
+    catch (Json::Value &e)
+    {
+        e["Result"] = false;
+        MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = e["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = "修改系统配置失败("+ e["ErrorMsg"][ErrorSize-1].asString() +")";
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+
+
+

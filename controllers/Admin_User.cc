@@ -238,7 +238,7 @@ void Admin::User::Change_User_Integral(const HttpRequestPtr &req, std::function<
             MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
             // "Change_ID" : 0,
             // "Change_Num" : 0,
-            // "Change_Type" : "Add/Sub",
+            // "Change_Type" : "Add/Sub/Deduction/Return",
             // "Change_Explain" : ""
             std::map<string, MyJson::ColType> ColMap;
             ColMap["Change_ID"] = MyJson::ColType::INT;

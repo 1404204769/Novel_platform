@@ -10,6 +10,7 @@
 #include <plugins/MyBase.h>
 #include <plugins/MyJson.h>
 #include <plugins/MyTools.h>
+#include <plugins/MyRoot.h>
 
 #include <models/Action.h>
 #include <models/Agree.h>
@@ -67,6 +68,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Read_Resource(Json::Value &ReqJson, Json::Value &RespJson);
     void Recharge(Json::Value &ReqJson, Json::Value &RespJson);
 
+    void Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);

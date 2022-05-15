@@ -160,6 +160,7 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
     drogon::HttpResponsePtr Result;
     auto MyBasePtr = app().getPlugin<MyBase>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Gpi::Register::body" + string(req->getBody()), true);
 
@@ -195,10 +196,17 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         newUser.setName(ReqVal["User_Name"].asString());
         newUser.setPassword(ReqVal["User_Pwd"].asString());
         newUser.setSex(ReqVal["User_Sex"].asString());
-        newUser.setLevel(1);
-        newUser.setIntegral(0);
-        newUser.setTotalIntegral(0);
-        newUser.setPower(1);
+        // 设置初始属性
+        Json::Value LevelConfig = MyRootPtr->getInitLevelConfig();
+        if(LevelConfig.isNull())
+        {
+            RespVal["ErrorMsg"].append("用户等级初始化失败,系统相关配置错误,请联系超级管理员");
+            throw RespVal;
+        }
+        newUser.setLevel(LevelConfig["Level"].asInt());
+        newUser.setIntegral(LevelConfig["Integral"].asInt());
+        newUser.setTotalIntegral(LevelConfig["Integral"].asInt());
+        newUser.setPower(LevelConfig["Power"].asInt());
         newUser.setStatus("Normal");
 		UserMgr.insert(newUser);
         RespVal["Result"] = "注册成功";
