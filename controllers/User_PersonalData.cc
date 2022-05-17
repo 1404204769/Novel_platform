@@ -6,10 +6,11 @@ using namespace User;
 void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const HttpResponsePtr &)> &&callback) const
 {
 
-    Json::Value ReqVal, RespVal;
+    Json::Value ReqVal, RespVal,ResultData;
     drogon::HttpResponsePtr Result;
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("PersonalData::Search::body" + string(req->getBody()), true);
@@ -25,18 +26,42 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyDBSPtr->Search_User_PersonalData(ReqVal, RespVal);
-
         RespVal["Result"] = "获取成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        ResultData["Message"] = RespVal["Result"];
+        ResultData["Data"]["User_Data"] = RespVal["User_Data"];
+        
+        Json::Value TempReq,TempResp;
+        
+        TempReq["User_ID"] = atoi(ReqVal["Para"]["User_ID"].asString().c_str()); 
+        TempReq["Para"] = ReqVal["Para"]; 
+        MyDBSPtr->Search_Resource_Action_Count(TempReq, TempResp);
+        if(!TempResp["Result"].asBool())
+            throw TempResp;
+        ResultData["Data"]["Action_Count"] = TempResp["Action_Count"];
+
+
+        Json::Value LevelConfig = MyRootPtr->getCurrentLevelConfig(RespVal["User_Data"]["Total_Integral"].asInt());
+
+        ResultData["Data"]["LevelConfig"] = LevelConfig;
+        ResultData["Result"] = true;
+        
+        Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)
     {
         RespVal["Result"] = "获取失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
 
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
@@ -55,14 +80,24 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
         }
         RespVal["Result"] = "获取失败";
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (...)
     {
         RespVal["Result"] = "获取失败";
         RespVal["ErrorMsg"].append("PersonalData::Search::Error");
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
-        Result = HttpResponse::newHttpJsonResponse(RespVal);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
 
     Result->setStatusCode(k200OK);

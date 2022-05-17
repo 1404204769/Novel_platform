@@ -70,6 +70,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
 
     void Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Resource_Action_Count(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::Value &RespJson);

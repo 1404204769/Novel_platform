@@ -1491,6 +1491,7 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
             {
                 MyBasePtr->INFOLog("用户("+to_string(user.getValueOfUserId())+")升级了",true);
                 user.setPower(data["Power"].asInt());// 更新权限
+                user.setLevel(data["Level"].asInt());// 更新等级
             }
         }
         else if(ChangeType == "Return")
@@ -3716,7 +3717,7 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
             RespJson["ErrorMsg"].append("权限不足，请联系管理员");
             throw RespJson;
         }
-        UserID = atoi(ParaJson["User_ID"].asString().c_str());
+        UserID = ReqJson["User_ID"].asInt();
         MyBasePtr->DEBUGLog("操作权限检测通过", true);
     }
     catch (Json::Value &e)
@@ -3763,6 +3764,8 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         return;
     }
 }
+
+
 
 // 搜索点赞
 /*
@@ -3868,6 +3871,128 @@ void MyDBService::Search_Agree(Json::Value &ReqJson, Json::Value &RespJson)
     }
 }
 
+// 根据行为类型查询当天此行为的次数
+/*
+    根据用户账号查找相关行为的接口
+Req:{
+    "User_ID"       :   0,// 用户ID
+    "Para"          :   {"User_ID":"","Login_Status":""} 执行者
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Action_Count" : {}, // 行为次数
+}
+*/
+void MyDBService::Search_Resource_Action_Count(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Action_Count", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+
+    int UserID, NoteID, CommentID;
+    Json::Value ParaJson;
+
+    // 检查搜索数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查数据是否合法", true);
+        // "User_ID"       :   0,// 用户ID
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
+        ColMap["Para"] = MyJson::ColType::JSON;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("数据合法", true);
+        MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("Para数据合法", true);
+
+        MyBasePtr->DEBUGLog("开始检查操作权限", true);
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root" && atoi(ParaJson["User_ID"].asString().c_str()) != ReqJson["User_ID"].asInt())
+        {
+            RespJson["ErrorMsg"].append("权限不足，请联系管理员");
+            throw RespJson;
+        }
+        UserID = ReqJson["User_ID"].asInt();
+        MyBasePtr->DEBUGLog("操作权限检测通过", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Action_Count", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Action_Count::Error");
+        MyBasePtr->INFO_Func("Search_Action_Count", false, RespJson);
+        return;
+    }
+
+    // 查询指定帖子
+    try
+    {
+        // 制作筛选条件
+        Criteria UserID_cri = Criteria(drogon_model::novel::Action::Cols::_User_ID, CompareOperator::EQ, UserID);
+        Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type, CompareOperator::EQ, "Resource_Upload");
+
+        trantor::Date Time = trantor::Date::now();
+        string BeforeTime = Time.toCustomedFormattedStringLocal("%Y-%m-%d 23:59:59",false);//'%Y-%m-%d 23:59:59'
+        string AfterTime = Time.toCustomedFormattedStringLocal("%Y-%m-%d 00:00:00",false);//'%Y-%m-%d 00:00:00'
+        Criteria BeforeTime_cri = Criteria(drogon_model::novel::Action::Cols::_Time, CompareOperator::LE, BeforeTime);// <=
+        Criteria AfterTime_cri = Criteria(drogon_model::novel::Action::Cols::_Time, CompareOperator::GE, AfterTime);// >=
+        
+        MyBasePtr->DEBUGLog("开始查询指定用户行为次数", true);
+        vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(UserID_cri&&Type_cri&&BeforeTime_cri&&AfterTime_cri);
+        Json::Value temp;
+        string Type ;
+        int old_book_new = 0,old_book_old=0,new_book=0;
+        for(auto &var : vecAction)
+        {
+            temp.clear();
+            temp = var.toJson();
+            MyJsonPtr->JsonstrToJson(temp["Memo"],temp["Memo"].asString());
+            Type = temp["Memo"]["Upload_Type"].asString();
+            //cout << temp.toStyledString() << endl;
+            if(Type == "old_book_new")
+            {
+                old_book_new++;
+            }
+            else if(Type == "old_book_old")
+            {
+                old_book_old++;
+            }
+            else if(Type == "new_book")
+            {
+                new_book++;
+            }
+        }
+        MyBasePtr->DEBUGLog("指定用户行为次数查询完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Action_Count"]["old_book_new"] = old_book_new;
+        RespJson["Action_Count"]["old_book_old"] = old_book_old;
+        RespJson["Action_Count"]["new_book"] = new_book;
+        MyBasePtr->INFO_Func("Search_Action_Count", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("指定用户行为次数查询失败");
+        MyBasePtr->INFO_Func("Search_Action_Count", false, RespJson);
+        return;
+    }
+}
 
 // 搜索图书
 /*

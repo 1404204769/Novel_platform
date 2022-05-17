@@ -147,7 +147,7 @@ void User::Action(const HttpRequestPtr &req,std::function<void (const HttpRespon
         ResultData["Data"]["Action_List"] = RespVal["Action_List"];
 
         Result = HttpResponse::newHttpJsonResponse(ResultData);
-        //MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {

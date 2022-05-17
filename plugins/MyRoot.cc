@@ -186,6 +186,8 @@ Json::Value MyRoot::getInitLevelConfig()
 	}
 	return data;
 }
+
+/*根据当前总积分判断所处的等级*/
 Json::Value MyRoot::getCurrentLevelConfig(int TotalNum)
 {
 	Json::Value data;
