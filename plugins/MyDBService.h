@@ -72,6 +72,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Search_Agree(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Resource_Action_Count(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book(Json::Value &ReqJson, Json::Value &RespJson);
+    void Search_Book_Accuracy(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Book_By_BookID(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_BookMenu_By_BookIDAndName(Json::Value &ReqJson, Json::Value &RespJson);
     void Search_Comment(Json::Value &ReqJson, Json::Value &RespJson);
@@ -94,6 +95,9 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Upload_Chapter(Json::Value &ReqJson, Json::Value &RespJson);
     void Update_User_PersonalData(Json::Value &ReqJson, Json::Value &RespJson);
 
+
+
+    void ParseAction(Json::Value &Resp,const Json::Value &Action);
   private:
     bool Download_Resource_Private(Json::Value &ReqJson, Json::Value &RespJson);
 

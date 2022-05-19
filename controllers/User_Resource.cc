@@ -562,8 +562,9 @@ void MyUpload(Json::Value &ReqVal,Json::Value &RespVal)
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
     }
-    catch (Json::Value &RespVal)
+    catch (Json::Value &e)
     {
+        RespVal["ErrorMsg"] = e["ErrorMsg"];
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
     }
     catch (const drogon::orm::DrogonDbException &e)
@@ -611,6 +612,7 @@ void MyUploadChapterList(Json::Value &ReqVal,Json::Value &RespVal)
 {
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     MyBasePtr->INFO_Func("MyUploadNewChapterList", true, ReqVal);
     try
@@ -652,6 +654,7 @@ void MyUploadChapterList(Json::Value &ReqVal,Json::Value &RespVal)
             TempReq = ReqVal["Chapter_List"][i];
             chap["Vol_Num"] = TempReq["Vol_Num"];
             chap["Chapter_Num"] = TempReq["Chapter_Num"];
+
             try
             {
                 // 检查数据完整性
@@ -670,12 +673,43 @@ void MyUploadChapterList(Json::Value &ReqVal,Json::Value &RespVal)
                     MyJsonPtr->checkMemberAndTypeInMap(TempReq, TempResp, ColMap);
                     MyBasePtr->DEBUGLog("检查数据完整性完成", true);
                 }
+                
+                // 若是更正章节,插入前判断次数
+                if (ChapterReq["Upload_Type"].asString() == "old_book_old")
+                {
+                    Json::Value TReq,TResp;
+                    TReq["Para"] = ReqVal["Para"]; 
+                    MyDBSPtr->Search_User_PersonalData(TReq, TResp);
+                    if(!TResp["Result"].asBool())
+                    {
+                        throw TResp;
+                    }
+                    Json::Value LevelConfig = MyRootPtr->getCurrentLevelConfig(TResp["User_Data"]["Total_Integral"].asInt());
+                    TResp.clear();
+                    TReq.clear();
+                    TReq["User_ID"] = atoi(ReqVal["Para"]["User_ID"].asString().c_str()); 
+                    TReq["Para"] = ReqVal["Para"]; 
+                    MyDBSPtr->Search_Resource_Action_Count(TReq, TResp);
+                    if(!TResp["Result"].asBool())
+                    {
+                        TResp["ErrorMsg"].append("用户剩余申请更改次数查询失败");
+                        throw TResp;
+                    }
+                    if(LevelConfig["Chapter_Application"].asInt() <= TResp["Action_Count"]["old_book_old"].asInt())
+                    {
+                        TResp["ErrorMsg"].append("用户剩余申请更改次数不足,请明日再来或升级后再试");
+                        throw TResp;
+                    }
+                }
                 chap["Result"] = true;
             }
             catch(Json::Value &e)
             {
+                int ErrorSize = e["ErrorMsg"].size();
+                chap["Msg"] = e["ErrorMsg"][ErrorSize-1].asString();
                 chap["Result"] = false;
             }
+
             // 如果存在缺陷，则跳过这个
             if(!chap["Result"].asBool())
             {
@@ -692,16 +726,21 @@ void MyUploadChapterList(Json::Value &ReqVal,Json::Value &RespVal)
             MyDBSPtr->Search_Upload_By_UploadID(TempReq,TempResp);
             if(!TempResp["Result"].asBool())
             {
+                int ErrorSize = TempResp["ErrorMsg"].size();
+                chap["Msg"] = TempResp["ErrorMsg"][ErrorSize-1].asString();
                 chap["Result"] = false;
+                RespVal["Chapter_List"].append(chap);
+                continue;
             }
             if(TempResp["Upload_Data"]["Status"].asString() == "system已拒绝")
             {
                 chap["Result"] = false;
             }
-            if(TempResp["Upload_Data"]["Status"].asString() == "system已允许/已成功")
+            else if(TempResp["Upload_Data"]["Status"].asString() == "system已允许/已成功")
             {
                 chap["Result"] = true;
             }
+            chap["Msg"] = TempResp["Upload_Data"]["Status"].asString();
 
             RespVal["Chapter_List"].append(chap);
         }
@@ -751,6 +790,7 @@ void Resource::UploadLN(const HttpRequestPtr &req,std::function<void (const Http
     drogon::HttpResponsePtr Result;
     auto MyJsonPtr = app().getPlugin<MyJson>();
     auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     auto MyDBSPtr = app().getPlugin<MyDBService>();
     const unordered_map<string, string> umapPara = req->getParameters();
     MyBasePtr->TRACELog("Resource::UploadLN::body" + string(req->getBody()), true);
@@ -784,12 +824,42 @@ void Resource::UploadLN(const HttpRequestPtr &req,std::function<void (const Http
             MyBasePtr->DEBUGLog("检查数据完整性完成", true);
         }
 
+
+        // 调用前判断用户是否还有相关次数
+        
+        Json::Value TReq,TResp;
+        TReq["Para"] = ReqVal["Para"]; 
+        MyDBSPtr->Search_User_PersonalData(TReq, TResp);
+        if(!TResp["Result"].asBool())
+        {
+            throw TResp;
+        }
+        Json::Value LevelConfig = MyRootPtr->getCurrentLevelConfig(TResp["User_Data"]["Total_Integral"].asInt());
+        TResp.clear();
+        TReq.clear();
+        TReq["User_ID"] = atoi(ReqVal["Para"]["User_ID"].asString().c_str()); 
+        TReq["Para"] = ReqVal["Para"]; 
+        MyDBSPtr->Search_Resource_Action_Count(TReq, TResp);
+        if(!TResp["Result"].asBool())
+        {
+            TResp["ErrorMsg"].append("用户剩余上传次数查询失败");
+            throw TResp;
+        }
+        if(LevelConfig["Totle_Book"].asInt() <= TResp["Action_Count"]["UploadLN"].asInt())
+        {
+            TResp["ErrorMsg"].append("用户剩余上传次数不足,请明日再来或升级后再试");
+            throw TResp;
+        }
+        // 若还有相关次数，则记录次数将其加一
+        MyDBSPtr->Log_Resource_Upload(TReq["User_ID"].asInt(),-1,"UploadLN","消耗了一次全书资源上传的次数");
+
+
         // 先判断此书是否存在
         Json::Value TempReq,TempResp;
         TempReq["Book_Name"] = ReqVal["Book_Name"];
         TempReq["Author"] = ReqVal["Book_Author"];
         TempReq["Publisher"] = ReqVal["Book_Publisher"];
-        MyDBSPtr->Search_Book(TempReq,TempResp);
+        MyDBSPtr->Search_Book_Accuracy(TempReq,TempResp);
         int BookID = 0;
         TempReq.clear();
         MyJsonPtr->UnMapToJson(TempReq, umapPara, "Para");
@@ -918,6 +988,7 @@ void Resource::UploadLO(const HttpRequestPtr &req,std::function<void (const Http
         RespVal["简介"] = "图书上传列表新接口";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
 
+    
         // 检查数据完整性
         {
             MyBasePtr->DEBUGLog("开始检查数据完整性", true);
@@ -940,7 +1011,7 @@ void Resource::UploadLO(const HttpRequestPtr &req,std::function<void (const Http
         TempReq["Book_Name"] = ReqVal["Book_Name"];
         TempReq["Author"] = ReqVal["Book_Author"];
         TempReq["Publisher"] = ReqVal["Book_Publisher"];
-        MyDBSPtr->Search_Book(TempReq,TempResp);
+        MyDBSPtr->Search_Book_Accuracy(TempReq,TempResp);
         int BookID = 0;
         TempReq.clear();
         MyJsonPtr->UnMapToJson(TempReq, umapPara, "Para");

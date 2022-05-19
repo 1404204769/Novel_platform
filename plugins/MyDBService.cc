@@ -3746,8 +3746,8 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         Json::Value ActionList,TempAction;
         for(auto &action : vecAction)
         {
-            TempAction= action.toJson();
-            MyJsonPtr->JsonstrToJson(TempAction["Memo"],TempAction["Memo"].asString());
+            ParseAction(TempAction,action.toJson());
+            
             ActionList.append(TempAction);
         }
         MyBasePtr->DEBUGLog("指定用户行为信息查询完毕", true);
@@ -3764,8 +3764,6 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         return;
     }
 }
-
-
 
 // 搜索点赞
 /*
@@ -3956,7 +3954,7 @@ void MyDBService::Search_Resource_Action_Count(Json::Value &ReqJson, Json::Value
         vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(UserID_cri&&Type_cri&&BeforeTime_cri&&AfterTime_cri);
         Json::Value temp;
         string Type ;
-        int old_book_new = 0,old_book_old=0,new_book=0;
+        int old_book_new = 0,old_book_old=0,new_book=0,UploadLN=0;
         for(auto &var : vecAction)
         {
             temp.clear();
@@ -3976,12 +3974,17 @@ void MyDBService::Search_Resource_Action_Count(Json::Value &ReqJson, Json::Value
             {
                 new_book++;
             }
+            else if(Type == "UploadLN")
+            {
+                UploadLN++;
+            }
         }
         MyBasePtr->DEBUGLog("指定用户行为次数查询完毕", true);
         RespJson["Result"] = true;
         RespJson["Action_Count"]["old_book_new"] = old_book_new;
         RespJson["Action_Count"]["old_book_old"] = old_book_old;
         RespJson["Action_Count"]["new_book"] = new_book;
+        RespJson["Action_Count"]["UploadLN"] = UploadLN;
         MyBasePtr->INFO_Func("Search_Action_Count", false, RespJson);
         return;
     }
@@ -4108,6 +4111,120 @@ void MyDBService::Search_Book(Json::Value &ReqJson, Json::Value &RespJson)
 }
 
 
+// 搜索图书
+/*
+    搜索图书的接口
+Req:{
+    "Book_Name"  :   "",// 书名
+    "Author"  :   "",// 作者名
+    "Publisher"  :   "",// 出版方
+    ["Limit"]         :   0, //
+    ["Offset"]        :   0, //
+}
+Resp:{
+    "ErrorMsg"  :   [],         // 失败返回的错误信息
+    "Result"    :   true/false, // 操作结果
+    "Book_List" :   [],         // 成功返回的图书信息
+}
+*/
+void MyDBService::Search_Book_Accuracy(Json::Value &ReqJson, Json::Value &RespJson)
+{
+
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Book_Accuracy", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+
+    int limit = 0, offset = 0;
+    string BookName = "", Author = "", Publisher = "";
+
+    // 检查ReqJson数据是否合法
+    try
+
+    
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Note_KeyWord"  :   "",// 关键字,在标题和内容中查找
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_Name"] = MyJson::ColType::STRING;
+        ColMap["Author"] = MyJson::ColType::STRING;
+        ColMap["Publisher"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+        BookName = ReqJson["Book_Name"].asString();
+        Author = ReqJson["Author"].asString();
+        Publisher = ReqJson["Publisher"].asString();
+        if (ReqJson.isMember("Limit"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Limit", MyJson::ColType::INT);
+            limit = ReqJson["Limit"].asInt();
+        }
+        if (ReqJson.isMember("Offset"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "Offset", MyJson::ColType::INT);
+            offset = ReqJson["Offset"].asInt();
+        }
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Book_Accuracy", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Book_Accuracy::Error");
+        MyBasePtr->INFO_Func("Search_Book_Accuracy", false, RespJson);
+        return;
+    }
+
+    // 查询指定帖子
+    try
+    {   
+        // 制作筛选条件
+        Criteria BookName_cri = Criteria(drogon_model::novel::Book::Cols::_Book_Name, CompareOperator::EQ, BookName);
+        Criteria Author_cri = Criteria(drogon_model::novel::Book::Cols::_Author, CompareOperator::Like, "%" + Author + "%");
+        Criteria Publisher_cri = Criteria(drogon_model::novel::Book::Cols::_Publisher, CompareOperator::Like, "%" + Publisher + "%");
+
+        if (offset > 0)
+        {
+            BookMgr.offset(offset);
+        }
+
+        if (limit > 0)
+        {
+            BookMgr.limit(limit);
+        }
+
+        MyBasePtr->DEBUGLog("开始查询指定图书", true);
+        std::vector<drogon_model::novel::Book> vecBook = BookMgr.findBy(BookName_cri && Author_cri && Publisher_cri);
+        Json::Value vecJsonVal, TempBookJson;
+        for (auto &book : vecBook)
+        {
+            TempBookJson.clear();
+            TempBookJson = book.toJson();
+            MyJsonPtr->JsonstrToJson(TempBookJson["Memo"],TempBookJson["Memo"].asString());
+            vecJsonVal.append(TempBookJson);
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+        MyBasePtr->DEBUGLog("查询指定图书完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Book_List"] = vecJsonVal;
+        MyBasePtr->INFO_Func("Search_Book_Accuracy", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("图书查询失败");
+        MyBasePtr->INFO_Func("Search_Book_Accuracy", false, RespJson);
+        return;
+    }
+
+}
 
 // 通过BookID查询图书数据
 /*
@@ -5174,7 +5291,7 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     string LoginStatus;
     Json::Value ParaJson;
     // 检查ReqJson数据是否合法
-    {
+    try{
         MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
         // "Para"   :   {"User_ID":"","Login_Status":""},
         std::map<string, MyJson::ColType> ColMap;
@@ -5199,13 +5316,30 @@ void MyDBService::Search_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
             throw RespJson;
         }
     }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        return;
+    }
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询用户 : " + ParaJson["User_ID"].asString(), true);
+        drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
+        MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
 
-    MyBasePtr->DEBUGLog("开始查询用户 : " + ParaJson["User_ID"].asString(), true);
-    drogon_model::novel::User user = UserMgr.findByPrimaryKey(UserID);
-    MyBasePtr->DEBUGLog("用户查询完毕 : " + user.toJson().toStyledString(), true);
-
-    RespJson["User_Data"] = user.toJson();
-    MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        RespJson["User_Data"] = user.toJson();
+        RespJson["Result"] = true;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+    }
+    catch(...)
+    {
+        RespJson["ErrorMsg"].append("用户查询发生错误");
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_User_PersonalData", false, RespJson);
+        return;
+    }
 }
 
 
@@ -5938,6 +6072,77 @@ void MyDBService::Update_User_PersonalData(Json::Value &ReqJson, Json::Value &Re
     MyBasePtr->DEBUGLog("用户数据更新完成: " + user.toJson().toStyledString(), true);
     MyBasePtr->INFO_Func("Update_User_PersonalData", false, RespJson);
 }
+
+// 解析用户行为
+void MyDBService::ParseAction(Json::Value &Resp,const Json::Value &Action)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    Json::Value temp = Action;
+    MyBasePtr->INFO_Func("ParseAction", true, temp);
+    try
+    {
+        Json::Value Memo;
+        MyJsonPtr->JsonstrToJson(Memo,Action["Memo"].asString());
+        string type = Action["Type"].asString();
+        Resp["Time"] = Action["Time"].asString();
+        if(type == "Resource_Upload")// 资源上传行为
+        {
+            Resp["Type"] = "资源上传";
+            Resp["Memo"]["解释"] = Memo["Explain"].asString();
+            Resp["Memo"]["处理者"] = Memo["Processor"].asString();
+            Resp["Memo"]["上传ID"] = Memo["Upload_ID"].asInt();
+            Resp["Memo"]["上传类型"] = Memo["Upload_Type"].asString();
+        }
+        else if(type == "Examine_Upload")// 审核行为
+        {
+            Resp["Type"] = "资源上传审核";
+            Resp["Memo"]["审核结果"] = Memo["Explain"].asString();
+            Resp["Memo"]["处理者"] = Memo["Processor"].asString();
+            Resp["Memo"]["上传ID"] = Memo["Upload_ID"].asInt();
+            Resp["Memo"]["结果类型"] = Memo["Type"].asString();
+        }
+        else if(type == "User_Integral")// 用户积分相关
+        {
+            // Memo:{
+            //     "Explain" : "用户上传资源成功,1章奖励1积分",
+            //     "New_Data" : {
+            //         "Integral" : 135,
+            //         "TotalIntegral" : 135
+            //     },
+            //     "Num" : 1,
+            //     "Old_Data" : {
+            //         "Integral" : 134,
+            //         "TotalIntegral" : 134
+            //     },
+            //     "Processor" : "system(0)",
+            //     "Type" : "Add"
+            // },
+            Resp["Type"] = "积分变化";
+            Resp["Memo"]["说明"] = Memo["Explain"];
+            Resp["Memo"]["积分数"] = Memo["Num"];
+            Resp["Memo"]["旧数据"] = Memo["Old_Data"];
+            Resp["Memo"]["新数据"] = Memo["New_Data"];
+            Resp["Memo"]["处理者"] = Memo["Processor"];
+            Resp["Memo"]["变化类型"] = Memo["Type"];
+        }
+        else if(type == "Money")// 用户积分充值
+        {
+            Resp["Type"] = "积分充值";
+            Resp["Memo"]["说明"] = Memo["Explain"].asString();
+            Resp["Memo"]["积分数"] = Memo["Integral_Num"].asInt();
+            Resp["Memo"]["金额"] = to_string(Memo["Money_Num"].asInt())+"元";
+            Resp["Memo"]["处理者"] = Memo["Processor"].asString();
+        }
+    }
+    catch(Json::Value &e)
+    {
+        Resp["Memo"] = "详情解析发生错误";
+    }
+    MyBasePtr->INFO_Func("ParseAction", false, Resp);
+}
+
+
 
 
 

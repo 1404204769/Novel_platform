@@ -26,6 +26,10 @@ void PersonalData::Search(const HttpRequestPtr &req, std::function<void(const Ht
         MyJsonPtr->UnMapToJson(RespVal, umapPara, "Para");
 
         MyDBSPtr->Search_User_PersonalData(ReqVal, RespVal);
+        if(!RespVal["Result"].asBool())
+        {
+            throw RespVal;
+        }
         RespVal["Result"] = "获取成功";
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
