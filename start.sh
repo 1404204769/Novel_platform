@@ -36,7 +36,7 @@ then
     cmake ..
     clear
     echo "----------开始编译make----------" ;
-    make
+    make -j
     clear
     echo "----------开始运行----------" ;
     ./Novel_platform
