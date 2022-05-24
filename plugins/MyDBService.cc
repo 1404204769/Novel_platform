@@ -1442,7 +1442,7 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
 
-        if(ReqJson["Change_Type"].asString() != "Sub" && ReqJson["Change_Type"].asString() != "Add")
+        if(ReqJson["Change_Type"].asString() != "Sub" && ReqJson["Change_Type"].asString() != "Add" && ReqJson["Change_Type"].asString() != "Deduction" && ReqJson["Change_Type"].asString() != "Return")
         {
             RespJson["ErrorMsg"].append("Change_Type字段类型错误");
             throw RespJson;
@@ -1479,6 +1479,11 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
         if(ChangeType == "Sub")
         {
             // 表示积分的正常使用
+            if(user.getValueOfIntegral() < ChangeNum)
+            {
+                RespJson["ErrorMsg"].append("积分不足，请充值");
+                throw RespJson;
+            }
             user.setIntegral(user.getValueOfIntegral() - ChangeNum);
         }
         else if(ChangeType == "Add")
@@ -1517,6 +1522,7 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
         MyBasePtr->DEBUGLog("用户积分数据更新完成: " + user.toJson().toStyledString(), true);
         RespJson["User_Data"]["Integral"] = user.getValueOfIntegral();
         RespJson["User_Data"]["TotalIntegral"] = user.getValueOfTotalIntegral();
+        RespJson["User_Data"]["Level"] = user.getValueOfLevel();
         MyBasePtr->DEBUGLog("开始记录行为数据", true);
         // Memo:{
         //     Explain:"",
@@ -1541,6 +1547,12 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
             MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
         }
         MyBasePtr->DEBUGLog("行为数据记录完毕", true);
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        MyBasePtr->INFO_Func("Change_User_Integral", false, RespJson);
+        return false;
     }
     catch (const drogon::orm::DrogonDbException &e)
     {
@@ -3555,7 +3567,10 @@ Req:{
 }
 Resp:{
     "ErrorMsg":[],
-    "Result" : true/false
+    "Result" : true/false,
+    "User_Data":{},
+    "Integral_Action":{},
+    "Money_Action":{}
 }
 */
 void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
@@ -3625,15 +3640,17 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     MemoJson["Integral_Num"] = Integral_Num;
     MemoJson["Money_Num"] = ReqJson["Money_Num"].asInt();
     ActionJson["Action_Memo"] = MemoJson;
-    if (!Insert_Action(ActionJson, RespJson))
+    if (!Insert_Action(ActionJson, TempResp))
     {
         RespJson["Result"] = false;
         LOG_DEBUG << "充值行为数据记录失败";
+        RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
         RespJson["ErrorMsg"].append("充值行为数据记录失败");
         MyBasePtr->DEBUGLog("充值行为数据记录失败", true);
         MyBasePtr->INFO_Func("Recharge", false, RespJson);
         return;
     }
+    RespJson["Money_Action"] = TempResp["Action_Data"];
     MyBasePtr->DEBUGLog("充值行为数据记录完毕", true);
 
     // Req:{
@@ -3645,6 +3662,7 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     //     "Change_Explain" : ""
     // }
     TempReq.clear();
+    TempResp.clear();
     TempReq["User_ID"] = 0;
     TempReq["Processor"] = "system";
     TempReq["Change_ID"] = ReqJson["User_ID"].asInt();
@@ -3656,11 +3674,13 @@ void MyDBService::Recharge(Json::Value &ReqJson, Json::Value &RespJson)
     {
         RespJson["Result"] = false;
         MyBasePtr->DEBUGLog("充值失败", true);
-        RespJson["ErrorMsg"] = TempReq["ErrorMsg"];
-        RespJson["ErrorMsg"].append("充值失败");
+        RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
         MyBasePtr->INFO_Func("Recharge", false, RespJson);
         return;
     }
+    RespJson["User_Data"] = TempResp["User_Data"];
+    RespJson["Integral_Action"] = TempResp["Action_Data"];
+
     RespJson["Result"] = true;
     MyBasePtr->DEBUGLog("充值成功", true);
     MyBasePtr->INFO_Func("Recharge", false, RespJson);
@@ -3735,7 +3755,7 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         return;
     }
 
-    // 查询指定帖子
+    // 查询
     try
     {
         // 制作筛选条件
@@ -3746,6 +3766,7 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         Json::Value ActionList,TempAction;
         for(auto &action : vecAction)
         {
+            TempAction.clear();
             ParseAction(TempAction,action.toJson());
             
             ActionList.append(TempAction);
@@ -4859,21 +4880,25 @@ void MyDBService::Search_Chapter_By_ChapterID(Json::Value &ReqJson, Json::Value 
 /*
     根据图书ID搜索章节的接口
 Req:{
+    "User_ID":0,
     "Book_ID":0,
     "Part_Num":0,
-    "Chapter_Num":0
+    "Chapter_Num":0,
+    "Type":"Read/Download"
 }
 Resp:{
     "ErrorMsg"  :   [],         // 失败返回的错误信息
     "Result"    :   true/false, // 操作结果
     "Chapter_Content" :   [],         // 成功返回的章节内容信息
     "Chapter_ID":0,//章节ID
+    "User_Data":{},// download模式下返回数据
 }
 */
 void MyDBService::Search_ChapterContent(Json::Value &ReqJson, Json::Value &RespJson)
 {
 
     auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyRootPtr = app().getPlugin<MyRoot>();
     auto MyJsonPtr = app().getPlugin<MyJson>();
     MyBasePtr->INFO_Func("Search_ChapterContent", true, ReqJson);
 
@@ -4882,20 +4907,25 @@ void MyDBService::Search_ChapterContent(Json::Value &ReqJson, Json::Value &RespJ
     Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
 
     int BookID,PartNum,ChapterNum;
+    string type = "";
+    Json::Value data = MyRootPtr->getIntegralConfig();
 
     // 检查ReqJson数据是否合法
     try
     {
         MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
         std::map<string, MyJson::ColType> ColMap;
+        ColMap["User_ID"] = MyJson::ColType::INT;
         ColMap["Book_ID"] = MyJson::ColType::INT;
         ColMap["Part_Num"] = MyJson::ColType::INT;
         ColMap["Chapter_Num"] = MyJson::ColType::INT;
+        ColMap["Type"] = MyJson::ColType::STRING;
         MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
         MyBasePtr->DEBUGLog("ReqJson数据合法", true);
         BookID = atoi(ReqJson["Book_ID"].asString().c_str());
         PartNum = atoi(ReqJson["Part_Num"].asString().c_str());
         ChapterNum = atoi(ReqJson["Chapter_Num"].asString().c_str());
+        type = ReqJson["Type"].asString();
     }
     catch (Json::Value &RespJson)
     {
@@ -4910,7 +4940,6 @@ void MyDBService::Search_ChapterContent(Json::Value &ReqJson, Json::Value &RespJ
         MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
         return;
     }
-
 
     // 判断图书是否存在
     Json::Value SearchBookReq,SearchBookResp;
@@ -4941,24 +4970,88 @@ void MyDBService::Search_ChapterContent(Json::Value &ReqJson, Json::Value &RespJ
         {
             RespJson["ErrorMsg"] = SearchBookResp["ErrorMsg"];
             RespJson["ErrorMsg"].append("章节不存在");
-            RespJson["Result"] = false;
-            MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
-            return;
+            throw RespJson;
         }
         if(vecChapter.size() > 1)
         {
             RespJson["ErrorMsg"] = SearchBookResp["ErrorMsg"];
             RespJson["ErrorMsg"].append("章节不唯一");
-            RespJson["Result"] = false;
-            MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
-            return;
+            throw RespJson;
         }
 
         MyBasePtr->DEBUGLog("查询指定图书章节的内容完毕", true);
+        // 记录行为
+        if(type == "Download")
+        {
+            Json::Value TempReq,TempResp;
+            MyBasePtr->DEBUGLog("开始记录下载行为导致的扣除积分行为数据", true);
+            // Req:{
+            // "User_ID" : 0,
+            // "Processor" : "",
+            // "Change_ID" : 0,
+            // "Change_Num" : 0,
+            // "Change_Type" : "Add/Sub",
+            // "Change_Explain" : ""
+            // }
+            TempReq.clear();
+            TempResp.clear();
+            TempReq["User_ID"] = 0;
+            TempReq["Processor"] = "system";
+            TempReq["Change_ID"] = ReqJson["User_ID"].asInt();
+            TempReq["Change_Num"] = data["Download"].asInt();
+            TempReq["Change_Type"] = "Sub";
+            TempReq["Change_Explain"] = "用户下载图书资源消耗积分(每章"+to_string(data["Download"].asInt())+"积分)";
+            if (!Change_User_Integral(TempReq, TempResp))
+            {
+                RespJson["Result"] = false;
+                LOG_DEBUG << "积分扣除行为数据记录失败";
+                int ErrorSize = TempResp["ErrorMsg"].size();
+                RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
+                RespJson["ErrorMsg"].append("积分扣除失败:"+TempResp["ErrorMsg"][ErrorSize - 1].asString());
+                MyBasePtr->DEBUGLog("积分扣除行为数据记录失败", true);
+                MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
+                return;
+            }
+            MyBasePtr->DEBUGLog("积分扣除行为数据记录完毕", true);
+
+            RespJson["User_Data"] = TempResp["User_Data"];
+            
+            MyBasePtr->DEBUGLog("开始记录下载行为数据", true);
+            TempReq.clear();
+            TempResp.clear();
+            TempReq["User_ID"] = ReqJson["User_ID"].asInt();
+            TempReq["Action_Type"] = "Resource_Download";
+            // Memo:{Explain:"",Book_ID:0,Chapter_Num:0}
+            TempReq["Action_Memo"]["Explain"] = "用户下载图书资源";
+            TempReq["Action_Memo"]["Book_ID"] = ReqJson["Book_ID"];
+            TempReq["Action_Memo"]["Part_Num"] = ReqJson["Part_Num"];
+            TempReq["Action_Memo"]["Chapter_Num"] = ReqJson["Chapter_Num"];
+            if (!Insert_Action(TempReq, TempResp))
+            {
+                RespJson["Result"] = false;
+                LOG_DEBUG << "下载行为数据记录失败";
+                int ErrorSize = TempResp["ErrorMsg"].size();
+                RespJson["ErrorMsg"] = TempResp["ErrorMsg"];
+                RespJson["ErrorMsg"].append("下载失败:"+TempResp["ErrorMsg"][ErrorSize - 1].asString());
+                MyBasePtr->DEBUGLog("下载行为数据记录失败", true);
+                MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
+                return;
+            }
+            MyBasePtr->DEBUGLog("下载行为数据记录完毕", true);
+
+        }
         RespJson["Result"] = true;
         MyJsonPtr->JsonstrToJson(ChapterContentJson,vecChapter[0].getValueOfContent());
         RespJson["Chapter_Content"] = ChapterContentJson;
         RespJson["Chapter_ID"] = vecChapter[0].getValueOfChapterId();
+        MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
+        return;
+    }
+    catch(Json::Value &e)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        RespJson["ErrorMsg"].append("指定图书章节的内容查询失败");
         MyBasePtr->INFO_Func("Search_ChapterContent", false, RespJson);
         return;
     }
@@ -6094,6 +6187,21 @@ void MyDBService::ParseAction(Json::Value &Resp,const Json::Value &Action)
             Resp["Memo"]["上传ID"] = Memo["Upload_ID"].asInt();
             Resp["Memo"]["上传类型"] = Memo["Upload_Type"].asString();
         }
+        else if(type == "Resource_Download")// 资源下载
+        {
+            // {
+            //     "Book_ID" : 1,
+            //     "Chapter_Num" : 5,
+            //     "Explain" : "用户下载图书资源",
+            //     "Part_Num" : 1
+            // }
+
+            Resp["Type"] = "资源下载";
+            Resp["Memo"]["说明"] = Memo["Explain"].asString();
+            Resp["Memo"]["目标图书ID"] = Memo["Book_ID"].asInt();
+            Resp["Memo"]["目标分卷数"] = Memo["Part_Num"].asInt();
+            Resp["Memo"]["目标章节数"] = Memo["Chapter_Num"].asInt();
+        }
         else if(type == "Examine_Upload")// 审核行为
         {
             Resp["Type"] = "资源上传审核";
@@ -6118,6 +6226,21 @@ void MyDBService::ParseAction(Json::Value &Resp,const Json::Value &Action)
             //     "Processor" : "system(0)",
             //     "Type" : "Add"
             // },
+            // {
+            //     "Explain" : "用户下载图书资源消耗积分(每章1积分)",
+            //     "New_Data" : {
+            //         "Integral" : 4,
+            //         "TotalIntegral" : 1427
+            //     },
+            //     "Num" : 1,
+            //     "Old_Data" : {
+            //         "Integral" : 5,
+            //         "TotalIntegral" : 1427
+            //     },
+            //     "Processor" : "system(0)",
+            //     "Type" : "Sub"
+            // }
+
             Resp["Type"] = "积分变化";
             Resp["Memo"]["说明"] = Memo["Explain"];
             Resp["Memo"]["积分数"] = Memo["Num"];

@@ -24,9 +24,9 @@ class MyBase : public drogon::Plugin<MyBase>
     /// It must be implemented by the user.
     virtual void shutdown() override;
   private:
-    bool TRACE = true;
-    bool DEBUG = true;
-    bool INFO = true;
+    bool TRACE = false;
+    bool DEBUG = false;
+    bool INFO = false;
     bool WARN = false;
   public:
     void TRACELog(const string &str,const  bool Line_feed);

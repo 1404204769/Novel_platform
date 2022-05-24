@@ -248,13 +248,13 @@
         /*br_static:如果设置为true，则当客户端请求静态文件时，drogon首先在同一路径中找到扩展名为“.br”的压缩文件，并将压缩文件发送给客户端。br_static的默认值为true。*/
         "br_static": true,
         /*client_max_body_size:设置drogon接收的HTTP请求的最大正文大小。默认值为“1M”。可以将其设置为“1024”、“1k”、“10M”、“1G”等。将其设置为“”表示没有限制。*/
-        "client_max_body_size": "1M",
+        "client_max_body_size": "",
         /*client_max_memory_body_size:设置drogon接收的HTTP请求在内存中的最大正文大小。
         默认值为“64K”字节。如果HTTP请求的正文大小超过此限制，则正文将存储到临时文件中进行处理。将其设置为“”表示没有限制。*/
-        "client_max_memory_body_size": "64K",
+        "client_max_memory_body_size": "",
         /*client_max_websocket_message_size:设置websocket客户端发送的消息的最大大小。
         默认值为“128K”。可以将其设置为“1024”、“1k”、“10M”、“1G”等。将其设置为“”表示没有限制。*/
-        "client_max_websocket_message_size": "128K",
+        "client_max_websocket_message_size": "",
         /*reuse_port:默认为false，用户可以同时在同一端口上运行多个监听进程。*/
         "reuse_port": false
     },

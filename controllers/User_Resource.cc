@@ -331,17 +331,20 @@ void Resource::SearchContent(const HttpRequestPtr &req,std::function<void (const
     {
         // 读取Json数据
         ReqVal=*req->getJsonObject();
+        ReqVal["User_ID"] = atoi(umapPara.at("User_ID").c_str());
         MyDBS->Search_ChapterContent(ReqVal,RespVal);
         if(!RespVal["Result"].asBool())throw RespVal;
-        RespVal["简介"] = "图书查找接口";
-
+        RespVal["简介"] = "图书章节内容查找接口";
+        
         MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
 
         // 设置返回格式
         ResultData["Result"] = true;
-        ResultData["Message"] = "图书目录查询成功";
+        ResultData["Message"] = "章节内容查询成功";
         ResultData["Data"]["ChapterContent"]= RespVal["Chapter_Content"];
         ResultData["Data"]["ChapterID"]= RespVal["Chapter_ID"];
+        if(ReqVal["Type"].asString() == "Download")
+            ResultData["Data"]["User_Data"]= RespVal["User_Data"];
         Result=HttpResponse::newHttpJsonResponse(ResultData);
     }
     catch (Json::Value &RespVal)

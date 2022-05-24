@@ -147,7 +147,7 @@ void User::Action(const HttpRequestPtr &req,std::function<void (const HttpRespon
         ResultData["Data"]["Action_List"] = RespVal["Action_List"];
 
         Result = HttpResponse::newHttpJsonResponse(ResultData);
-        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+        //MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
     }
     catch (Json::Value &RespVal)
     {
@@ -167,6 +167,70 @@ void User::Action(const HttpRequestPtr &req,std::function<void (const HttpRespon
         int ErrorSize = RespVal["ErrorMsg"].size();
         ResultData["Result"] = false;
         ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
+
+
+void User::Recharge(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("User::Recharge::body" + string(req->getBody()), true);
+    
+ 
+    try
+    {
+        ReqVal=*req->getJsonObject();
+        RespVal["简介"] = "用户充值接口";
+        ReqVal["User_ID"] = atoi(umapPara.at("User_ID").c_str());
+        MyBasePtr->DEBUGLog("开始准备充值", true);
+        MyDBSPtr->Recharge(ReqVal,RespVal);
+        if(!RespVal["Result"].asBool())
+        {
+            RespVal["ErrorMsg"].append("用户充值失败");
+            throw RespVal;
+        }
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户充值成功";
+        ResultData["Data"]["User_Data"] = RespVal["User_Data"];
+        //ResultData["Data"]["Integral_Action"] = RespVal["Integral_Action"];
+        //ResultData["Data"]["Money_Action"] = RespVal["Money_Action"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = "用户充值失败:"+RespVal["ErrorMsg"][ErrorSize - 1].asString();
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Recharge::ERROR");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] ="用户充值失败:" + RespVal["ErrorMsg"][ErrorSize - 1].asString();
 
         Result = HttpResponse::newHttpJsonResponse(ResultData);
     }

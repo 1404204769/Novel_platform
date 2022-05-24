@@ -309,6 +309,201 @@ void Root::SysOutLevelUpdate(const HttpRequestPtr &req,std::function<void (const
 }
     
 
+bool Economic(Json::Value &DataJson,string BeginTime,string EndTime,Json::Value &ResultData)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    
+    MyBasePtr->INFO_Func("Economic", true, DataJson);
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+    try
+    {
+
+        Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"Money");
+        Criteria Begin_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::GE,BeginTime);// 大于等于
+        Criteria End_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::LT,EndTime);// 小于
+        vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(Type_cri&&Begin_cri&&End_cri);
+        //cout << "开始处理数据" << endl;
+        Json::Value TempJson;
+        for(auto& item : vecAction)
+        {
+            cout << item.toJson().toStyledString() << endl;
+            TempJson.clear();
+            trantor::Date TempTime = item.getValueOfTime().after(8*60*60);// 将tm_struct转为本地时间
+            TempJson["Time"] = TempTime.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false);
+            TempJson["UserID"] = item.getValueOfUserId();
+            //"Money_Num" 
+            TempJson["Memo"] = item.getValueOfMemo();
+            //cout << "开始处理Memo数据: " << TempJson["Memo"] << endl;
+            MyJsonPtr->JsonstrToJson(TempJson["Memo"],TempJson["Memo"].asCString());
+            //cout << "处理Memo数据完成: " << TempJson["Memo"] << endl;
+            TempJson["Money_Num"] = TempJson["Memo"]["Money_Num"];
+            TempJson.removeMember("Memo");
+            TempJson.removeMember("UserID");
+            cout << "Temp数据: " << TempJson << endl;
+            DataJson[to_string(TempTime.tmStruct().tm_year+1900)].append(TempJson);
+            MyBasePtr->DEBUGLog("DataJson::" + DataJson.toStyledString(), true);
+        }
+
+        for(auto &name : DataJson.getMemberNames()){
+            Json::Value MonthJson;
+            // 将十二个月分类
+            MonthJson["year"] = name; 
+            for(int i = 1;i < 13;i++)
+            {
+                MonthJson[to_string(i)] = 0;
+            }
+            for(int i = 1;i<DataJson[name].size();i++)
+            {
+                trantor::Date TempTime = trantor::Date::fromDbStringLocal(DataJson[name][i]["Time"].asString()).after(8*60*60);// 将tm_struct转为本地时间
+                string month = to_string(TempTime.tmStruct().tm_mon+1);
+                MonthJson[month] = MonthJson[month].asInt() + DataJson[name][i]["Money_Num"].asInt();
+            }
+            //MyBasePtr->DEBUGLog(name+"年 MonthJson::" + MonthJson.toStyledString(), true);
+            ResultData["Data"]["Report"].append(MonthJson);
+        }
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统报表查询成功";
+        MyBasePtr->INFO_Func("Economic", false, ResultData);
+        return true;
+        // ResultData["Data"]["Report"] = DataJson;
+        /* code */
+    }
+    catch(...)
+    {
+        ResultData["ErrorMsg"].append("获取经济报表发生异常");
+        MyBasePtr->INFO_Func("Economic", false, ResultData);
+        return false;
+    }
+}
+
+bool UploadReport(Json::Value &DataJson,string BeginTime,string EndTime,Json::Value &ResultData)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    
+    MyBasePtr->INFO_Func("UploadReport", true, DataJson);
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+    try
+    {
+
+        Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"Resource_Upload");
+        Criteria Begin_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::GE,BeginTime);// 大于等于
+        Criteria End_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::LT,EndTime);// 小于
+        vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(Type_cri&&Begin_cri&&End_cri);
+        //cout << "开始处理数据" << endl;
+        Json::Value TempJson;
+        for(auto& item : vecAction)
+        {
+            //cout << item.toJson().toStyledString() << endl;
+            TempJson.clear();
+            trantor::Date TempTime = item.getValueOfTime().after(8*60*60);// 将tm_struct转为本地时间
+            TempJson["Time"] = TempTime.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false);
+            // 将同一年先汇总
+            DataJson[to_string(TempTime.tmStruct().tm_year+1900)].append(TempJson);
+            //MyBasePtr->DEBUGLog("DataJson::" + DataJson.toStyledString(), true);
+        }
+        
+        for(auto &name : DataJson.getMemberNames()){
+            Json::Value MonthJson;
+            // 将十二个月分类
+            MonthJson["year"] = name; 
+            for(int i = 1;i < 13;i++)
+            {
+                MonthJson[to_string(i)] = 0;
+            }
+            for(int i = 1;i<DataJson[name].size();i++)
+            {
+                trantor::Date TempTime = trantor::Date::fromDbStringLocal(DataJson[name][i]["Time"].asString()).after(8*60*60);// 将tm_struct转为本地时间
+                string month = to_string(TempTime.tmStruct().tm_mon+1);
+                MonthJson[month] = MonthJson[month].asInt() + 1;
+            }
+            //MyBasePtr->DEBUGLog(name+"年 MonthJson::" + MonthJson.toStyledString(), true);
+            ResultData["Data"]["Report"].append(MonthJson);
+        }
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统报表查询成功";
+        MyBasePtr->INFO_Func("UploadReport", false, ResultData);
+        return true;
+        // ResultData["Data"]["Report"] = DataJson;
+        /* code */
+    }
+    catch(...)
+    {
+        ResultData["ErrorMsg"].append("获取上传报表发生异常");
+        MyBasePtr->INFO_Func("UploadReport", false, ResultData);
+        return false;
+    }
+}
+
+bool DownloadReport(Json::Value &DataJson,string BeginTime,string EndTime,Json::Value &ResultData)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    
+    MyBasePtr->INFO_Func("DownloadReport", true, DataJson);
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
+    try
+    {
+
+        Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"Resource_Download");
+        Criteria Begin_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::GE,BeginTime);// 大于等于
+        Criteria End_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::LT,EndTime);// 小于
+        vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(Type_cri&&Begin_cri&&End_cri);
+        //cout << "开始处理数据" << endl;
+        Json::Value TempJson;
+        for(auto& item : vecAction)
+        {
+            //cout << item.toJson().toStyledString() << endl;
+            TempJson.clear();
+            trantor::Date TempTime = item.getValueOfTime().after(8*60*60);// 将tm_struct转为本地时间
+            TempJson["Time"] = TempTime.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false);
+            // 将同一年先汇总
+            DataJson[to_string(TempTime.tmStruct().tm_year+1900)].append(TempJson);
+            //MyBasePtr->DEBUGLog("DataJson::" + DataJson.toStyledString(), true);
+        }
+        
+        for(auto &name : DataJson.getMemberNames()){
+            Json::Value MonthJson;
+            // 将十二个月分类
+            MonthJson["year"] = name; 
+            for(int i = 1;i < 13;i++)
+            {
+                MonthJson[to_string(i)] = 0;
+            }
+            for(int i = 1;i<DataJson[name].size();i++)
+            {
+                trantor::Date TempTime = trantor::Date::fromDbStringLocal(DataJson[name][i]["Time"].asString()).after(8*60*60);// 将tm_struct转为本地时间
+                string month = to_string(TempTime.tmStruct().tm_mon+1);
+                MonthJson[month] = MonthJson[month].asInt() + 1;
+            }
+            //MyBasePtr->DEBUGLog(name+"年 MonthJson::" + MonthJson.toStyledString(), true);
+            ResultData["Data"]["Report"].append(MonthJson);
+        }
+
+        ResultData["Result"] = true;
+        ResultData["Message"] = "系统报表查询成功";
+        MyBasePtr->INFO_Func("DownloadReport", false, ResultData);
+        return true;
+        // ResultData["Data"]["Report"] = DataJson;
+        /* code */
+    }
+    catch(...)
+    {
+        ResultData["ErrorMsg"].append("获取下载报表发生异常");
+        MyBasePtr->INFO_Func("DownloadReport", false, ResultData);
+        return false;
+    }
+}
+
 void Root::ReportForm(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
     Json::Value ReqVal,RespVal,TempJson,ResultData,ParaJson;
@@ -370,51 +565,40 @@ void Root::ReportForm(const HttpRequestPtr &req,std::function<void (const HttpRe
         Mapper<drogon_model::novel::Action> ActionMgr(dbclientPrt);
         if(ReqVal["Report_Type"].asString() == "Economic")
         {
-            Criteria Type_cri = Criteria(drogon_model::novel::Action::Cols::_Type,CompareOperator::EQ,"Money");
-            Criteria Begin_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::GE,ReqVal["Begin_Time"].asString());// 大于等于
-            Criteria End_cri = Criteria(drogon_model::novel::Action::Cols::_Time,CompareOperator::LT,ReqVal["End_Time"].asString());// 小于
-            vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(Type_cri&&Begin_cri&&End_cri);
-            //cout << "开始处理数据" << endl;
-            for(auto& item : vecAction)
+            bool res = Economic(DataJson,ReqVal["Begin_Time"].asString(),ReqVal["End_Time"].asString(),ResultData);
+
+            if(!res)
             {
-                cout << item.toJson().toStyledString() << endl;
-                TempJson.clear();
-                trantor::Date TempTime = item.getValueOfTime().after(8*60*60);// 将tm_struct转为本地时间
-                TempJson["Time"] = TempTime.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false);
-                TempJson["UserID"] = item.getValueOfUserId();
-                //"Money_Num" 
-                TempJson["Memo"] = item.getValueOfMemo();
-                //cout << "开始处理Memo数据: " << TempJson["Memo"] << endl;
-                MyJsonPtr->JsonstrToJson(TempJson["Memo"],TempJson["Memo"].asCString());
-                //cout << "处理Memo数据完成: " << TempJson["Memo"] << endl;
-                TempJson["Money_Num"] = TempJson["Memo"]["Money_Num"];
-                TempJson.removeMember("Memo");
-                TempJson.removeMember("UserID");
-                cout << "Temp数据: " << TempJson << endl;
-                DataJson[to_string(TempTime.tmStruct().tm_year+1900)].append(TempJson);
-                MyBasePtr->DEBUGLog("DataJson::" + DataJson.toStyledString(), true);
+                throw ResultData;
             }
-            
-            for(auto &name : DataJson.getMemberNames()){
-                DataJson[name][0] = name;
-                ResultData["Data"]["Report"].append(DataJson[name]);
+        }
+        else if(ReqVal["Report_Type"].asString() == "Upload")
+        {
+            bool res = UploadReport(DataJson,ReqVal["Begin_Time"].asString(),ReqVal["End_Time"].asString(),ResultData);
+            if(!res)
+            {
+                throw ResultData;
             }
-            ResultData["Result"] = true;
-            ResultData["Message"] = "系统报表查询成功";
-            // ResultData["Data"]["Report"] = DataJson;
+        }
+        else if(ReqVal["Report_Type"].asString() == "Download")
+        {
+            bool res = DownloadReport(DataJson,ReqVal["Begin_Time"].asString(),ReqVal["End_Time"].asString(),ResultData);
+
+            if(!res)
+            {
+                throw ResultData;
+            }
         }
         Result = HttpResponse::newHttpJsonResponse(ResultData);
-
-        MyBasePtr->DEBUGLog("RespVal::" + ResultData.toStyledString(), true);
+        MyBasePtr->DEBUGLog("ResultData::" + ResultData.toStyledString(), true);
     }
-    catch (Json::Value &RespVal)
+    catch (Json::Value &e)
     {
-        RespVal["Result"] = false;
-        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        MyBasePtr->TRACE_ERROR(e["ErrorMsg"]);
         // 设置返回格式
-        int ErrorSize = RespVal["ErrorMsg"].size();
+        int ErrorSize = e["ErrorMsg"].size();
         ResultData["Result"] = false;
-        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1].asString();
+        ResultData["Message"] = e["ErrorMsg"][ErrorSize - 1].asString();
 
         Result = HttpResponse::newHttpJsonResponse(ResultData);
     }
@@ -424,7 +608,6 @@ void Root::ReportForm(const HttpRequestPtr &req,std::function<void (const HttpRe
     callback(Result);
 
 }
-
 
 void Root::SysConfigSearch(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
