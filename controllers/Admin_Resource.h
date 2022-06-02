@@ -12,6 +12,7 @@ class Resource:public drogon::HttpController<Resource>
       METHOD_ADD(Resource::Search,"/Search",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
       METHOD_ADD(Resource::Upload,"/Upload",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
       METHOD_ADD(Resource::Update,"/Update",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
+      METHOD_ADD(Resource::UBS,"/Update/Book/Status",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
       METHOD_ADD(Resource::UCV,"/Update/Chapter/Valid",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
       METHOD_ADD(Resource::Download,"/Download",Get,Post,Options,"MyJsonFilter","JwtFilter","AdminFilter");
 
@@ -19,6 +20,7 @@ class Resource:public drogon::HttpController<Resource>
     void Search(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Upload(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Update(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
+    void UBS(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void UCV(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
     void Download(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const;
 };

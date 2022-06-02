@@ -1577,6 +1577,172 @@ bool MyDBService::Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJs
 }
 
 
+// 修改图书状态  上下架
+/*
+    修改图书状态  上下架
+Req:{
+    "Book_ID"           :   0,
+    "Para"         :   {},
+    "Status"       :   "上/下架",
+    "Explain"    :   ""
+}
+
+Resp:{
+    "ErrorMsg" : [],
+    "Book_Status":"",// 更新后 用户的状态
+}
+*/
+bool MyDBService::Change_Book_Status(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyToolsPtr = app().getPlugin<MyTools>();
+    MyBasePtr->INFO_Func("Change_Book_Status", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Upload> UploadMgr(dbclientPrt);
+    Mapper<drogon_model::novel::Book> BookMgr(dbclientPrt);
+    drogon_model::novel::Book book;
+
+    // 检查ReqJson数据是否合法
+    
+    int Book_ID = -1,User_ID = -1;
+    string Status = "",Explain="",Processor="";
+    Json::Value ParaJson;
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Book_ID"] = MyJson::ColType::INT;
+        ColMap["Para"] = MyJson::ColType::JSON;
+        ColMap["Status"] = MyJson::ColType::STRING;
+        ColMap["Explain"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        
+        Book_ID = ReqJson["Book_ID"].asInt();
+        Explain = ReqJson["Explain"].asString();
+
+        MyBasePtr->DEBUGLog("开始检查Para数据是否合法", true);
+        ColMap.clear();
+        ParaJson = ReqJson["Para"];
+        ColMap["User_ID"] = MyJson::ColType::STRING;
+        ColMap["Login_Status"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ParaJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("Para数据合法", true);
+        User_ID = atoi(ParaJson["User_ID"].asString().c_str());
+
+        MyBasePtr->DEBUGLog("开始检查操作权限", true);
+        string LoginStatus = ParaJson["Login_Status"].asString();
+        if (LoginStatus != "admin" && LoginStatus != "root")
+        {
+            RespJson["ErrorMsg"].append("权限不足，请联系管理员");
+            MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+            throw RespJson;
+        }
+        MyBasePtr->DEBUGLog("操作权限检测通过", true);
+
+        Processor = LoginStatus+"("+ParaJson["User_ID"].asString()+")";
+        Status = ReqJson["Status"].asString();
+        if(Status != "上架" && Status != "下架")
+        {
+            RespJson["ErrorMsg"].append("Status字段类型错误(范围:上架/下架)");
+            throw RespJson;
+        }
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+    }
+    catch (Json::Value &e)
+    {
+        RespJson["ErrorMsg"] = e["ErrorMsg"];
+        MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+        return false;
+    }
+
+    try
+    {
+        MyBasePtr->DEBUGLog("开始查询图书 : " + to_string(Book_ID), true);
+        book = BookMgr.findByPrimaryKey(Book_ID);
+        MyBasePtr->DEBUGLog("图书查询完毕 : " + book.toJson().toStyledString(), true);
+
+        Json::Value ActionJson,TempReq,TempResp;
+        // 上架
+        if(Status == "上架")
+        {
+            // 如果图书已经上架则无视
+            if(book.getValueOfStatus() == "正常")
+            {
+                RespJson["ErrorMsg"].append("资源已上架,无需重复操作");
+                return false;
+            }else
+            {
+                book.setStatus("正常");
+            }
+        }
+        // 解封
+        else if(Status == "下架")
+        {
+            // 如果图书已经下架则无视
+            if(book.getValueOfStatus() == "下架")
+            {
+                RespJson["ErrorMsg"].append("资源已下架,无需重复操作");
+                return false;
+            }
+            book.setStatus("下架");
+        }
+
+        MyBasePtr->DEBUGLog("开始更新图书(ID=" + to_string(Book_ID) + ")状态数据", true);
+        int row = BookMgr.update(book);
+        if (row != 1)
+        {
+            RespJson["ErrorMsg"].append("图书状态数据更新失败");
+            MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+            return false;
+        }
+        MyBasePtr->DEBUGLog("图书状态数据更新完成: " + book.toJson().toStyledString(), true);
+        RespJson["Book_Status"] = book.getValueOfStatus();
+        MyBasePtr->DEBUGLog("开始记录行为数据", true);
+        // Memo:{
+        //     Explain:"",
+        //     Processor:"system/admin:xxx",
+        //     Type:"Ban/Unseal",
+        //     Limit_Time:yyyy_mm_dd
+        //}
+        ActionJson["User_ID"] = User_ID;
+        ActionJson["Action_Type"] = "Book_Status";
+        ActionJson["Action_Memo"]["Explain"] = Explain;
+        ActionJson["Action_Memo"]["Processor"] = Processor;
+        ActionJson["Action_Memo"]["Type"] = Status;
+        
+        if (!Insert_Action(ActionJson, RespJson))
+        {
+            LOG_DEBUG << "行为数据记录失败";
+            MyBasePtr->DEBUGLog("行为数据记录失败", true);
+            MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+        }
+        MyBasePtr->DEBUGLog("行为数据记录完毕", true);
+    }
+    catch (const drogon::orm::DrogonDbException &e)
+    {
+        if (e.base().what() == string("0 rows found"))
+        {
+            RespJson["ErrorMsg"].append("要更改的图书资源不存在");
+        }
+        else if (e.base().what() == string("Found more than one row"))
+        {
+            RespJson["ErrorMsg"].append("要更改的图书资源ID重复,请联系管理员");
+        }
+        else
+        {
+            RespJson["ErrorMsg"].append(e.base().what());
+        }
+        MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+        return false;
+    }
+
+    MyBasePtr->INFO_Func("Change_Book_Status", false, RespJson);
+    return true;
+}
+
 // 修改用户状态  封号/解封
 /*
     修改用户状态  封号/解封
@@ -3762,6 +3928,7 @@ void MyDBService::Search_Action_By_UserID(Json::Value &ReqJson, Json::Value &Res
         Criteria UserID_cri = Criteria(drogon_model::novel::Action::Cols::_User_ID, CompareOperator::EQ, UserID);
         
         MyBasePtr->DEBUGLog("开始查询指定用户行为信息", true);
+        ActionMgr.orderBy(drogon_model::novel::Action::Cols::_Time,SortOrder::DESC);
         std::vector<drogon_model::novel::Action> vecAction = ActionMgr.findBy(UserID_cri);
         Json::Value ActionList,TempAction;
         for(auto &action : vecAction)
@@ -6212,35 +6379,6 @@ void MyDBService::ParseAction(Json::Value &Resp,const Json::Value &Action)
         }
         else if(type == "User_Integral")// 用户积分相关
         {
-            // Memo:{
-            //     "Explain" : "用户上传资源成功,1章奖励1积分",
-            //     "New_Data" : {
-            //         "Integral" : 135,
-            //         "TotalIntegral" : 135
-            //     },
-            //     "Num" : 1,
-            //     "Old_Data" : {
-            //         "Integral" : 134,
-            //         "TotalIntegral" : 134
-            //     },
-            //     "Processor" : "system(0)",
-            //     "Type" : "Add"
-            // },
-            // {
-            //     "Explain" : "用户下载图书资源消耗积分(每章1积分)",
-            //     "New_Data" : {
-            //         "Integral" : 4,
-            //         "TotalIntegral" : 1427
-            //     },
-            //     "Num" : 1,
-            //     "Old_Data" : {
-            //         "Integral" : 5,
-            //         "TotalIntegral" : 1427
-            //     },
-            //     "Processor" : "system(0)",
-            //     "Type" : "Sub"
-            // }
-
             Resp["Type"] = "积分变化";
             Resp["Memo"]["说明"] = Memo["Explain"];
             Resp["Memo"]["积分数"] = Memo["Num"];
@@ -6255,6 +6393,36 @@ void MyDBService::ParseAction(Json::Value &Resp,const Json::Value &Action)
             Resp["Memo"]["说明"] = Memo["Explain"].asString();
             Resp["Memo"]["积分数"] = Memo["Integral_Num"].asInt();
             Resp["Memo"]["金额"] = to_string(Memo["Money_Num"].asInt())+"元";
+            Resp["Memo"]["处理者"] = Memo["Processor"].asString();
+        }
+        else if(type == "User_Status")// 用户状态信息
+        {
+            if(Memo["Type"].asString() == "Ban")
+            {
+                Resp["Type"] = "封号";
+                Resp["Memo"]["封号时间"] = Memo["Ban_Time"].asString();
+            }
+            else 
+            {
+                Resp["Type"] = "解封";
+            }
+
+            Resp["Memo"]["说明"] = Memo["Explain"].asString();
+            Resp["Memo"]["处理者"] = Memo["Processor"].asString();
+        }
+        else if(type == "Book_Status")// 图书状态信息
+        {
+            if(Memo["Type"].asString() == "上架")
+            {
+                Resp["Type"] = "资源重新上架";
+            }
+            else 
+            {
+                Resp["Type"] = "资源下架";
+            }
+            
+            Resp["Memo"]["操作"] = Memo["Type"].asString();
+            Resp["Memo"]["说明"] = Memo["Explain"].asString();
             Resp["Memo"]["处理者"] = Memo["Processor"].asString();
         }
     }
@@ -6636,7 +6804,7 @@ bool MyDBService::Insert_Book(Json::Value &ReqJson, Json::Value &RespJson)
         NewBook.setAuthor(BookAuthor);       // 作者
         NewBook.setBookName(BookName);           // 书名
         NewBook.setPublisher(BookPublisher); // 出版方
-        NewBook.setStatus("连载中");         // 状态
+        NewBook.setStatus("正常");         // 状态
         NewBook.setSynopsis(BookSynopsis);   // 提要
         /*
             Memo : {

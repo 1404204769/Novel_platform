@@ -42,6 +42,7 @@ class MyDBService : public drogon::Plugin<MyDBService>
     void Auto_Examine_Chapter_Update(Json::Value &ReqJson, Json::Value &RespJson);
 
     bool Change_User_Integral(Json::Value &ReqJson, Json::Value &RespJson);
+    bool Change_Book_Status(Json::Value &ReqJson, Json::Value &RespJson);
     bool Change_User_Status(Json::Value &ReqJson, Json::Value &RespJson);
     bool Change_Idea_Status(Json::Value &ReqJson, Json::Value &RespJson);
 

@@ -173,6 +173,84 @@ void Resource::Update(const HttpRequestPtr &req,std::function<void (const HttpRe
     callback(Result);
 }
 
+// 管理员修改资源状态
+void Resource::UBS(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBSPtr = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::UBS::body" + string(req->getBody()), true);
+    
+
+    Result = HttpResponse::newHttpJsonResponse(RespVal);
+
+    try
+    {
+        // 读取Json数据
+        ReqVal = *req->getJsonObject();
+        MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
+
+        RespVal["简介"] = "管理员资源管理接口-图书状态管理";
+        MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
+
+        // 开始检查传入参数
+        {
+            MyBasePtr->DEBUGLog("开始检查传入参数是否合法", true);
+            // "Para"           :   {"User_ID":"","Login_Status":""} 执行者
+            // "Book_ID":0,
+            // "Part_Num"0,
+            // "Chapter_Num":0
+            // "Version":0
+            std::map<string, MyJson::ColType> ColMap;
+            ColMap["Para"] = MyJson::ColType::JSON;
+            ColMap["Book_ID"] = MyJson::ColType::INT;
+            ColMap["Status"] = MyJson::ColType::STRING;
+            ColMap["Explain"] = MyJson::ColType::STRING;
+            MyJsonPtr->checkMemberAndTypeInMap(ReqVal, RespVal, ColMap);
+            MyBasePtr->DEBUGLog("传入参数合法", true);
+        }
+        
+        bool res = MyDBSPtr->Change_Book_Status(ReqVal, RespVal);
+        if(!res) throw RespVal;
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "修改图书状态成功";
+        ResultData["Data"]["Book_Status"] = RespVal["Book_Status"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Admin::Resource::UBS::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
+
 // 管理员指定章节版本的
 void Resource::UCV(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
 {
@@ -194,7 +272,7 @@ void Resource::UCV(const HttpRequestPtr &req,std::function<void (const HttpRespo
         ReqVal = *req->getJsonObject();
         MyBasePtr->DEBUGLog("ReqVal::" + ReqVal.toStyledString(), true);
 
-        RespVal["简介"] = "管理员资源管理接口";
+        RespVal["简介"] = "管理员资源管理接口-章节版本管理";
         MyJsonPtr->UnMapToJson(ReqVal, umapPara, "Para");
 
         // 开始检查传入参数

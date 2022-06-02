@@ -237,9 +237,9 @@ void Gpi::Register(const HttpRequestPtr &req,std::function<void (const HttpRespo
         // Duplicate entry '911222' for key 'PRIMARY'
 	    RespVal["Result"] = "注册失败";
         if(std::regex_match(e.base().what(), std::regex("Duplicate entry '.*' for key 'PRIMARY'")))
-            RespVal["ErrorMsg"].append("注册失败/此UserID已存在");
+            RespVal["ErrorMsg"].append("此UserID已存在");
         else
-            RespVal["ErrorMsg"].append("注册失败/" + string(e.base().what()));
+            RespVal["ErrorMsg"].append(string(e.base().what()));
         MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
         
         // 设置返回格式

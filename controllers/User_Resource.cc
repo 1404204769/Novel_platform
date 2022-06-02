@@ -200,6 +200,146 @@ void Resource::Search(const HttpRequestPtr &req, std::function<void(const HttpRe
     callback(Result);
 }
 
+void Search_Top_Note(Json::Value &ReqJson, Json::Value &RespJson)
+{
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    MyBasePtr->INFO_Func("Search_Top_Note", true, ReqJson);
+
+    auto dbclientPrt = drogon::app().getDbClient();
+    Mapper<drogon_model::novel::Note> NoteMgr(dbclientPrt);
+
+    int limit = 0, offset = 0;
+    string NoteType = "",UserID = "";
+
+    // 检查ReqJson数据是否合法
+    try
+    {
+        MyBasePtr->DEBUGLog("开始检查ReqJson数据是否合法", true);
+        // "Note_Type"  :   "",// 类型,在标题和内容中查找
+        std::map<string, MyJson::ColType> ColMap;
+        ColMap["Note_Type"] = MyJson::ColType::STRING;
+        MyJsonPtr->checkMemberAndTypeInMap(ReqJson, RespJson, ColMap);
+        MyBasePtr->DEBUGLog("ReqJson数据合法", true);
+
+        NoteType = ReqJson["Note_Type"].asString();
+        if (ReqJson.isMember("User_ID"))
+        {
+            MyJsonPtr->checkColType(ReqJson, RespJson, "User_ID", MyJson::ColType::INT);
+            UserID = ReqJson["User_ID"].asString();
+        }
+    }
+    catch (Json::Value &RespJson)
+    {
+        RespJson["Result"] = false;
+        MyBasePtr->INFO_Func("Search_Top_Note", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("MyDBService::Search_Top_Note::Error");
+        MyBasePtr->INFO_Func("Search_Top_Note", false, RespJson);
+        return;
+    }
+
+    // 查询指定帖子
+    try
+    {
+        // 制作筛选条件
+        Criteria UserID_cri = Criteria(drogon_model::novel::Note::Cols::_User_ID, CompareOperator::Like, "%" + UserID + "%");
+        Criteria NoteType_cri(drogon_model::novel::Note::Cols::_Type, CompareOperator::Like, "%" + NoteType + "%");
+        NoteMgr.orderBy(drogon_model::novel::Note::Cols::_Create_Time,SortOrder::DESC);// 根据创建时间排序
+        NoteMgr.limit(10);//限制前10
+
+        MyBasePtr->DEBUGLog("开始查询指定帖子", true);
+        std::vector<drogon_model::novel::Note> vecNote = NoteMgr.findBy(UserID_cri &&  NoteType_cri);
+        Json::Value vecJsonVal, TempNoteJson;
+        for (auto &note : vecNote)
+        {
+            TempNoteJson.clear();
+            TempNoteJson = note.toJson();
+            MyJsonPtr->JsonstrToJson(TempNoteJson["Content"],TempNoteJson["Content"].asString());
+            vecJsonVal.append(TempNoteJson);
+            // std::cout << user.toJson().toStyledString() <<std::endl;
+        }
+        MyBasePtr->DEBUGLog("查询指定帖子完毕", true);
+        RespJson["Result"] = true;
+        RespJson["Note_List"] = vecJsonVal;
+        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        return;
+    }
+    catch (...)
+    {
+        RespJson["Result"] = false;
+        RespJson["ErrorMsg"].append("帖子查询失败");
+        MyBasePtr->INFO_Func("Search_Note", false, RespJson);
+        return;
+    }
+
+}
+
+void Resource::SearchTop(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const
+{
+    Json::Value ReqVal, RespVal,ResultData;
+    drogon::HttpResponsePtr Result;
+    auto MyBasePtr = app().getPlugin<MyBase>();
+    auto MyJsonPtr = app().getPlugin<MyJson>();
+    auto MyDBS = app().getPlugin<MyDBService>();
+    const unordered_map<string, string> umapPara = req->getParameters();
+    MyBasePtr->TRACELog("Resource::Search::body" + string(req->getBody()), true);
+    
+    try
+    {
+        // 读取Json数据
+        ReqVal=*req->getJsonObject();
+        // "Note_KeyWord" : "",// 关键字,在标题和内容中查找
+        MyBasePtr->DEBUGLog("开始检查数据完整性", true);
+        MyJsonPtr->checkMemberAndType(ReqVal,RespVal,"Note_Type",MyJson::ColType::STRING);
+        MyBasePtr->DEBUGLog("检查数据完整性完成", true);
+
+
+        Search_Top_Note(ReqVal,RespVal);
+
+
+        if(!RespVal["Result"].asBool())throw RespVal;
+        RespVal["简介"] = "Top图书查找接口";
+
+        MyBasePtr->DEBUGLog("RespVal::" + RespVal.toStyledString(), true);
+
+        // 设置返回格式
+        ResultData["Result"] = true;
+        ResultData["Message"] = "用户查询帖子成功";
+        ResultData["Data"]["Note_List"]= RespVal["Note_List"];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (Json::Value &RespVal)
+    {
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+    catch (...)
+    {
+        RespVal["ErrorMsg"].append("Resource::Search::Error");
+        MyBasePtr->TRACE_ERROR(RespVal["ErrorMsg"]);
+        // 设置返回格式
+        int ErrorSize = RespVal["ErrorMsg"].size();
+        ResultData["Result"] = false;
+        ResultData["Message"] = RespVal["ErrorMsg"][ErrorSize - 1];
+
+        Result = HttpResponse::newHttpJsonResponse(ResultData);
+    }
+
+    Result->setStatusCode(k200OK);
+    Result->setContentTypeCode(CT_TEXT_HTML);
+    callback(Result);
+}
 
 // 帖子查找评论接口
 void Resource::SearchComment(const HttpRequestPtr &req,std::function<void (const HttpResponsePtr &)> &&callback) const

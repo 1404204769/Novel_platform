@@ -329,7 +329,7 @@ bool Economic(Json::Value &DataJson,string BeginTime,string EndTime,Json::Value 
         Json::Value TempJson;
         for(auto& item : vecAction)
         {
-            cout << item.toJson().toStyledString() << endl;
+            //cout << item.toJson().toStyledString() << endl;
             TempJson.clear();
             trantor::Date TempTime = item.getValueOfTime().after(8*60*60);// 将tm_struct转为本地时间
             TempJson["Time"] = TempTime.toCustomedFormattedString("%Y-%m-%d %H:%M:%S",false);
@@ -342,7 +342,7 @@ bool Economic(Json::Value &DataJson,string BeginTime,string EndTime,Json::Value 
             TempJson["Money_Num"] = TempJson["Memo"]["Money_Num"];
             TempJson.removeMember("Memo");
             TempJson.removeMember("UserID");
-            cout << "Temp数据: " << TempJson << endl;
+            // cout << "Temp数据: " << TempJson << endl;
             DataJson[to_string(TempTime.tmStruct().tm_year+1900)].append(TempJson);
             MyBasePtr->DEBUGLog("DataJson::" + DataJson.toStyledString(), true);
         }
